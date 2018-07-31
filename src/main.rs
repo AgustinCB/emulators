@@ -17,6 +17,23 @@ enum Register {
     Psw,
 }
 
+impl ToString for Register {
+    fn to_string(&self) -> String {
+        match self {
+            Register::A => String::from("A"),
+            Register::B => String::from("B"),
+            Register::C => String::from("C"),
+            Register::D => String::from("D"),
+            Register::E => String::from("E"),
+            Register::H => String::from("H"),
+            Register::L => String::from("L"),
+            Register::M => String::from("M"),
+            Register::Sp => String::from("SP"),
+            Register::Psw => String::from("PSW"),
+        }
+    }
+}
+
 type Address = [u8; 2];
 
 #[derive(Clone)]
@@ -100,6 +117,117 @@ enum Instruction {
     El,
     Cm { address: Address},
     Cpi { byte: u8 },
+}
+
+impl ToString for Instruction {
+    fn to_string(&self) -> String {
+        match self {
+            Instruction::Noop => String::from("NOOP"),
+            Instruction::Lxi { register, low_byte, high_byte } =>
+                format!("LXI {},#${:02x}{:02x}", register.to_string(), high_byte, low_byte),
+            Instruction::Stax { register } => format!("STAX {}", register.to_string()),
+            Instruction::Inx { register } => format!("INX {}", register.to_string()),
+            Instruction::Inr { register } => format!("INR {}", register.to_string()),
+            Instruction::Dcr { register } => format!("DCR {}", register.to_string()),
+            Instruction::Mvi { register, byte } =>
+                format!("MVI {},#${:02x}", register.to_string(), byte),
+            Instruction::Rlc => String::from("RLC"),
+            Instruction::Dad { register } => format!("DAD {}", register.to_string()),
+            Instruction::Ldax { register } => format!("LDAX {}", register.to_string()),
+            Instruction::Dcx { register } => format!("DCX {}", register.to_string()),
+            Instruction::Rrc => String::from("RRC"),
+            Instruction::Ral => String::from("RAL"),
+            Instruction::Rar => String::from("RAR"),
+            Instruction::Rim => String::from("RIM"),
+            Instruction::Shld { address } =>
+                format!("SHLD ${:02x}{:02x}", address[1], address[0]),
+            Instruction::Daa => String::from("DAA"),
+            Instruction::Lhld { address } =>
+                format!("LHLD ${:02x}{:02x}", address[1], address[0]),
+            Instruction::Cma => String::from("CMA"),
+            Instruction::Sim => String::from("SIM"),
+            Instruction::Sta { address } =>
+                format!("STA ${:02x}{:02x}", address[1], address[0]),
+            Instruction::Lda { address } =>
+                format!("LDA ${:02x}{:02x}", address[1], address[0]),
+            Instruction::Stc => String::from("STC"),
+            Instruction::Cmc => String::from("SMC"),
+            Instruction::Mov { source, destiny } =>
+                format!("MOV {},{}", source.to_string(), destiny.to_string()),
+            Instruction::Add { register } => format!("ADD {}", register.to_string()),
+            Instruction::Adc { register } => format!("ADC {}", register.to_string()),
+            Instruction::Sub { register } => format!("SUB {}", register.to_string()),
+            Instruction::Sbb { register } => format!("SBB {}", register.to_string()),
+            Instruction::Ana { register } => format!("ANA {}", register.to_string()),
+            Instruction::Xra { register } => format!("XRA {}", register.to_string()),
+            Instruction::Ora { register } => format!("ORA {}", register.to_string()),
+            Instruction::Cmp { register } => format!("CMP {}", register.to_string()),
+            Instruction::Rnz => String::from("RNZ"),
+            Instruction::Pop { register } => format!("POP {}", register.to_string()),
+            Instruction::Jnz { address } =>
+                format!("JNZ ${:02x}{:02x}", address[1], address[0]),
+            Instruction::Jmp { address } =>
+                format!("JMP ${:02x}{:02x}", address[1], address[0]),
+            Instruction::Cnz { address } =>
+                format!("CNZ ${:02x}{:02x}", address[1], address[0]),
+            Instruction::Push { register } => format!("PUSH {}", register.to_string()),
+            Instruction::Adi { byte } => format!("ADI #${:02x}", byte),
+            Instruction::Rst { value } => format!("RST {}", value),
+            Instruction::Rz => String::from("RZ"),
+            Instruction::Ret => String::from("RET"),
+            Instruction::Jz { address } =>
+                format!("JZ ${:02x}{:02x}", address[1], address[0]),
+            Instruction::Cz { address } =>
+                format!("CZ ${:02x}{:02x}", address[1], address[0]),
+            Instruction::Call { address } =>
+                format!("CALL ${:02x}{:02x}", address[1], address[0]),
+            Instruction::Aci { byte } => format!("ACI #${:02x}", byte),
+            Instruction::Rnc => String::from("RNC"),
+            Instruction::Jnc { address } =>
+                format!("JNC ${:02x}{:02x}", address[1], address[0]),
+            Instruction::Out { byte } => format!("OUT #${:02x}", byte),
+            Instruction::Cnc { address } =>
+                format!("CNC ${:02x}{:02x}", address[1], address[0]),
+            Instruction::Sui { byte } => format!("SUI #${:02x}", byte),
+            Instruction::Rc => String::from("RC"),
+            Instruction::Jc { address } =>
+                format!("JC ${:02x}{:02x}", address[1], address[0]),
+            Instruction::In { byte } => format!("IN #${:02x}", byte),
+            Instruction::Cc { address } =>
+                format!("CC ${:02x}{:02x}", address[1], address[0]),
+            Instruction::Sbi { byte } => format!("SBI #${:02x}", byte),
+            Instruction::Rpo => String::from("RPO"),
+            Instruction::Jpo { address } =>
+                format!("JPO ${:02x}{:02x}", address[1], address[0]),
+            Instruction::Xthl => String::from("XTHL"),
+            Instruction::Cpo { address } =>
+                format!("CPO ${:02x}{:02x}", address[1], address[0]),
+            Instruction::Ani { byte } => format!("ANI #${:02x}", byte),
+            Instruction::Rpe => String::from("RPE"),
+            Instruction::Pchl => String::from("PCHL"),
+            Instruction::Jpe { address } =>
+                format!("JPE ${:02x}{:02x}", address[1], address[0]),
+            Instruction::Xchg => String::from("RNC"),
+            Instruction::Cpe { address } =>
+                format!("CPE ${:02x}{:02x}", address[1], address[0]),
+            Instruction::Xri { byte } => format!("XRI #${:02x}", byte),
+            Instruction::Rp => String::from("RP"),
+            Instruction::Jp { address } =>
+                format!("JP ${:02x}{:02x}", address[1], address[0]),
+            Instruction::Di => String::from("DI"),
+            Instruction::Cp { address } =>
+                format!("CP ${:02x}{:02x}", address[1], address[0]),
+            Instruction::Ori { byte } => format!("ORI #${:02x}", byte),
+            Instruction::Rm => String::from("RN"),
+            Instruction::Sphl => String::from("SPHL"),
+            Instruction::Jm { address } =>
+                format!("JM ${:02x}{:02x}", address[1], address[0]),
+            Instruction::El => String::from("EL"),
+            Instruction::Cm { address } =>
+                format!("CM ${:02x}{:02x}", address[1], address[0]),
+            Instruction::Cpi { byte } => format!("CPI #${:02x}", byte),
+        }
+    }
 }
 
 #[inline]
@@ -352,20 +480,22 @@ fn get_instruction(bytes: &[u8]) -> Result<(Instruction, u8), String> {
         0xfe => Ok((Instruction::Cpi { byte: bytes[1] }, 1)),
         0xff => Ok((Instruction::Rst { value: 7 }, 0)),
         c => {
-            eprint!("Unrecognized byte {}.\n", c);
+            eprintln!("Unrecognized byte {}.", c);
             Ok((Instruction::Noop, 0))
         },
     }
 }
 
-fn get_instructions(bytes: Vec<u8>) -> Result<Vec<Instruction>, String> {
-    let mut result = vec![Instruction::Noop; bytes.len()];
+fn get_instructions(bytes: Vec<u8>) -> Result<Vec<(u16, Instruction)>, String> {
+    let mut result = Vec::with_capacity(bytes.len());
     let mut pass = 0;
+    let mut pc: u16 = 0;
     for index in 0..bytes.len() {
         if pass == 0 {
             let (i, extra_bytes) = get_instruction(&bytes[index..min(index+3, bytes.len())])?;
-            result.push(i);
             pass = extra_bytes;
+            result.push((pc, i));
+            pc += (extra_bytes + 1) as u16;
         } else {
             pass -= 1;
         }
@@ -390,4 +520,7 @@ fn main() {
     }
     let bytes = read_file(&args[1]).unwrap();
     let instructions = get_instructions(bytes).unwrap();
+    for (pc,instruction) in &instructions {
+        println!("{:04x} {}", pc, instruction.to_string());
+    }
 }
