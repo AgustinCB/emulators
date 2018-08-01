@@ -1,6 +1,7 @@
 [package]
-name = "disassambler-8080"
+name = "emulator_8080"
 version = "0.1.0"
 authors = ["AgustinCB <jnieve@gmail.com>"]
 
 [dependencies]
+disassembler_8080 = { path = "../disassembler" }

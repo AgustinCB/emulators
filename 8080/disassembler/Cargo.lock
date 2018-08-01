@@ -1,4 +1,4 @@
 [[package]]
-name = "disassambler-8080"
+name = "disassembler_8080"
 version = "0.1.0"
 
