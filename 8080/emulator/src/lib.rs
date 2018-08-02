@@ -77,11 +77,30 @@ impl State {
         let instruction = Instruction::from_bytes(self.get_next_instruction_bytes());
         self.pc += instruction.size() as u16;
         match instruction {
-            Instruction::Adc { source: Destiny::RegisterDestiny { register } } => self.execute_adc_by_register(&register),
-            Instruction::Adc { source: Destiny::MemoryDestiny } => self.execute_adc_by_memory(),
-            Instruction::Add { source: Destiny::RegisterDestiny { register } } => self.execute_add_by_register(&register),
-            Instruction::Add { source: Destiny::MemoryDestiny } => self.execute_add_by_memory(),
+            Instruction::Adc { source: Destiny::Register { register } } => self.execute_adc_by_register(&register),
+            Instruction::Adc { source: Destiny::Memory } => self.execute_adc_by_memory(),
+            Instruction::Add { source: Destiny::Register { register } } => self.execute_add_by_register(&register),
+            Instruction::Add { source: Destiny::Memory } => self.execute_add_by_memory(),
             Instruction::Adi { byte } => self.execute_adi(byte),
+            Instruction::Ana { source: Destiny::Register { register } } => self.execute_ana_by_register(&register),
+            Instruction::Ana { source: Destiny::Memory } => self.execute_ana_by_memory(),
+            Instruction::Cma => self.execute_cma(),
+            Instruction::Cmc => self.execute_cmc(),
+            Instruction::Daa => self.execute_daa(),
+            Instruction::Dcr { source: Destiny::Register { register } } => self.execute_dcr_by_register(&register),
+            Instruction::Dcr { source: Destiny::Memory } => self.execute_dcr_by_memory(),
+            Instruction::Inr { source: Destiny::Register { register } } => self.execute_inr_by_register(&register),
+            Instruction::Inr { source: Destiny::Memory } => self.execute_inr_by_memory(),
+            Instruction::Ldax { register } => self.execute_ldax(&register),
+            Instruction::Mov { destiny, source } => self.execute_mov(&destiny, &source),
+            Instruction::Stax { register } => self.execute_stax(&register),
+            Instruction::Stc => self.execute_stc(),
+            Instruction::Sbb { source: Destiny::Register { register } } => self.execute_sbb_by_register(&register),
+            Instruction::Sbb { source: Destiny::Memory } => self.execute_sbb_by_memory(),
+            Instruction::Sub { source: Destiny::Register { register } } => self.execute_sub_by_register(&register),
+            Instruction::Sub { source: Destiny::Memory } => self.execute_sub_by_memory(),
+            Instruction::Xra { source: Destiny::Register { register } } => self.execute_xra_by_register(&register),
+            Instruction::Xra { source: Destiny::Memory } => self.execute_xra_by_memory(),
             _ => println!("Execute: {}", instruction.to_string()),
         }
     }
@@ -92,7 +111,7 @@ impl State {
 
     fn execute_adi(&mut self, byte: u8) {
         let destiny_value = self.get_current_a_value() as u16;
-        let new_value = self.perform_add(byte as u16, destiny_value);
+        let new_value = self.perform_add_with_carry(byte as u16, destiny_value);
         self.save_to_a(new_value);
     }
 
@@ -100,43 +119,214 @@ impl State {
         let destiny_value = self.get_current_a_value() as u16;
         let source_value = self.get_current_single_register_value(register_type) as u16;
         let carry_as_u16 = self.flags.carry as u16;
-        let new_value = self.perform_add(source_value, destiny_value);
-        let new_value = self.perform_add(carry_as_u16, new_value as u16);
+        let new_value = self.perform_add_with_carry(source_value, destiny_value);
+        let new_value = self.perform_add_with_carry(carry_as_u16, new_value as u16);
         self.save_to_a(new_value);
     }
 
     fn execute_adc_by_memory(&mut self) {
         let destiny_value = self.get_current_a_value() as u16;
-        let source_value_address: u16 = self.get_current_hl_value();
-        let source_value = self.memory[source_value_address as usize] as u16;
+        let source_value = self.get_value_in_memory_at_hl() as u16;
         let carry_as_u16 = self.flags.carry as u16;
-        let new_value = self.perform_add(source_value, destiny_value);
-        let new_value = self.perform_add(carry_as_u16, new_value as u16);
+        let new_value = self.perform_add_with_carry(source_value, destiny_value);
+        let new_value = self.perform_add_with_carry(carry_as_u16, new_value as u16);
         self.save_to_a(new_value);
     }
 
     fn execute_add_by_register(&mut self, register_type: &RegisterType) {
         let destiny_value = self.get_current_a_value() as u16;
         let source_value = self.get_current_single_register_value(register_type) as u16;
-        let new_value = self.perform_add(source_value, destiny_value);
+        let new_value = self.perform_add_with_carry(source_value, destiny_value);
         self.save_to_a(new_value);
     }
 
     fn execute_add_by_memory(&mut self) {
         let destiny_value = self.get_current_a_value() as u16;
-        let source_value_address: u16 = self.get_current_hl_value();
-        let source_value = self.memory[source_value_address as usize] as u16;
-        let new_value = self.perform_add(source_value, destiny_value);
+        let source_value = self.get_value_in_memory_at_hl() as u16;
+        let new_value = self.perform_add_with_carry(source_value, destiny_value);
+        self.save_to_a(new_value);
+    }
+
+    fn execute_ana_by_register(&mut self, register_type: &RegisterType) {
+        let destiny_value = self.get_current_a_value();
+        let source_value = self.get_current_single_register_value(register_type);
+        let new_value = self.perform_and(source_value, destiny_value);
+        self.save_to_a(new_value);
+    }
+
+    fn execute_ana_by_memory(&mut self) {
+        let destiny_value = self.get_current_a_value();
+        let source_value = self.get_value_in_memory_at_hl();
+        let new_value = self.perform_and(source_value, destiny_value);
+        self.save_to_a(new_value);
+    }
+
+    #[inline]
+    fn execute_cma(&mut self) {
+        let destiny_value = self.get_current_a_value();
+        self.save_to_a(!destiny_value);
+    }
+
+    #[inline]
+    fn execute_cmc(&mut self) {
+        self.flags.carry = !self.flags.carry;
+    }
+
+    fn execute_daa(&mut self) {
+        let destiny_value = self.get_current_a_value() as u16;
+        let least_significant = destiny_value & 0x0f;
+        let mut result = destiny_value;
+        if least_significant > 9 || self.flags.auxiliary_carry {
+            result += 6;
+            self.flags.auxiliary_carry = (result & 0x0f) < least_significant;
+        }
+        let most_significant = (result & 0xf0) >> 4;
+        if most_significant > 9 || self.flags.carry {
+            result = result | ((most_significant + 6) << 4);
+            if result > 0xff {
+                self.flags.carry = true;
+            }
+        }
+        self.update_flags(result, false);
+        self.save_to_a(result as u8);
+    }
+
+    fn execute_dcr_by_register(&mut self, register_type: &RegisterType) {
+        let source_value = self.get_current_single_register_value(register_type) as u16;
+        let new_value = self.perform_sub_without_carry(source_value, 1);
+        self.save_to_single_register(new_value, register_type);
+    }
+
+    fn execute_dcr_by_memory(&mut self) {
+        let source_value = self.get_value_in_memory_at_hl() as u16;
+        let new_value = self.perform_sub_without_carry(source_value, 1);
+        self.set_value_in_memory_at_hl(new_value);
+    }
+
+    fn execute_inr_by_register(&mut self, register_type: &RegisterType) {
+        let source_value = self.get_current_single_register_value(register_type) as u16;
+        let new_value = self.perform_add_without_carry(source_value, 1);
+        self.save_to_single_register(new_value, register_type);
+    }
+
+    fn execute_inr_by_memory(&mut self) {
+        let source_value = self.get_value_in_memory_at_hl() as u16;
+        let new_value = self.perform_add_without_carry(source_value, 1);
+        self.set_value_in_memory_at_hl(new_value);
+    }
+
+    fn execute_ldax(&mut self, register: &RegisterType) {
+        let source_address = match register {
+            RegisterType::B => self.get_current_bc_value(),
+            RegisterType::D => self.get_current_de_value(),
+            _ => panic!("Register {} is not a valid input of STAX", register.to_string()),
+        } as usize;
+        let value = self.memory[source_address];
+        self.save_to_a(value);
+    }
+
+    #[inline]
+    fn execute_mov(&mut self, destiny: &RegisterType, source: &RegisterType) {
+        let source_value = self.get_current_single_register_value(source);
+        self.save_to_single_register(source_value, destiny);
+    }
+
+    fn execute_stax(&mut self, register: &RegisterType) {
+        let value = self.get_current_a_value();
+        let destiny_address = match register {
+            RegisterType::B => self.get_current_bc_value(),
+            RegisterType::D => self.get_current_de_value(),
+            _ => panic!("Register {} is not a valid input of STAX", register.to_string()),
+        } as usize;
+        self.memory[destiny_address] = value;
+    }
+
+    #[inline]
+    fn execute_stc(&mut self) {
+        self.flags.carry = true;
+    }
+
+    fn execute_sbb_by_register(&mut self, register_type: &RegisterType) {
+        let destiny_value = self.get_current_a_value() as u16;
+        let carry = self.flags.carry as u8;
+        let source_value = (self.get_current_single_register_value(register_type) + carry) as u16;
+        let new_value = self.perform_sub_with_carry(destiny_value, source_value);
+        self.save_to_a(new_value);
+    }
+
+    fn execute_sbb_by_memory(&mut self) {
+        let destiny_value = self.get_current_a_value() as u16;
+        let carry = self.flags.carry as u8;
+        let source_value = (self.get_value_in_memory_at_hl() + carry) as u16;
+        let new_value = self.perform_sub_with_carry(destiny_value, source_value);
+        self.save_to_a(new_value);
+    }
+
+    fn execute_sub_by_register(&mut self, register_type: &RegisterType) {
+        let destiny_value = self.get_current_a_value() as u16;
+        let source_value = self.get_current_single_register_value(register_type) as u16;
+        let new_value = self.perform_sub_with_carry(destiny_value, source_value);
+        self.save_to_a(new_value);
+    }
+
+    fn execute_sub_by_memory(&mut self) {
+        let destiny_value = self.get_current_a_value() as u16;
+        let source_value = self.get_value_in_memory_at_hl() as u16;
+        let new_value = self.perform_sub_with_carry(destiny_value, source_value);
+        self.save_to_a(new_value);
+    }
+
+    fn execute_xra_by_register(&mut self, register_type: &RegisterType) {
+        let destiny_value = self.get_current_a_value();
+        let source_value = self.get_current_single_register_value(register_type);
+        let new_value = self.perform_xor(source_value, destiny_value);
+        self.save_to_a(new_value);
+    }
+
+    fn execute_xra_by_memory(&mut self) {
+        let destiny_value = self.get_current_a_value();
+        let source_value = self.get_value_in_memory_at_hl();
+        let new_value = self.perform_xor(source_value, destiny_value);
         self.save_to_a(new_value);
     }
 
     #[inline]
     fn get_current_hl_value(&self) -> u16 {
-        match (self.registers.get(&RegisterType::H).unwrap(), self.registers.get(&RegisterType::H).unwrap()) {
+        match (self.registers.get(&RegisterType::H).unwrap(), self.registers.get(&RegisterType::L).unwrap()) {
             (Register::SingleRegister { value: h_value }, Register::SingleRegister { value: l_value }) =>
                 ((*h_value as u16) << 8) | (*l_value as u16),
             _ => panic!("Register HL either not registered or Double. Can't happen!"),
         }
+    }
+
+    #[inline]
+    fn get_current_bc_value(&self) -> u16 {
+        match (self.registers.get(&RegisterType::B).unwrap(), self.registers.get(&RegisterType::C).unwrap()) {
+            (Register::SingleRegister { value: h_value }, Register::SingleRegister { value: l_value }) =>
+                ((*h_value as u16) << 8) | (*l_value as u16),
+            _ => panic!("Register HL either not registered or Double. Can't happen!"),
+        }
+    }
+
+    #[inline]
+    fn get_current_de_value(&self) -> u16 {
+        match (self.registers.get(&RegisterType::D).unwrap(), self.registers.get(&RegisterType::E).unwrap()) {
+            (Register::SingleRegister { value: h_value }, Register::SingleRegister { value: l_value }) =>
+                ((*h_value as u16) << 8) | (*l_value as u16),
+            _ => panic!("Register HL either not registered or Double. Can't happen!"),
+        }
+    }
+
+    #[inline]
+    fn get_value_in_memory_at_hl(&self) -> u8 {
+        let source_value_address: u16 = self.get_current_hl_value();
+        self.memory[source_value_address as usize]
+    }
+
+    #[inline]
+    fn set_value_in_memory_at_hl(&mut self, value: u8) {
+        let source_value_address: u16 = self.get_current_hl_value();
+        self.memory[source_value_address as usize] = value;
     }
 
     #[inline]
@@ -155,20 +345,88 @@ impl State {
 
     #[inline]
     fn save_to_a(&mut self, new_value: u8) {
-        if let Some(Register::SingleRegister { value }) = self.registers.get_mut(&RegisterType::A) {
+        self.save_to_single_register(new_value, &RegisterType::A)
+    }
+
+    #[inline]
+    fn save_to_single_register(&mut self, new_value: u8, register: &RegisterType) {
+        if let Some(Register::SingleRegister { value }) = self.registers.get_mut(register) {
             *value = new_value;
         }
     }
 
     #[inline]
-    fn perform_add(&mut self, destiny: u16, source: u16) -> u8 {
+    fn perform_add_with_carry(&mut self, destiny: u16, source: u16) -> u8 {
+        self.perform_add(destiny, source, true)
+    }
+
+    #[inline]
+    fn perform_add_without_carry(&mut self, destiny: u16, source: u16) -> u8 {
+        self.perform_add(destiny, source, true)
+    }
+
+    #[inline]
+    fn perform_add(&mut self, destiny: u16, source: u16, with_carry: bool) -> u8 {
         let answer: u16 = source + destiny;
+        self.update_flags(answer, with_carry);
+        self.update_auxiliar_carry(destiny, source);
+        (answer & 0xff) as u8
+    }
+
+    #[inline]
+    fn perform_and(&mut self, destiny: u8, source: u8) -> u8 {
+        let answer = destiny & source;
+        self.update_flags(answer as u16, false);
+        self.flags.carry = false;
+        answer
+    }
+
+    #[inline]
+    fn perform_sub_with_carry(&mut self, destiny: u16, source: u16) -> u8 {
+        self.perform_sub(destiny, source, true)
+    }
+
+    #[inline]
+    fn perform_sub_without_carry(&mut self, destiny: u16, source: u16) -> u8 {
+        self.perform_sub(destiny, source, true)
+    }
+
+    #[inline]
+    fn perform_sub(&mut self, destiny: u16, source: u16, with_carry: bool) -> u8 {
+        let answer: u16 = destiny + !source + 1;
+        self.update_flags(answer, false);
+        if with_carry {
+            self.flags.carry = answer <= 0xff;
+        }
+        self.update_auxiliar_carry_with_sub(destiny, source);
+        (answer & 0xff) as u8
+    }
+    #[inline]
+    fn perform_xor(&mut self, destiny: u8, source: u8) -> u8 {
+        let answer = destiny ^ source;
+        self.update_flags(answer as u16, false);
+        self.flags.carry = false;
+        answer
+    }
+
+    #[inline]
+    fn update_flags(&mut self, answer: u16, with_carry: bool) {
         self.flags.zero = (answer & 0xff) == 0;
         self.flags.sign = (answer & 0x80) != 0;
-        self.flags.carry = answer > 0xff;
+        if with_carry {
+            self.flags.carry = answer > 0xff;
+        }
         self.flags.parity = (answer & 0xff) % 2 == 0;
-        self.flags.auxiliary_carry = (source & 0x0f) + (destiny & 0x0f) > 0x0f;
-        (destiny & 0xff) as u8
+    }
+
+    #[inline]
+    fn update_auxiliar_carry_with_sub(&mut self, destiny: u16, source: u16) {
+        self.flags.auxiliary_carry = (destiny & 0x0f) + (!source & 0x0f) + 1 > 0x0f;
+    }
+
+    #[inline]
+    fn update_auxiliar_carry(&mut self, destiny: u16, source: u16) {
+        self.flags.auxiliary_carry = (destiny & 0x0f) + (source & 0x0f) > 0x0f;
     }
 
     #[inline]
