@@ -10,6 +10,14 @@ pub trait Executable {
 }
 
 impl State {
+    fn execute_aci(&mut self, byte: u8) {
+        let destiny_value = self.get_current_a_value() as u16;
+        let carry_as_u16 = self.flags.carry as u16;
+        let new_value = self.perform_add_with_carry(byte as u16, destiny_value);
+        let new_value = self.perform_add_with_carry(carry_as_u16, new_value as u16);
+        self.save_to_a(new_value);
+    }
+
     fn execute_adi(&mut self, byte: u8) {
         let destiny_value = self.get_current_a_value() as u16;
         let new_value = self.perform_add_with_carry(byte as u16, destiny_value);
@@ -195,6 +203,12 @@ impl State {
             (Location::Memory, Location::Memory) =>
                 panic!("MOV (HL),(HL) can't happen!")
         }
+    }
+
+    #[inline]
+    fn execute_mvi_to_memory(&mut self, byte: u8) {
+        let address = self.get_current_hl_value();
+        self.memory[address as usize] = byte;
     }
 
     #[inline]
@@ -628,6 +642,7 @@ impl Executable for State {
             Instruction::Adc { source: Location::Memory } => self.execute_adc_by_memory(),
             Instruction::Add { source: Location::Register { register } } => self.execute_add_by_register(&register),
             Instruction::Add { source: Location::Memory } => self.execute_add_by_memory(),
+            Instruction::Aci { byte } => self.execute_aci(byte),
             Instruction::Adi { byte } => self.execute_adi(byte),
             Instruction::Ana { source: Location::Register { register } } => self.execute_ana_by_register(&register),
             Instruction::Ana { source: Location::Memory } => self.execute_ana_by_memory(),
@@ -646,6 +661,8 @@ impl Executable for State {
             Instruction::Ldax { register } => self.execute_ldax(&register),
             Instruction::Lxi { register, low_byte, high_byte } => self.execute_lxi(&register, high_byte, low_byte),
             Instruction::Mov { destiny, source } => self.execute_mov(&destiny, &source),
+            Instruction::Mvi { source: Location::Memory, byte} => self.execute_mvi_to_memory(byte),
+            Instruction::Mvi { source: Location::Register { register }, byte } => self.save_to_single_register(byte, &register),
             Instruction::Pop { register } => self.execute_pop(&register),
             Instruction::Push { register } => self.execute_push(&register),
             Instruction::Ora { source: Location::Register { register } } => self.execute_ora_by_register(&register),
