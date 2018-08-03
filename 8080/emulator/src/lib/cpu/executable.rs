@@ -163,6 +163,26 @@ impl State {
         self.save_to_a(value);
     }
 
+    fn execute_lxi(&mut self, register_type: &RegisterType, high_byte: u8, low_byte: u8) {
+        match register_type {
+            RegisterType::B => {
+                self.save_to_single_register(high_byte, &RegisterType::B);
+                self.save_to_single_register(low_byte, &RegisterType::C);
+            },
+            RegisterType::D => {
+                self.save_to_single_register(high_byte, &RegisterType::D);
+                self.save_to_single_register(low_byte, &RegisterType::E);
+            },
+            RegisterType::H => {
+                self.save_to_single_register(high_byte, &RegisterType::H);
+                self.save_to_single_register(low_byte, &RegisterType::L);
+            },
+            RegisterType::Sp =>
+                self.save_to_double_register((high_byte as u16) << 8 | (low_byte as u16), &RegisterType::Sp),
+            _ => panic!("Register {} is not a valid input of LXI", register_type.to_string()),
+        }
+    }
+
     #[inline]
     fn execute_mov(&mut self, destiny: &Location, source: &Location) {
         match (destiny, source) {
@@ -624,6 +644,7 @@ impl Executable for State {
             Instruction::Inr { source: Location::Memory } => self.execute_inr_by_memory(),
             Instruction::Inx { register } => self.execute_inx(&register),
             Instruction::Ldax { register } => self.execute_ldax(&register),
+            Instruction::Lxi { register, low_byte, high_byte } => self.execute_lxi(&register, high_byte, low_byte),
             Instruction::Mov { destiny, source } => self.execute_mov(&destiny, &source),
             Instruction::Pop { register } => self.execute_pop(&register),
             Instruction::Push { register } => self.execute_push(&register),
