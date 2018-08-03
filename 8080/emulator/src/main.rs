@@ -1,6 +1,6 @@
 extern crate emulator_8080;
 
-use emulator_8080::State;
+use emulator_8080::cpu::{Executable, State};
 use std::env::args;
 use std::fs::File;
 use std::io::Read;

@@ -7,7 +7,6 @@ pub enum RegisterType {
     E,
     H,
     L,
-    M,
     Sp,
     Psw,
 }
@@ -22,7 +21,6 @@ impl ToString for RegisterType {
             RegisterType::E => String::from("E"),
             RegisterType::H => String::from("H"),
             RegisterType::L => String::from("L"),
-            RegisterType::M => String::from("L"),
             RegisterType::Sp => String::from("SP"),
             RegisterType::Psw => String::from("PSW"),
         }
@@ -32,16 +30,16 @@ impl ToString for RegisterType {
 pub type Address = [u8; 2];
 
 #[derive(Clone, Copy)]
-pub enum Destiny {
+pub enum Location {
     Register { register: RegisterType },
     Memory,
 }
 
-impl ToString for Destiny {
+impl ToString for Location {
     fn to_string(&self) -> String{
         match self {
-            Destiny::Register { register } => register.to_string(),
-            Destiny::Memory => String::from("(HL)")
+            Location::Register { register } => register.to_string(),
+            Location::Memory => String::from("(HL)")
         }
     }
 }
@@ -52,9 +50,9 @@ pub enum Instruction {
     Lxi { register: RegisterType, low_byte: u8, high_byte: u8 },
     Stax { register: RegisterType },
     Inx { register: RegisterType },
-    Inr { source: Destiny },
-    Dcr { source: Destiny },
-    Mvi { register: RegisterType, byte: u8 },
+    Inr { source: Location },
+    Dcr { source: Location },
+    Mvi { source: Location, byte: u8 },
     Rlc,
     Dad { register: RegisterType },
     Ldax { register: RegisterType },
@@ -72,15 +70,15 @@ pub enum Instruction {
     Lda { address: Address},
     Stc,
     Cmc,
-    Mov { destiny: RegisterType, source: RegisterType },
-    Add { source: Destiny },
-    Adc { source: Destiny },
-    Sub { source: Destiny },
-    Sbb { source: Destiny },
-    Ana { source: Destiny },
-    Xra { source: Destiny },
-    Ora { source: Destiny },
-    Cmp { register: RegisterType },
+    Mov { destiny: Location, source: Location },
+    Add { source: Location },
+    Adc { source: Location },
+    Sub { source: Location },
+    Sbb { source: Location },
+    Ana { source: Location },
+    Xra { source: Location },
+    Ora { source: Location },
+    Cmp { source: Location },
     Rnz,
     Pop { register: RegisterType },
     Jnz { address: Address},
@@ -137,189 +135,445 @@ impl Instruction {
             0x01 => Instruction::Lxi { register: RegisterType::B, low_byte: bytes[1], high_byte: bytes[2] },
             0x02 => Instruction::Stax { register: RegisterType::B },
             0x03 => Instruction::Inx { register: RegisterType::B },
-            0x04 => Instruction::Inr { source: Destiny::Register { register: RegisterType::B } },
-            0x05 => Instruction::Dcr { source: Destiny::Register { register: RegisterType::B } },
-            0x06 => Instruction::Mvi { register: RegisterType::B, byte: bytes[1] },
+            0x04 => Instruction::Inr { source: Location::Register { register: RegisterType::B } },
+            0x05 => Instruction::Dcr { source: Location::Register { register: RegisterType::B } },
+            0x06 => Instruction::Mvi { source: Location::Register { register: RegisterType::B }, byte: bytes[1] },
             0x07 => Instruction::Rlc,
             0x09 => Instruction::Dad { register: RegisterType::B },
             0x0a => Instruction::Ldax { register: RegisterType::B },
             0x0b => Instruction::Dcx { register: RegisterType::B },
-            0x0c => Instruction::Inr { source: Destiny::Register { register: RegisterType::C } },
-            0x0d => Instruction::Dcr { source: Destiny::Register { register: RegisterType::C } },
-            0x0e => Instruction::Mvi { register: RegisterType::C, byte: bytes[1] },
+            0x0c => Instruction::Inr { source: Location::Register { register: RegisterType::C } },
+            0x0d => Instruction::Dcr { source: Location::Register { register: RegisterType::C } },
+            0x0e => Instruction::Mvi { source: Location::Register { register: RegisterType::C }, byte: bytes[1] },
             0x0f => Instruction::Rrc,
             0x11 => Instruction::Lxi { register: RegisterType::D, low_byte: bytes[1], high_byte: bytes[2] },
             0x12 => Instruction::Stax { register: RegisterType::D },
             0x13 => Instruction::Inx { register: RegisterType::D },
-            0x14 => Instruction::Inr { source: Destiny::Register { register: RegisterType::D } },
-            0x15 => Instruction::Dcr { source: Destiny::Register { register: RegisterType::D } },
-            0x16 => Instruction::Mvi { register: RegisterType::D, byte: bytes[1] },
+            0x14 => Instruction::Inr { source: Location::Register { register: RegisterType::D } },
+            0x15 => Instruction::Dcr { source: Location::Register { register: RegisterType::D } },
+            0x16 => Instruction::Mvi { source: Location::Register { register: RegisterType::D }, byte: bytes[1] },
             0x17 => Instruction::Ral,
             0x19 => Instruction::Dad { register: RegisterType::D },
             0x1a => Instruction::Ldax { register: RegisterType::D },
             0x1b => Instruction::Dcx { register: RegisterType::D },
-            0x1c => Instruction::Inr { source: Destiny::Register { register: RegisterType::E } },
-            0x1d => Instruction::Dcr { source: Destiny::Register { register: RegisterType::E } },
-            0x1e => Instruction::Mvi { register: RegisterType::E, byte: bytes[1] },
+            0x1c => Instruction::Inr { source: Location::Register { register: RegisterType::E } },
+            0x1d => Instruction::Dcr { source: Location::Register { register: RegisterType::E } },
+            0x1e => Instruction::Mvi { source: Location::Register { register: RegisterType::E }, byte: bytes[1] },
             0x1f => Instruction::Rar,
             0x20 => Instruction::Rim,
             0x21 => Instruction::Lxi { register: RegisterType::H, low_byte: bytes[1], high_byte: bytes[2] },
             0x22 => Instruction::Shld { address: [bytes[1], bytes[2]] },
             0x23 => Instruction::Inx { register: RegisterType::H },
-            0x24 => Instruction::Inr { source: Destiny::Register { register: RegisterType::H } },
-            0x25 => Instruction::Dcr { source: Destiny::Register { register: RegisterType::H } },
-            0x26 => Instruction::Mvi { register: RegisterType::H, byte: bytes[1] },
+            0x24 => Instruction::Inr { source: Location::Register { register: RegisterType::H } },
+            0x25 => Instruction::Dcr { source: Location::Register { register: RegisterType::H } },
+            0x26 => Instruction::Mvi { source: Location::Register { register: RegisterType::H }, byte: bytes[1] },
             0x27 => Instruction::Daa,
             0x29 => Instruction::Dad { register: RegisterType::H },
             0x2a => Instruction::Lhld { address: [bytes[1], bytes[2]] },
             0x2b => Instruction::Dcx { register: RegisterType::H },
-            0x2c => Instruction::Inr { source: Destiny::Register { register: RegisterType::L } },
+            0x2c => Instruction::Inr { source: Location::Register { register: RegisterType::L } },
             0x2d => Instruction::Dcx { register: RegisterType::L },
-            0x2e => Instruction::Mvi { register: RegisterType::L, byte: bytes[1] },
+            0x2e => Instruction::Mvi { source: Location::Register { register: RegisterType::L }, byte: bytes[1] },
             0x2f => Instruction::Cma,
             0x30 => Instruction::Sim,
             0x31 => Instruction::Lxi { register: RegisterType::Sp, low_byte: bytes[1], high_byte: bytes[2] },
             0x32 => Instruction::Sta { address: [bytes[1], bytes[2]] },
             0x33 => Instruction::Inx { register: RegisterType::Sp },
-            0x34 => Instruction::Inr { source: Destiny::Memory },
-            0x35 => Instruction::Dcr { source: Destiny::Memory },
-            0x36 => Instruction::Mvi { register: RegisterType::M, byte: bytes[1] },
+            0x34 => Instruction::Inr { source: Location::Memory },
+            0x35 => Instruction::Dcr { source: Location::Memory },
+            0x36 => Instruction::Mvi { source: Location::Memory, byte: bytes[1] },
             0x37 => Instruction::Stc,
             0x39 => Instruction::Dad { register: RegisterType::Sp },
             0x3a => Instruction::Lda { address: [bytes[1], bytes[2]] },
             0x3b => Instruction::Dcx { register: RegisterType::Sp },
-            0x3c => Instruction::Inr { source: Destiny::Register { register: RegisterType::A } },
+            0x3c => Instruction::Inr { source: Location::Register { register: RegisterType::A } },
             0x3d => Instruction::Dcx { register: RegisterType::A },
-            0x3e => Instruction::Mvi { register: RegisterType::A, byte: bytes[1] },
+            0x3e => Instruction::Mvi { source: Location::Register { register: RegisterType::A }, byte: bytes[1] },
             0x3f => Instruction::Cmc,
-            0x40 => Instruction::Mov { destiny: RegisterType::B, source: RegisterType::B },
-            0x41 => Instruction::Mov { destiny: RegisterType::B, source: RegisterType::C },
-            0x42 => Instruction::Mov { destiny: RegisterType::B, source: RegisterType::D },
-            0x43 => Instruction::Mov { destiny: RegisterType::B, source: RegisterType::E },
-            0x44 => Instruction::Mov { destiny: RegisterType::B, source: RegisterType::H },
-            0x45 => Instruction::Mov { destiny: RegisterType::B, source: RegisterType::L },
-            0x46 => Instruction::Mov { destiny: RegisterType::B, source: RegisterType::M },
-            0x47 => Instruction::Mov { destiny: RegisterType::B, source: RegisterType::A },
-            0x48 => Instruction::Mov { destiny: RegisterType::C, source: RegisterType::B },
-            0x49 => Instruction::Mov { destiny: RegisterType::C, source: RegisterType::C },
-            0x4a => Instruction::Mov { destiny: RegisterType::C, source: RegisterType::D },
-            0x4b => Instruction::Mov { destiny: RegisterType::C, source: RegisterType::E },
-            0x4c => Instruction::Mov { destiny: RegisterType::C, source: RegisterType::H },
-            0x4d => Instruction::Mov { destiny: RegisterType::C, source: RegisterType::L },
-            0x4e => Instruction::Mov { destiny: RegisterType::C, source: RegisterType::M },
-            0x4f => Instruction::Mov { destiny: RegisterType::C, source: RegisterType::A },
-            0x50 => Instruction::Mov { destiny: RegisterType::D, source: RegisterType::B },
-            0x51 => Instruction::Mov { destiny: RegisterType::D, source: RegisterType::C },
-            0x52 => Instruction::Mov { destiny: RegisterType::D, source: RegisterType::D },
-            0x53 => Instruction::Mov { destiny: RegisterType::D, source: RegisterType::E },
-            0x54 => Instruction::Mov { destiny: RegisterType::D, source: RegisterType::H },
-            0x55 => Instruction::Mov { destiny: RegisterType::D, source: RegisterType::L },
-            0x56 => Instruction::Mov { destiny: RegisterType::D, source: RegisterType::M },
-            0x57 => Instruction::Mov { destiny: RegisterType::D, source: RegisterType::A },
-            0x58 => Instruction::Mov { destiny: RegisterType::E, source: RegisterType::B },
-            0x59 => Instruction::Mov { destiny: RegisterType::E, source: RegisterType::C },
-            0x5a => Instruction::Mov { destiny: RegisterType::E, source: RegisterType::D },
-            0x5b => Instruction::Mov { destiny: RegisterType::E, source: RegisterType::E },
-            0x5c => Instruction::Mov { destiny: RegisterType::E, source: RegisterType::H },
-            0x5d => Instruction::Mov { destiny: RegisterType::E, source: RegisterType::L },
-            0x5e => Instruction::Mov { destiny: RegisterType::E, source: RegisterType::M },
-            0x5f => Instruction::Mov { destiny: RegisterType::E, source: RegisterType::A },
-            0x60 => Instruction::Mov { destiny: RegisterType::H, source: RegisterType::B },
-            0x61 => Instruction::Mov { destiny: RegisterType::H, source: RegisterType::C },
-            0x62 => Instruction::Mov { destiny: RegisterType::H, source: RegisterType::D },
-            0x63 => Instruction::Mov { destiny: RegisterType::H, source: RegisterType::E },
-            0x64 => Instruction::Mov { destiny: RegisterType::H, source: RegisterType::H },
-            0x65 => Instruction::Mov { destiny: RegisterType::H, source: RegisterType::L },
-            0x66 => Instruction::Mov { destiny: RegisterType::H, source: RegisterType::M },
-            0x67 => Instruction::Mov { destiny: RegisterType::H, source: RegisterType::A },
-            0x68 => Instruction::Mov { destiny: RegisterType::L, source: RegisterType::B },
-            0x69 => Instruction::Mov { destiny: RegisterType::L, source: RegisterType::C },
-            0x6a => Instruction::Mov { destiny: RegisterType::L, source: RegisterType::D },
-            0x6b => Instruction::Mov { destiny: RegisterType::L, source: RegisterType::E },
-            0x6c => Instruction::Mov { destiny: RegisterType::L, source: RegisterType::H },
-            0x6d => Instruction::Mov { destiny: RegisterType::L, source: RegisterType::L },
-            0x6e => Instruction::Mov { destiny: RegisterType::L, source: RegisterType::M },
-            0x6f => Instruction::Mov { destiny: RegisterType::L, source: RegisterType::A },
-            0x70 => Instruction::Mov { destiny: RegisterType::M, source: RegisterType::B },
-            0x71 => Instruction::Mov { destiny: RegisterType::M, source: RegisterType::C },
-            0x72 => Instruction::Mov { destiny: RegisterType::M, source: RegisterType::D },
-            0x73 => Instruction::Mov { destiny: RegisterType::M, source: RegisterType::E },
-            0x74 => Instruction::Mov { destiny: RegisterType::M, source: RegisterType::H },
-            0x75 => Instruction::Mov { destiny: RegisterType::M, source: RegisterType::L },
-            0x76 => Instruction::Mov { destiny: RegisterType::M, source: RegisterType::M },
-            0x77 => Instruction::Mov { destiny: RegisterType::M, source: RegisterType::A },
-            0x78 => Instruction::Mov { destiny: RegisterType::A, source: RegisterType::B },
-            0x79 => Instruction::Mov { destiny: RegisterType::A, source: RegisterType::C },
-            0x7a => Instruction::Mov { destiny: RegisterType::A, source: RegisterType::D },
-            0x7b => Instruction::Mov { destiny: RegisterType::A, source: RegisterType::E },
-            0x7c => Instruction::Mov { destiny: RegisterType::A, source: RegisterType::H },
-            0x7d => Instruction::Mov { destiny: RegisterType::A, source: RegisterType::L },
-            0x7e => Instruction::Mov { destiny: RegisterType::A, source: RegisterType::M },
-            0x7f => Instruction::Mov { destiny: RegisterType::A, source: RegisterType::A },
-            0x80 => Instruction::Add { source: Destiny::Register { register: RegisterType::B } },
-            0x81 => Instruction::Add { source: Destiny::Register { register: RegisterType::C } },
-            0x82 => Instruction::Add { source: Destiny::Register { register: RegisterType::D } },
-            0x83 => Instruction::Add { source: Destiny::Register { register: RegisterType::E } },
-            0x84 => Instruction::Add { source: Destiny::Register { register: RegisterType::H } },
-            0x85 => Instruction::Add { source: Destiny::Register { register: RegisterType::L } },
-            0x86 => Instruction::Add { source: Destiny::Memory },
-            0x87 => Instruction::Add { source: Destiny::Register { register: RegisterType::A } },
-            0x88 => Instruction::Adc { source: Destiny::Register { register: RegisterType::B } },
-            0x89 => Instruction::Adc { source: Destiny::Register { register: RegisterType::C } },
-            0x8a => Instruction::Adc { source: Destiny::Register { register: RegisterType::D } },
-            0x8b => Instruction::Adc { source: Destiny::Register { register: RegisterType::E } },
-            0x8c => Instruction::Adc { source: Destiny::Register { register: RegisterType::H } },
-            0x8d => Instruction::Adc { source: Destiny::Register { register: RegisterType::L } },
-            0x8e => Instruction::Adc { source: Destiny::Memory },
-            0x8f => Instruction::Adc { source: Destiny::Register { register: RegisterType::A } },
-            0x90 => Instruction::Sub { source: Destiny::Register { register: RegisterType::B } },
-            0x91 => Instruction::Sub { source: Destiny::Register { register: RegisterType::C } },
-            0x92 => Instruction::Sub { source: Destiny::Register { register: RegisterType::D } },
-            0x93 => Instruction::Sub { source: Destiny::Register { register: RegisterType::E } },
-            0x94 => Instruction::Sub { source: Destiny::Register { register: RegisterType::H } },
-            0x95 => Instruction::Sub { source: Destiny::Register { register: RegisterType::L } },
-            0x96 => Instruction::Sub { source: Destiny::Memory },
-            0x97 => Instruction::Sub { source: Destiny::Register { register: RegisterType::A } },
-            0x98 => Instruction::Sbb { source: Destiny::Register { register: RegisterType::B } },
-            0x99 => Instruction::Sbb { source: Destiny::Register { register: RegisterType::C } },
-            0x9a => Instruction::Sbb { source: Destiny::Register { register: RegisterType::D } },
-            0x9b => Instruction::Sbb { source: Destiny::Register { register: RegisterType::E } },
-            0x9c => Instruction::Sbb { source: Destiny::Register { register: RegisterType::H } },
-            0x9d => Instruction::Sbb { source: Destiny::Register { register: RegisterType::L } },
-            0x9e => Instruction::Sbb { source: Destiny::Memory },
-            0x9f => Instruction::Sbb { source: Destiny::Register { register: RegisterType::A } },
-            0xa0 => Instruction::Ana { source: Destiny::Register { register: RegisterType::B } },
-            0xa1 => Instruction::Ana { source: Destiny::Register { register: RegisterType::C } },
-            0xa2 => Instruction::Ana { source: Destiny::Register { register: RegisterType::D } },
-            0xa3 => Instruction::Ana { source: Destiny::Register { register: RegisterType::E } },
-            0xa4 => Instruction::Ana { source: Destiny::Register { register: RegisterType::H } },
-            0xa5 => Instruction::Ana { source: Destiny::Register { register: RegisterType::L } },
-            0xa6 => Instruction::Ana { source: Destiny::Memory },
-            0xa7 => Instruction::Ana { source: Destiny::Register { register: RegisterType::A } },
-            0xa8 => Instruction::Xra { source: Destiny::Register { register: RegisterType::B } },
-            0xa9 => Instruction::Xra { source: Destiny::Register { register: RegisterType::C } },
-            0xaa => Instruction::Xra { source: Destiny::Register { register: RegisterType::D } },
-            0xab => Instruction::Xra { source: Destiny::Register { register: RegisterType::E } },
-            0xac => Instruction::Xra { source: Destiny::Register { register: RegisterType::H } },
-            0xad => Instruction::Xra { source: Destiny::Register { register: RegisterType::L } },
-            0xae => Instruction::Xra { source: Destiny::Memory },
-            0xaf => Instruction::Xra { source: Destiny::Register { register: RegisterType::A } },
-            0xb0 => Instruction::Ora { source: Destiny::Register { register: RegisterType::B } },
-            0xb1 => Instruction::Ora { source: Destiny::Register { register: RegisterType::C } },
-            0xb2 => Instruction::Ora { source: Destiny::Register { register: RegisterType::D } },
-            0xb3 => Instruction::Ora { source: Destiny::Register { register: RegisterType::E } },
-            0xb4 => Instruction::Ora { source: Destiny::Register { register: RegisterType::H } },
-            0xb5 => Instruction::Ora { source: Destiny::Register { register: RegisterType::L } },
-            0xb6 => Instruction::Ora { source: Destiny::Memory },
-            0xb7 => Instruction::Ora { source: Destiny::Register { register: RegisterType::A } },
-            0xb8 => Instruction::Cmp { register: RegisterType::B },
-            0xb9 => Instruction::Cmp { register: RegisterType::C },
-            0xba => Instruction::Cmp { register: RegisterType::D },
-            0xbb => Instruction::Cmp { register: RegisterType::E },
-            0xbc => Instruction::Cmp { register: RegisterType::H },
-            0xbd => Instruction::Cmp { register: RegisterType::L },
-            0xbe => Instruction::Cmp { register: RegisterType::M },
-            0xbf => Instruction::Cmp { register: RegisterType::A },
+            0x40 =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::B },
+                    source: Location::Register { register: RegisterType::B }
+                },
+            0x41 =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::B },
+                    source: Location::Register { register: RegisterType::C }
+                },
+            0x42 =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::B },
+                    source: Location::Register { register: RegisterType::D }
+                },
+            0x43 =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::B },
+                    source: Location::Register { register: RegisterType::E }
+                },
+            0x44 =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::B },
+                    source: Location::Register { register: RegisterType::H }
+                },
+            0x45 =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::B },
+                    source: Location::Register { register: RegisterType::L }
+                },
+            0x46 =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::B },
+                    source: Location::Memory,
+                },
+            0x47 =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::B },
+                    source: Location::Register { register: RegisterType::A }
+                },
+            0x48 =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::C },
+                    source: Location::Register { register: RegisterType::B }
+                },
+            0x49 =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::C },
+                    source: Location::Register { register: RegisterType::C }
+                },
+            0x4a =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::C },
+                    source: Location::Register { register: RegisterType::D }
+                },
+            0x4b =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::C },
+                    source: Location::Register { register: RegisterType::E }
+                },
+            0x4c =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::C },
+                    source: Location::Register { register: RegisterType::H }
+                },
+            0x4d =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::C },
+                    source: Location::Register { register: RegisterType::L }
+                },
+            0x4e =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::C },
+                    source: Location::Memory,
+                },
+            0x4f =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::C },
+                    source: Location::Register { register: RegisterType::A }
+                },
+            0x50 =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::D },
+                    source: Location::Register { register: RegisterType::B }
+                },
+            0x51 =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::D },
+                    source: Location::Register { register: RegisterType::C }
+                },
+            0x52 =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::D },
+                    source: Location::Register { register: RegisterType::D }
+                },
+            0x53 =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::D },
+                    source: Location::Register { register: RegisterType::E }
+                },
+            0x54 =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::D },
+                    source: Location::Register { register: RegisterType::H }
+                },
+            0x55 =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::D },
+                    source: Location::Register { register: RegisterType::L }
+                },
+            0x56 =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::D },
+                    source: Location::Memory,
+                },
+            0x57 =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::D },
+                    source: Location::Register { register: RegisterType::A }
+                },
+            0x58 =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::E },
+                    source: Location::Register { register: RegisterType::B }
+                },
+            0x59 =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::E },
+                    source: Location::Register { register: RegisterType::C }
+                },
+            0x5a =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::E },
+                    source: Location::Register { register: RegisterType::D }
+                },
+            0x5b =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::E },
+                    source: Location::Register { register: RegisterType::E }
+                },
+            0x5c =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::E },
+                    source: Location::Register { register: RegisterType::H }
+                },
+            0x5d =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::E },
+                    source: Location::Register { register: RegisterType::L }
+                },
+            0x5e =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::E },
+                    source: Location::Memory,
+                },
+            0x5f =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::E },
+                    source: Location::Register { register: RegisterType::A }
+                },
+            0x60 =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::H },
+                    source: Location::Register { register: RegisterType::B }
+                },
+            0x61 =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::H },
+                    source: Location::Register { register: RegisterType::C }
+                },
+            0x62 =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::H },
+                    source: Location::Register { register: RegisterType::D }
+                },
+            0x63 =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::H },
+                    source: Location::Register { register: RegisterType::E }
+                },
+            0x64 =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::H },
+                    source: Location::Register { register: RegisterType::H }
+                },
+            0x65 =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::H },
+                    source: Location::Register { register: RegisterType::L }
+                },
+            0x66 =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::H },
+                    source: Location::Memory,
+                },
+            0x67 =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::H },
+                    source: Location::Register { register: RegisterType::A }
+                },
+            0x68 =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::L },
+                    source: Location::Register { register: RegisterType::B }
+                },
+            0x69 =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::L },
+                    source: Location::Register { register: RegisterType::C }
+                },
+            0x6a =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::L },
+                    source: Location::Register { register: RegisterType::D }
+                },
+            0x6b =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::L },
+                    source: Location::Register { register: RegisterType::E }
+                },
+            0x6c =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::L },
+                    source: Location::Register { register: RegisterType::H }
+                },
+            0x6d =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::L },
+                    source: Location::Register { register: RegisterType::L }
+                },
+            0x6e =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::L },
+                    source: Location::Memory,
+                },
+            0x6f =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::L },
+                    source: Location::Register { register: RegisterType::A }
+                },
+            0x70 =>
+                Instruction::Mov {
+                    destiny: Location::Memory,
+                    source: Location::Register { register: RegisterType::B }
+                },
+            0x71 =>
+                Instruction::Mov {
+                    destiny: Location::Memory,
+                    source: Location::Register { register: RegisterType::C }
+                },
+            0x72 =>
+                Instruction::Mov {
+                    destiny: Location::Memory,
+                    source: Location::Register { register: RegisterType::D }
+                },
+            0x73 =>
+                Instruction::Mov {
+                    destiny: Location::Memory,
+                    source: Location::Register { register: RegisterType::E }
+                },
+            0x74 =>
+                Instruction::Mov {
+                    destiny: Location::Memory,
+                    source: Location::Register { register: RegisterType::H }
+                },
+            0x75 =>
+                Instruction::Mov {
+                    destiny: Location::Memory,
+                    source: Location::Register { register: RegisterType::L }
+                },
+            0x76 =>
+                Instruction::Mov {
+                    destiny: Location::Memory,
+                    source: Location::Memory,
+                },
+            0x77 =>
+                Instruction::Mov {
+                    destiny: Location::Memory,
+                    source: Location::Register { register: RegisterType::A }
+                },
+            0x78 =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::A },
+                    source: Location::Register { register: RegisterType::B }
+                },
+            0x79 =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::A },
+                    source: Location::Register { register: RegisterType::C }
+                },
+            0x7a =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::A },
+                    source: Location::Register { register: RegisterType::D }
+                },
+            0x7b =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::A },
+                    source: Location::Register { register: RegisterType::E }
+                },
+            0x7c =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::A },
+                    source: Location::Register { register: RegisterType::H }
+                },
+            0x7d =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::A },
+                    source: Location::Register { register: RegisterType::L }
+                },
+            0x7e =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::A },
+                    source: Location::Memory,
+                },
+            0x7f =>
+                Instruction::Mov {
+                    destiny: Location::Register { register: RegisterType::A },
+                    source: Location::Register { register: RegisterType::A }
+                },
+            0x80 => Instruction::Add { source: Location::Register { register: RegisterType::B } },
+            0x81 => Instruction::Add { source: Location::Register { register: RegisterType::C } },
+            0x82 => Instruction::Add { source: Location::Register { register: RegisterType::D } },
+            0x83 => Instruction::Add { source: Location::Register { register: RegisterType::E } },
+            0x84 => Instruction::Add { source: Location::Register { register: RegisterType::H } },
+            0x85 => Instruction::Add { source: Location::Register { register: RegisterType::L } },
+            0x86 => Instruction::Add { source: Location::Memory },
+            0x87 => Instruction::Add { source: Location::Register { register: RegisterType::A } },
+            0x88 => Instruction::Adc { source: Location::Register { register: RegisterType::B } },
+            0x89 => Instruction::Adc { source: Location::Register { register: RegisterType::C } },
+            0x8a => Instruction::Adc { source: Location::Register { register: RegisterType::D } },
+            0x8b => Instruction::Adc { source: Location::Register { register: RegisterType::E } },
+            0x8c => Instruction::Adc { source: Location::Register { register: RegisterType::H } },
+            0x8d => Instruction::Adc { source: Location::Register { register: RegisterType::L } },
+            0x8e => Instruction::Adc { source: Location::Memory },
+            0x8f => Instruction::Adc { source: Location::Register { register: RegisterType::A } },
+            0x90 => Instruction::Sub { source: Location::Register { register: RegisterType::B } },
+            0x91 => Instruction::Sub { source: Location::Register { register: RegisterType::C } },
+            0x92 => Instruction::Sub { source: Location::Register { register: RegisterType::D } },
+            0x93 => Instruction::Sub { source: Location::Register { register: RegisterType::E } },
+            0x94 => Instruction::Sub { source: Location::Register { register: RegisterType::H } },
+            0x95 => Instruction::Sub { source: Location::Register { register: RegisterType::L } },
+            0x96 => Instruction::Sub { source: Location::Memory },
+            0x97 => Instruction::Sub { source: Location::Register { register: RegisterType::A } },
+            0x98 => Instruction::Sbb { source: Location::Register { register: RegisterType::B } },
+            0x99 => Instruction::Sbb { source: Location::Register { register: RegisterType::C } },
+            0x9a => Instruction::Sbb { source: Location::Register { register: RegisterType::D } },
+            0x9b => Instruction::Sbb { source: Location::Register { register: RegisterType::E } },
+            0x9c => Instruction::Sbb { source: Location::Register { register: RegisterType::H } },
+            0x9d => Instruction::Sbb { source: Location::Register { register: RegisterType::L } },
+            0x9e => Instruction::Sbb { source: Location::Memory },
+            0x9f => Instruction::Sbb { source: Location::Register { register: RegisterType::A } },
+            0xa0 => Instruction::Ana { source: Location::Register { register: RegisterType::B } },
+            0xa1 => Instruction::Ana { source: Location::Register { register: RegisterType::C } },
+            0xa2 => Instruction::Ana { source: Location::Register { register: RegisterType::D } },
+            0xa3 => Instruction::Ana { source: Location::Register { register: RegisterType::E } },
+            0xa4 => Instruction::Ana { source: Location::Register { register: RegisterType::H } },
+            0xa5 => Instruction::Ana { source: Location::Register { register: RegisterType::L } },
+            0xa6 => Instruction::Ana { source: Location::Memory },
+            0xa7 => Instruction::Ana { source: Location::Register { register: RegisterType::A } },
+            0xa8 => Instruction::Xra { source: Location::Register { register: RegisterType::B } },
+            0xa9 => Instruction::Xra { source: Location::Register { register: RegisterType::C } },
+            0xaa => Instruction::Xra { source: Location::Register { register: RegisterType::D } },
+            0xab => Instruction::Xra { source: Location::Register { register: RegisterType::E } },
+            0xac => Instruction::Xra { source: Location::Register { register: RegisterType::H } },
+            0xad => Instruction::Xra { source: Location::Register { register: RegisterType::L } },
+            0xae => Instruction::Xra { source: Location::Memory },
+            0xaf => Instruction::Xra { source: Location::Register { register: RegisterType::A } },
+            0xb0 => Instruction::Ora { source: Location::Register { register: RegisterType::B } },
+            0xb1 => Instruction::Ora { source: Location::Register { register: RegisterType::C } },
+            0xb2 => Instruction::Ora { source: Location::Register { register: RegisterType::D } },
+            0xb3 => Instruction::Ora { source: Location::Register { register: RegisterType::E } },
+            0xb4 => Instruction::Ora { source: Location::Register { register: RegisterType::H } },
+            0xb5 => Instruction::Ora { source: Location::Register { register: RegisterType::L } },
+            0xb6 => Instruction::Ora { source: Location::Memory },
+            0xb7 => Instruction::Ora { source: Location::Register { register: RegisterType::A } },
+            0xb8 => Instruction::Cmp { source: Location::Register { register: RegisterType::B } },
+            0xb9 => Instruction::Cmp { source: Location::Register { register: RegisterType::C } },
+            0xba => Instruction::Cmp { source: Location::Register { register: RegisterType::D } },
+            0xbb => Instruction::Cmp { source: Location::Register { register: RegisterType::E } },
+            0xbc => Instruction::Cmp { source: Location::Register { register: RegisterType::H } },
+            0xbd => Instruction::Cmp { source: Location::Register { register: RegisterType::L } },
+            0xbe => Instruction::Cmp { source: Location::Memory },
+            0xbf => Instruction::Cmp { source: Location::Register { register: RegisterType::A } },
             0xc0 => Instruction::Rnz,
             0xc1 => Instruction::Pop { register: RegisterType::B },
             0xc2 => Instruction::Jnz { address: [bytes[1], bytes[2]] },
@@ -394,7 +648,7 @@ impl Instruction {
             Instruction::Inx { register: _ } => 1,
             Instruction::Inr { source: _ } => 1,
             Instruction::Dcr { source: _ } => 1,
-            Instruction::Mvi { register: _, byte: _ } => 2,
+            Instruction::Mvi { source: _, byte: _ } => 2,
             Instruction::Rlc => 1,
             Instruction::Dad { register: _ } => 1,
             Instruction::Ldax { register: _ } => 1,
@@ -420,7 +674,7 @@ impl Instruction {
             Instruction::Ana { source: _ } => 1,
             Instruction::Xra { source: _ } => 1,
             Instruction::Ora { source: _ } => 1,
-            Instruction::Cmp { register: _ } => 1,
+            Instruction::Cmp { source: _ } => 1,
             Instruction::Rnz => 1,
             Instruction::Pop { register: _ } => 1,
             Instruction::Jnz { address: _ } => 3,
@@ -481,8 +735,8 @@ impl ToString for Instruction {
             Instruction::Inx { register } => format!("INX {}", register.to_string()),
             Instruction::Inr { source } => format!("INR {}", source.to_string()),
             Instruction::Dcr { source } => format!("DCR {}", source.to_string()),
-            Instruction::Mvi { register, byte } =>
-                format!("MVI {},#${:02x}", register.to_string(), byte),
+            Instruction::Mvi { source, byte } =>
+                format!("MVI {},#${:02x}", source.to_string(), byte),
             Instruction::Rlc => String::from("RLC"),
             Instruction::Dad { register } => format!("DAD {}", register.to_string()),
             Instruction::Ldax { register } => format!("LDAX {}", register.to_string()),
@@ -513,7 +767,7 @@ impl ToString for Instruction {
             Instruction::Ana { source } => format!("ANA {}", source.to_string()),
             Instruction::Xra { source } => format!("XRA {}", source.to_string()),
             Instruction::Ora { source } => format!("ORA {}", source.to_string()),
-            Instruction::Cmp { register } => format!("CMP {}", register.to_string()),
+            Instruction::Cmp { source } => format!("CMP {}", source.to_string()),
             Instruction::Rnz => String::from("RNZ"),
             Instruction::Pop { register } => format!("POP {}", register.to_string()),
             Instruction::Jnz { address } =>
