@@ -130,7 +130,7 @@ mod tests {
                 cpu.save_to_single_register(0x8b, &RegisterType::E);
             },
             _ => panic!("Register {} is not a valid argument to ldax.", register.to_string()),
-        }
+        };
         cpu
     }
 
@@ -146,5 +146,36 @@ mod tests {
         let mut cpu = get_ldax_ready_cpu(&RegisterType::D);
         cpu.execute_ldax(&RegisterType::D);
         assert_eq!(cpu.get_current_a_value(), 42);
+    }
+
+    #[test]
+    fn it_should_execute_ldi_to_b() {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.execute_lxi(&RegisterType::B, 0x42, 0x24);
+        assert_eq!(cpu.get_current_single_register_value(&RegisterType::B), 0x42);
+        assert_eq!(cpu.get_current_single_register_value(&RegisterType::C), 0x24);
+    }
+
+    #[test]
+    fn it_should_execute_ldi_to_d() {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.execute_lxi(&RegisterType::D, 0x42, 0x24);
+        assert_eq!(cpu.get_current_single_register_value(&RegisterType::D), 0x42);
+        assert_eq!(cpu.get_current_single_register_value(&RegisterType::E), 0x24);
+    }
+
+    #[test]
+    fn it_should_execute_ldi_to_h() {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.execute_lxi(&RegisterType::H, 0x42, 0x24);
+        assert_eq!(cpu.get_current_single_register_value(&RegisterType::H), 0x42);
+        assert_eq!(cpu.get_current_single_register_value(&RegisterType::L), 0x24);
+    }
+
+    #[test]
+    fn it_should_execute_ldi_to_sp() {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.execute_lxi(&RegisterType::Sp, 0x42, 0x24);
+        assert_eq!(cpu.get_current_sp_value(), 0x4224);
     }
 }
