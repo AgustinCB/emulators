@@ -43,7 +43,7 @@ impl Flags {
 pub struct Cpu {
     pub(crate) registers: HashMap<RegisterType, Register>,
     pub(crate) pc: u16,
-    pub(crate) memory: [u8; ROM_MEMORY_LIMIT * 2],
+    pub(crate) memory: [u8; ROM_MEMORY_LIMIT * 8],
     pub(crate) flags: Flags,
     pub(crate) interruptions_enabled: bool,
 }
@@ -51,7 +51,7 @@ pub struct Cpu {
 impl Cpu {
     pub fn new(rom_memory: [u8; ROM_MEMORY_LIMIT]) -> Cpu {
         let mut registers = HashMap::new();
-        let mut memory = [0; ROM_MEMORY_LIMIT * 2];
+        let mut memory = [0; ROM_MEMORY_LIMIT * 8];
         registers.insert(RegisterType::A, Register::new(RegisterType::A));
         registers.insert(RegisterType::B, Register::new(RegisterType::B));
         registers.insert(RegisterType::C, Register::new(RegisterType::C));
@@ -64,9 +64,9 @@ impl Cpu {
             memory[i] = rom_memory[i];
         }
         Cpu {
-            registers: registers,
+            registers,
             pc: 0,
-            memory: memory,
+            memory,
             flags: Flags::new(),
             interruptions_enabled: true,
         }

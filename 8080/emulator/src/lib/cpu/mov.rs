@@ -117,17 +117,16 @@ mod tests {
     use disassembler_8080::RegisterType;
 
     fn get_ldax_ready_cpu(register: &RegisterType) -> Cpu {
-        let mut memory = [0; ROM_MEMORY_LIMIT];
-        memory[0x138b] = 42;
-        let mut cpu = Cpu::new(memory);
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.memory[0x938b] = 42;
 
         match register {
             RegisterType::B => {
-                cpu.save_to_single_register(0x13, &RegisterType::B);
+                cpu.save_to_single_register(0x93, &RegisterType::B);
                 cpu.save_to_single_register(0x8b, &RegisterType::C);
             },
             RegisterType::D => {
-                cpu.save_to_single_register(0x13, &RegisterType::D);
+                cpu.save_to_single_register(0x93, &RegisterType::D);
                 cpu.save_to_single_register(0x8b, &RegisterType::E);
             },
             _ => panic!("Register {} is not a valid argument to ldax.", register.to_string()),
