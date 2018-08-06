@@ -115,6 +115,7 @@ mod tests {
     use cpu::Cpu;
     use cpu::cpu::ROM_MEMORY_LIMIT;
     use disassembler_8080::RegisterType;
+    use disassembler_8080::Location;
 
     fn get_ldax_ready_cpu(register: &RegisterType) -> Cpu {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
@@ -149,7 +150,7 @@ mod tests {
     }
 
     #[test]
-    fn it_should_execute_ldi_to_b() {
+    fn it_should_execute_lxi_to_b() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.execute_lxi(&RegisterType::B, 0x42, 0x24);
         assert_eq!(cpu.get_current_single_register_value(&RegisterType::B), 0x42);
@@ -157,7 +158,7 @@ mod tests {
     }
 
     #[test]
-    fn it_should_execute_ldi_to_d() {
+    fn it_should_execute_lxi_to_d() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.execute_lxi(&RegisterType::D, 0x42, 0x24);
         assert_eq!(cpu.get_current_single_register_value(&RegisterType::D), 0x42);
@@ -165,7 +166,7 @@ mod tests {
     }
 
     #[test]
-    fn it_should_execute_ldi_to_h() {
+    fn it_should_execute_lxi_to_h() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.execute_lxi(&RegisterType::H, 0x42, 0x24);
         assert_eq!(cpu.get_current_single_register_value(&RegisterType::H), 0x42);
@@ -173,9 +174,40 @@ mod tests {
     }
 
     #[test]
-    fn it_should_execute_ldi_to_sp() {
+    fn it_should_execute_lxi_to_sp() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.execute_lxi(&RegisterType::Sp, 0x42, 0x24);
         assert_eq!(cpu.get_current_sp_value(), 0x4224);
+    }
+
+    #[test]
+    fn it_should_execute_mov_from_register_to_register() {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.save_to_single_register(0x42, &RegisterType::B);
+        cpu.execute_mov(&Location::Register { register: RegisterType::C },
+                        &Location::Register { register: RegisterType::B });
+        assert_eq!(cpu.get_current_single_register_value(&RegisterType::C), 0x42);
+    }
+
+    #[test]
+    fn it_should_execute_mov_from_memory_to_register() {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.memory[0x42] = 0x24;
+        cpu.save_to_single_register(0x00, &RegisterType::H);
+        cpu.save_to_single_register(0x42, &RegisterType::L);
+        cpu.execute_mov(&Location::Register { register: RegisterType::C },
+                        &Location::Memory);
+        assert_eq!(cpu.get_current_single_register_value(&RegisterType::C), 0x24);
+    }
+
+    #[test]
+    fn it_should_execute_mov_from_register_to_memory() {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.save_to_single_register(0x24, &RegisterType::C);
+        cpu.save_to_single_register(0x00, &RegisterType::H);
+        cpu.save_to_single_register(0x42, &RegisterType::L);
+        cpu.execute_mov(&Location::Memory,
+                        &Location::Register { register: RegisterType::C });
+        assert_eq!(cpu.memory[0x42], 0x24);
     }
 }
