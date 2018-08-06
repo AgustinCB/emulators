@@ -6,11 +6,14 @@ impl Cpu {
         let sp = self.get_current_sp_value() as usize;
         let (first_byte, second_byte) = match register {
             RegisterType::B =>
-                (self.get_current_single_register_value(&RegisterType::B), self.get_current_single_register_value(&RegisterType::C)),
+                (self.get_current_single_register_value(&RegisterType::B),
+                 self.get_current_single_register_value(&RegisterType::C)),
             RegisterType::D =>
-                (self.get_current_single_register_value(&RegisterType::D), self.get_current_single_register_value(&RegisterType::E)),
+                (self.get_current_single_register_value(&RegisterType::D),
+                 self.get_current_single_register_value(&RegisterType::E)),
             RegisterType::H =>
-                (self.get_current_single_register_value(&RegisterType::H), self.get_current_single_register_value(&RegisterType::L)),
+                (self.get_current_single_register_value(&RegisterType::H),
+                 self.get_current_single_register_value(&RegisterType::L)),
             RegisterType::Psw =>
                 (self.get_current_a_value(), self.get_current_flags_byte()),
             _ => panic!("{} is not a valid register for push!", register.to_string()),
@@ -71,7 +74,7 @@ mod tests {
     use cpu::cpu::ROM_MEMORY_LIMIT;
     use disassembler_8080::RegisterType;
 
-    fn get_stack_ready_cpu() -> Cpu {
+    fn get_pop_ready_cpu() -> Cpu {
         let mut memory = [0; ROM_MEMORY_LIMIT];
         memory[0x1239] = 0x3d;
         memory[0x123A] = 0x93;
@@ -80,9 +83,38 @@ mod tests {
         cpu
     }
 
+    fn get_push_ready_cpu(register: &RegisterType) -> Cpu {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        match register {
+            RegisterType::B => {
+                cpu.save_to_single_register(0x8f, &RegisterType::B);
+                cpu.save_to_single_register(0x9d, &RegisterType::C);
+            },
+            RegisterType::D => {
+                cpu.save_to_single_register(0x8f, &RegisterType::D);
+                cpu.save_to_single_register(0x9d, &RegisterType::E);
+            },
+            RegisterType::H => {
+                cpu.save_to_single_register(0x8f, &RegisterType::H);
+                cpu.save_to_single_register(0x9d, &RegisterType::L);
+            }
+            RegisterType::Psw => {
+                cpu.save_to_single_register(0x8f, &RegisterType::A);
+                cpu.flags.zero = true;
+                cpu.flags.sign = false;
+                cpu.flags.parity = true;
+                cpu.flags.carry = true;
+                cpu.flags.auxiliary_carry = true;
+            }
+            _ => panic!("Register {} is not an argument for PUSH.", register.to_string()),
+        }
+        cpu.save_to_double_register(0x3A2C, &RegisterType::Sp);
+        cpu
+    }
+
     #[test]
     fn it_should_pop_from_stack_to_b() {
-        let mut cpu = get_stack_ready_cpu();
+        let mut cpu = get_pop_ready_cpu();
         cpu.execute_pop(&RegisterType::B);
         assert_eq!(cpu.get_current_bc_value(), 0x933d);
         assert_eq!(cpu.get_current_sp_value(), 0x123b);
@@ -90,7 +122,7 @@ mod tests {
 
     #[test]
     fn it_should_pop_from_stack_to_d() {
-        let mut cpu = get_stack_ready_cpu();
+        let mut cpu = get_pop_ready_cpu();
         cpu.execute_pop(&RegisterType::D);
         assert_eq!(cpu.get_current_de_value(), 0x933d);
         assert_eq!(cpu.get_current_sp_value(), 0x123b);
@@ -98,7 +130,7 @@ mod tests {
 
     #[test]
     fn it_should_pop_from_stack_to_h() {
-        let mut cpu = get_stack_ready_cpu();
+        let mut cpu = get_pop_ready_cpu();
         cpu.execute_pop(&RegisterType::H);
         assert_eq!(cpu.get_current_hl_value(), 0x933d);
         assert_eq!(cpu.get_current_sp_value(), 0x123b);
@@ -106,13 +138,50 @@ mod tests {
 
     #[test]
     fn it_should_pop_from_stack_to_a_and_flags() {
-        let mut cpu = get_stack_ready_cpu();
+        let mut cpu = get_pop_ready_cpu();
         cpu.execute_pop(&RegisterType::Psw);
         assert_eq!(cpu.get_current_a_value(), 0x93);
+        assert_eq!(cpu.get_current_sp_value(), 0x123b);
         assert!(cpu.flags.zero);
         assert!(!cpu.flags.sign);
         assert!(cpu.flags.parity);
         assert!(cpu.flags.carry);
         assert!(cpu.flags.auxiliary_carry);
+    }
+
+    #[test]
+    fn it_should_push_from_stack_to_b() {
+        let mut cpu = get_push_ready_cpu(&RegisterType::B);
+        cpu.execute_push(&RegisterType::B);
+        assert_eq!(cpu.memory[0x3a2b], 0x8f);
+        assert_eq!(cpu.memory[0x3a2a], 0x9d);
+        assert_eq!(cpu.get_current_sp_value(), 0x3A2A);
+    }
+
+    #[test]
+    fn it_should_push_from_stack_to_d() {
+        let mut cpu = get_push_ready_cpu(&RegisterType::D);
+        cpu.execute_push(&RegisterType::D);
+        assert_eq!(cpu.memory[0x3a2b], 0x8f);
+        assert_eq!(cpu.memory[0x3a2a], 0x9d);
+        assert_eq!(cpu.get_current_sp_value(), 0x3A2A);
+    }
+
+    #[test]
+    fn it_should_push_from_stack_to_h() {
+        let mut cpu = get_push_ready_cpu(&RegisterType::H);
+        cpu.execute_push(&RegisterType::H);
+        assert_eq!(cpu.memory[0x3a2b], 0x8f);
+        assert_eq!(cpu.memory[0x3a2a], 0x9d);
+        assert_eq!(cpu.get_current_sp_value(), 0x3A2A);
+    }
+
+    #[test]
+    fn it_should_push_from_stack_to_a_and_flags() {
+        let mut cpu = get_push_ready_cpu(&RegisterType::Psw);
+        cpu.execute_push(&RegisterType::Psw);
+        assert_eq!(cpu.memory[0x3a2b], 0x8f);
+        assert_eq!(cpu.memory[0x3a2a], 0x1d);
+        assert_eq!(cpu.get_current_sp_value(), 0x3A2A);
     }
 }
