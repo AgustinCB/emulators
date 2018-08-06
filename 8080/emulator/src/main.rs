@@ -1,6 +1,6 @@
 extern crate emulator_8080;
 
-use emulator_8080::cpu::{Executable, State};
+use emulator_8080::cpu::Cpu;
 use std::env::args;
 use std::fs::File;
 use std::io::Read;
@@ -23,7 +23,7 @@ fn main() {
         panic!("Usage: disassembler-8080 [file]")
     }
     let memory = read_file(&args[1]).unwrap();
-    let mut state = State::new(memory);
+    let mut state = Cpu::new(memory);
     while !state.is_done() {
         state.execute();
     }
