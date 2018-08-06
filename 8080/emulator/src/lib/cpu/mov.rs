@@ -135,6 +135,23 @@ mod tests {
         cpu
     }
 
+    fn get_stax_ready_cpu(register: &RegisterType) -> Cpu {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.save_to_a(0x42);
+        match register {
+            RegisterType::B => {
+                cpu.save_to_single_register(0x3f, &RegisterType::B);
+                cpu.save_to_single_register(0x16, &RegisterType::C);
+            },
+            RegisterType::D => {
+                cpu.save_to_single_register(0x3f, &RegisterType::D);
+                cpu.save_to_single_register(0x16, &RegisterType::E);
+            },
+            _ => panic!("Register {} is not a valid argument to stax.", register.to_string()),
+        };
+        cpu
+    }
+
     #[test]
     fn it_should_execute_ldax_from_b() {
         let mut cpu = get_ldax_ready_cpu(&RegisterType::B);
@@ -209,5 +226,60 @@ mod tests {
         cpu.execute_mov(&Location::Memory,
                         &Location::Register { register: RegisterType::C });
         assert_eq!(cpu.memory[0x42], 0x24);
+    }
+
+    #[test]
+    fn it_should_execute_mvi_to_memory() {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.save_to_single_register(0x00, &RegisterType::H);
+        cpu.save_to_single_register(0x42, &RegisterType::L);
+        cpu.execute_mvi_to_memory(0x24);
+        assert_eq!(cpu.memory[0x42], 0x24);
+    }
+
+    #[test]
+    fn it_should_execut_sphl() {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.save_to_single_register(0x00, &RegisterType::H);
+        cpu.save_to_single_register(0x42, &RegisterType::L);
+        cpu.execute_sphl();
+        assert_eq!(cpu.get_current_sp_value(), 0x42);
+        assert_eq!(cpu.get_current_hl_value(), 0x42);
+    }
+
+    #[test]
+    fn it_should_execute_stax_for_b() {
+        let mut cpu = get_stax_ready_cpu(&RegisterType::B);
+        cpu.execute_stax(&RegisterType::B);
+        assert_eq!(cpu.memory[0x3f16], 0x42);
+    }
+
+    #[test]
+    fn it_should_execute_stax_for_d() {
+        let mut cpu = get_stax_ready_cpu(&RegisterType::D);
+        cpu.execute_stax(&RegisterType::D);
+        assert_eq!(cpu.memory[0x3f16], 0x42);
+    }
+
+    #[test]
+    fn it_should_execute_xchg() {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.save_to_single_register(0x42, &RegisterType::D);
+        cpu.save_to_single_register(0x24, &RegisterType::E);
+        cpu.save_to_single_register(0x24, &RegisterType::H);
+        cpu.save_to_single_register(0x42, &RegisterType::L);
+        cpu.execute_xchg();
+        assert_eq!(cpu.get_current_de_value(), 0x2442);
+        assert_eq!(cpu.get_current_hl_value(), 0x4224);
+    }
+
+    #[test]
+    fn it_should_execute_xthl() {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.save_to_double_register(0, &RegisterType::Sp);
+        cpu.memory[0] = 0x42;
+        cpu.memory[1] = 0x24;
+        cpu.execute_xthl();
+        assert_eq!(cpu.get_current_hl_value(), 0x2442);
     }
 }
