@@ -109,3 +109,43 @@ impl Cpu {
         self.set_value_in_memory_at_hl(source_value);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use cpu::Cpu;
+    use cpu::cpu::ROM_MEMORY_LIMIT;
+    use disassembler_8080::RegisterType;
+
+    fn get_ldax_ready_cpu(register: &RegisterType) -> Cpu {
+        let mut memory = [0; ROM_MEMORY_LIMIT];
+        memory[0x138b] = 42;
+        let mut cpu = Cpu::new(memory);
+
+        match register {
+            RegisterType::B => {
+                cpu.save_to_single_register(0x13, &RegisterType::B);
+                cpu.save_to_single_register(0x8b, &RegisterType::C);
+            },
+            RegisterType::D => {
+                cpu.save_to_single_register(0x13, &RegisterType::D);
+                cpu.save_to_single_register(0x8b, &RegisterType::E);
+            },
+            _ => panic!("Register {} is not a valid argument to ldax.", register.to_string()),
+        }
+        cpu
+    }
+
+    #[test]
+    fn it_should_execute_ldax_from_b() {
+        let mut cpu = get_ldax_ready_cpu(&RegisterType::B);
+        cpu.execute_ldax(&RegisterType::B);
+        assert_eq!(cpu.get_current_a_value(), 42);
+    }
+
+    #[test]
+    fn it_should_execute_ldax_from_d() {
+        let mut cpu = get_ldax_ready_cpu(&RegisterType::D);
+        cpu.execute_ldax(&RegisterType::D);
+        assert_eq!(cpu.get_current_a_value(), 42);
+    }
+}
