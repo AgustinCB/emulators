@@ -97,24 +97,6 @@ impl Cpu {
     }
 
     #[inline]
-    pub(crate) fn get_current_flags_byte(&self) -> u8 {
-        (self.flags.zero as u8) |
-            (self.flags.sign as u8) << 1 |
-            (self.flags.parity as u8) << 2 |
-            (self.flags.carry as u8) << 3 |
-            (self.flags.auxiliary_carry as u8) << 4
-    }
-
-    #[inline]
-    pub(crate) fn set_flags_byte(&mut self, byte: u8) {
-        self.flags.zero = (byte & 0x01) == 0x01;
-        self.flags.sign = (byte & 0x02) == 0x02;
-        self.flags.parity = (byte & 0x04) == 0x04;
-        self.flags.carry = (byte & 0x08) == 0x08;
-        self.flags.auxiliary_carry = (byte & 0x10) == 0x10;
-    }
-
-    #[inline]
     pub(crate) fn get_current_hl_value(&self) -> u16 {
         match (self.registers.get(&RegisterType::H).unwrap(), self.registers.get(&RegisterType::L).unwrap()) {
             (Register::SingleRegister { value: h_value }, Register::SingleRegister { value: l_value }) =>
