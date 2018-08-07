@@ -41,6 +41,8 @@ impl Cpu {
                 self.execute_inr_by_register(&register),
             Instruction::Inr { source: Location::Memory } => self.execute_inr_by_memory(),
             Instruction::Inx { register } => self.execute_inx(&register),
+            Instruction::Jmp { address } =>
+                self.execute_jmp(address[1], address[0]),
             Instruction::Lda { address } =>
                 self.execute_lda(address[1], address[0]),
             Instruction::Ldax { register } => self.execute_ldax(&register),

@@ -1,11 +1,11 @@
-use cpu::helpers::two_bytes_to_address;
+use cpu::helpers::two_bytes_to_word;
 use cpu::cpu::Cpu;
 use disassembler_8080::RegisterType;
 use disassembler_8080::Location;
 
 impl Cpu {
     pub(crate) fn execute_lda(&mut self, high_byte: u8, low_byte: u8) {
-        let source_address = two_bytes_to_address(high_byte, low_byte) as usize;
+        let source_address = two_bytes_to_word(high_byte, low_byte) as usize;
         let value = self.memory[source_address];
         self.save_to_a(value);
     }
@@ -21,7 +21,7 @@ impl Cpu {
     }
 
     pub(crate) fn execute_lhld(&mut self, high_byte: u8, low_byte: u8) {
-        let destiny_address = two_bytes_to_address(high_byte, low_byte) as usize;
+        let destiny_address = two_bytes_to_word(high_byte, low_byte) as usize;
         let l_value = self.memory[destiny_address];
         let h_value = self.memory[destiny_address+1];
         self.save_to_single_register(h_value, &RegisterType::H);
@@ -43,7 +43,7 @@ impl Cpu {
                 self.save_to_single_register(low_byte, &RegisterType::L);
             },
             RegisterType::Sp =>
-                self.save_to_double_register(two_bytes_to_address(high_byte, low_byte),
+                self.save_to_double_register(two_bytes_to_word(high_byte, low_byte),
                                              &RegisterType::Sp),
             _ => panic!("Register {} is not a valid input of LXI", register_type.to_string()),
         }
@@ -72,7 +72,7 @@ impl Cpu {
     pub(crate) fn execute_shld(&mut self, high_byte: u8, low_byte: u8) {
         let h_value = self.get_current_single_register_value(&RegisterType::H);
         let l_value = self.get_current_single_register_value(&RegisterType::L);
-        let destiny_address = two_bytes_to_address(high_byte, low_byte) as usize;
+        let destiny_address = two_bytes_to_word(high_byte, low_byte) as usize;
         self.memory[destiny_address] = l_value;
         self.memory[destiny_address+1] = h_value;
     }
@@ -84,7 +84,7 @@ impl Cpu {
 
     pub(crate) fn execute_sta(&mut self, high_byte: u8, low_byte: u8) {
         let value = self.get_current_a_value();
-        let destiny_address = two_bytes_to_address(high_byte, low_byte);
+        let destiny_address = two_bytes_to_word(high_byte, low_byte);
         self.memory[destiny_address as usize] = value;
     }
 
