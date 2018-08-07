@@ -41,7 +41,11 @@ impl Cpu {
                 self.execute_inr_by_register(&register),
             Instruction::Inr { source: Location::Memory } => self.execute_inr_by_memory(),
             Instruction::Inx { register } => self.execute_inx(&register),
+            Instruction::Lda { address } =>
+                self.execute_lda(address[1], address[0]),
             Instruction::Ldax { register } => self.execute_ldax(&register),
+            Instruction::Lhld { address } =>
+                self.execute_lhld(address[1], address[0]),
             Instruction::Lxi { register, low_byte, high_byte } =>
                 self.execute_lxi(&register, high_byte, low_byte),
             Instruction::Mov { destiny, source } => self.execute_mov(&destiny, &source),
@@ -62,6 +66,8 @@ impl Cpu {
                 self.execute_sbb_by_register(&register),
             Instruction::Sbb { source: Location::Memory } => self.execute_sbb_by_memory(),
             Instruction::Sbi { byte } => self.execute_sbi(byte),
+            Instruction::Shld { address } =>
+                self.execute_shld(address[1], address[0]),
             Instruction::Sta { address } =>
                 self.execute_sta(address[1], address[0]),
             Instruction::Stax { register } => self.execute_stax(&register),

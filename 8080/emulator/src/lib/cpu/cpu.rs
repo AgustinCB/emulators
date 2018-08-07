@@ -151,11 +151,11 @@ impl Cpu {
     }
 
     #[inline]
-    pub(crate) fn get_current_single_register_value(&self, r: &RegisterType) -> u8 {
-        if let Register::SingleRegister { value } = self.registers.get(r).unwrap() {
+    pub(crate) fn get_current_single_register_value(&self, register: &RegisterType) -> u8 {
+        if let Register::SingleRegister { value } = self.registers.get(register).unwrap() {
             *value
         } else {
-            panic!("{} register is double. Can't happen.", r.to_string())
+            panic!("{} register is double. Can't happen.", register.to_string())
         }
     }
 
