@@ -40,6 +40,18 @@ impl Flags {
     }
 }
 
+fn bit_count(n: u8) -> u8 {
+    let mut count = 0;
+    let mut acc = n;
+    while acc > 0 {
+        if (acc & 1) == 1{
+            count +=1;
+        }
+        acc >>= 1;
+    }
+    return count;
+}
+
 pub struct Cpu {
     pub(crate) registers: HashMap<RegisterType, Register>,
     pub(crate) pc: u16,
@@ -83,17 +95,7 @@ impl Cpu {
         if with_carry {
             self.flags.carry = answer > 0xff;
         }
-        self.flags.parity = (answer & 0xff) % 2 == 0;
-    }
-
-    #[inline]
-    pub(crate) fn update_auxiliary_carry_with_sub(&mut self, destiny: u16, source: u16) {
-        self.flags.auxiliary_carry = (destiny & 0x0f) + (!source & 0x0f) + 1 > 0x0f;
-    }
-
-    #[inline]
-    pub(crate) fn update_auxiliary_carry(&mut self, destiny: u16, source: u16) {
-        self.flags.auxiliary_carry = (destiny & 0x0f) + (source & 0x0f) > 0x0f;
+        self.flags.parity = bit_count(answer as u8) % 2 == 0;
     }
 
     #[inline]

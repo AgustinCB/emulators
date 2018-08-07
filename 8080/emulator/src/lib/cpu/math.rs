@@ -158,6 +158,14 @@ impl Cpu {
         self.save_to_a(new_value);
     }
 
+    pub(crate) fn execute_sui(&mut self, byte: u8) {
+        let destiny_value = self.get_current_a_value() as u16;
+        let carry_as_u16 = self.flags.carry as u16;
+        let new_value = destiny_value + carry_as_u16;
+        let new_value = self.perform_sub_with_carry(new_value, byte as u16);
+        self.save_to_a(new_value);
+    }
+
     #[inline]
     fn perform_add_with_carry(&mut self, destiny: u16, source: u16) -> u8 {
         self.perform_add(destiny, source, true)
@@ -216,12 +224,42 @@ impl Cpu {
 
     #[inline]
     fn perform_sub(&mut self, destiny: u16, source: u16, with_carry: bool) -> u8 {
-        let answer: u16 = destiny + !source + 1;
+        let answer = destiny + !(source as u8) as u16 + 1;
         self.update_flags(answer, false);
         if with_carry {
             self.flags.carry = answer <= 0xff;
         }
         self.update_auxiliary_carry_with_sub(destiny, source);
         (answer & 0xff) as u8
+    }
+
+    #[inline]
+    fn update_auxiliary_carry_with_sub(&mut self, destiny: u16, source: u16) {
+        self.flags.auxiliary_carry = (destiny & 0x0f) + (!source & 0x0f) + 1 > 0x0f;
+    }
+
+    #[inline]
+    fn update_auxiliary_carry(&mut self, destiny: u16, source: u16) {
+        self.flags.auxiliary_carry = (destiny & 0x0f) + (source & 0x0f) > 0x0f;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use cpu::Cpu;
+    use cpu::cpu::ROM_MEMORY_LIMIT;
+
+    #[test]
+    fn it_should_execute_sui() {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.save_to_a(0);
+        cpu.flags.carry = false;
+        cpu.execute_sui(1);
+        assert_eq!(cpu.get_current_a_value(), 0xff);
+        assert!(cpu.flags.carry);
+        assert!(cpu.flags.sign);
+        assert!(cpu.flags.parity);
+        assert!(!cpu.flags.auxiliary_carry);
+        assert!(!cpu.flags.zero);
     }
 }
