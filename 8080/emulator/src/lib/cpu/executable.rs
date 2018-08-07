@@ -30,6 +30,7 @@ impl Cpu {
             Instruction::Cmp { source: Location::Register { register } } =>
                 self.execute_cmp_by_register(&register),
             Instruction::Cmp { source: Location::Memory } => self.execute_cmp_by_memory(),
+            Instruction::Cpi { byte } => self.execute_cpi(byte),
             Instruction::Daa => self.execute_daa(),
             Instruction::Dad { register } => self.execute_dad(&register),
             Instruction::Dcr { source: Location::Register { register } } =>

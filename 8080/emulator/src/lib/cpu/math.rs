@@ -56,6 +56,12 @@ impl Cpu {
     }
 
     #[inline]
+    pub(crate) fn execute_cpi(&mut self, byte: u8) {
+        let destiny_value = self.get_current_a_value() as u16;
+        self.perform_sub_with_carry(destiny_value, byte as u16);
+    }
+
+    #[inline]
     pub(crate) fn execute_cmp_by_memory(&mut self) {
         let destiny_value = self.get_current_a_value() as u16;
         let source_value = self.get_value_in_memory_at_hl() as u16;
@@ -240,7 +246,7 @@ impl Cpu {
 
     #[inline]
     fn update_auxiliary_carry_with_sub(&mut self, destiny: u16, source: u16) {
-        self.flags.auxiliary_carry = (destiny & 0x0f) + (!source & 0x0f) + 1 > 0x0f;
+        self.flags.auxiliary_carry = (destiny & 0x0f) + ((!source + 1) & 0x0f) > 0x0f;
     }
 
     #[inline]
@@ -253,6 +259,19 @@ impl Cpu {
 mod tests {
     use cpu::Cpu;
     use cpu::cpu::ROM_MEMORY_LIMIT;
+
+    #[test]
+    fn it_should_execute_cmi() {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.save_to_a(0x4a);
+        cpu.execute_cpi(0x40);
+        assert_eq!(cpu.get_current_a_value(), 0x4a);
+        assert!(!cpu.flags.carry);
+        assert!(!cpu.flags.sign);
+        assert!(cpu.flags.parity);
+        assert!(!cpu.flags.auxiliary_carry);
+        assert!(!cpu.flags.zero);
+    }
 
     #[test]
     fn it_should_execute_sbi_without_carry() {
