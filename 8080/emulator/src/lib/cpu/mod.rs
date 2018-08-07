@@ -1,6 +1,7 @@
 mod branch;
 mod cpu;
 mod executable;
+mod helpers;
 mod logical;
 mod math;
 mod mov;

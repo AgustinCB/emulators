@@ -1,5 +1,6 @@
 extern crate disassembler_8080;
 
+use cpu::helpers::{bit_count, two_bytes_to_address};
 use self::disassembler_8080::RegisterType;
 use std::collections::HashMap;
 
@@ -38,18 +39,6 @@ impl Flags {
             auxiliary_carry: true,
         }
     }
-}
-
-fn bit_count(n: u8) -> u8 {
-    let mut count = 0;
-    let mut acc = n;
-    while acc > 0 {
-        if (acc & 1) == 1{
-            count +=1;
-        }
-        acc >>= 1;
-    }
-    return count;
 }
 
 pub struct Cpu {
@@ -102,7 +91,7 @@ impl Cpu {
     pub(crate) fn get_current_hl_value(&self) -> u16 {
         match (self.registers.get(&RegisterType::H).unwrap(), self.registers.get(&RegisterType::L).unwrap()) {
             (Register::SingleRegister { value: h_value }, Register::SingleRegister { value: l_value }) =>
-                ((*h_value as u16) << 8) | (*l_value as u16),
+                two_bytes_to_address(*h_value, *l_value),
             _ => panic!("Register HL either not registered or Double. Can't happen!"),
         }
     }
@@ -111,7 +100,7 @@ impl Cpu {
     pub(crate) fn get_current_bc_value(&self) -> u16 {
         match (self.registers.get(&RegisterType::B).unwrap(), self.registers.get(&RegisterType::C).unwrap()) {
             (Register::SingleRegister { value: h_value }, Register::SingleRegister { value: l_value }) =>
-                ((*h_value as u16) << 8) | (*l_value as u16),
+                two_bytes_to_address(*h_value, *l_value),
             _ => panic!("Register HL either not registered or Double. Can't happen!"),
         }
     }
@@ -120,7 +109,7 @@ impl Cpu {
     pub(crate) fn get_current_de_value(&self) -> u16 {
         match (self.registers.get(&RegisterType::D).unwrap(), self.registers.get(&RegisterType::E).unwrap()) {
             (Register::SingleRegister { value: h_value }, Register::SingleRegister { value: l_value }) =>
-                ((*h_value as u16) << 8) | (*l_value as u16),
+                two_bytes_to_address(*h_value, *l_value),
             _ => panic!("Register HL either not registered or Double. Can't happen!"),
         }
     }
