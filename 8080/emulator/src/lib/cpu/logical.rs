@@ -212,6 +212,46 @@ mod tests {
     }
 
     #[test]
+    fn it_should_execute_ral() {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.save_to_a(0xb5);
+        cpu.flags.carry = false;
+        cpu.execute_ral();
+        assert_eq!(cpu.get_current_a_value(), 0x6a);
+        assert!(cpu.flags.carry);
+    }
+
+    #[test]
+    fn it_should_execute_rar() {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.save_to_a(0x6a);
+        cpu.flags.carry = true;
+        cpu.execute_rar();
+        assert_eq!(cpu.get_current_a_value(), 0xb5);
+        assert!(!cpu.flags.carry);
+    }
+
+    #[test]
+    fn it_should_execute_rlc() {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.save_to_a(0xf2);
+        cpu.flags.carry = false;
+        cpu.execute_ral();
+        assert_eq!(cpu.get_current_a_value(), 0xe5);
+        assert!(cpu.flags.carry);
+    }
+
+    #[test]
+    fn it_should_execute_rrc() {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.save_to_a(0xf2);
+        cpu.flags.carry = true;
+        cpu.execute_rrc();
+        assert_eq!(cpu.get_current_a_value(), 0x79);
+        assert!(!cpu.flags.carry);
+    }
+
+    #[test]
     fn it_should_execute_xri() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x3b);
