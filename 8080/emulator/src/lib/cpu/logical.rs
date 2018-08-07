@@ -262,4 +262,44 @@ mod tests {
         assert!(!cpu.flags.parity);
         assert!(!cpu.flags.zero);
     }
+
+    #[test]
+    fn it_should_execute_xra_by_memory () {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.save_to_a(0x78);
+        cpu.save_to_single_register(0x00, &RegisterType::H);
+        cpu.save_to_single_register(0x00, &RegisterType::L);
+        cpu.memory[0] = 0x5c;
+        cpu.execute_ora_by_memory();
+        assert_eq!(cpu.get_current_a_value(), 0x24);
+        assert!(!cpu.flags.carry);
+        assert!(!cpu.flags.sign);
+        assert!(cpu.flags.parity);
+        assert!(!cpu.flags.zero);
+    }
+
+    #[test]
+    fn it_should_execute_xra_by_register () {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.save_to_a(0xff);
+        cpu.save_to_single_register(0x0f, &RegisterType::C);
+        cpu.execute_xra_by_register(&RegisterType::C);
+        assert_eq!(cpu.get_current_a_value(), 0xf0);
+        assert!(!cpu.flags.carry);
+        assert!(cpu.flags.sign);
+        assert!(cpu.flags.parity);
+        assert!(!cpu.flags.zero);
+    }
+
+    #[test]
+    fn it_should_execute_xra_on_itself () {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.save_to_a(0x33);
+        cpu.execute_xra_by_register(&RegisterType::A);
+        assert_eq!(cpu.get_current_a_value(), 0);
+        assert!(!cpu.flags.carry);
+        assert!(!cpu.flags.sign);
+        assert!(cpu.flags.parity);
+        assert!(cpu.flags.zero);
+    }
 }
