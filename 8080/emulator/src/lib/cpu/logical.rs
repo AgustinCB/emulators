@@ -5,14 +5,20 @@ impl Cpu {
     pub(crate) fn execute_ana_by_register(&mut self, register_type: &RegisterType) {
         let destiny_value = self.get_current_a_value();
         let source_value = self.get_current_single_register_value(register_type);
-        let new_value = self.perform_and(source_value, destiny_value);
+        let new_value = self.perform_and(destiny_value, source_value);
         self.save_to_a(new_value);
     }
 
     pub(crate) fn execute_ana_by_memory(&mut self) {
         let destiny_value = self.get_current_a_value();
         let source_value = self.get_value_in_memory_at_hl();
-        let new_value = self.perform_and(source_value, destiny_value);
+        let new_value = self.perform_and(destiny_value, source_value);
+        self.save_to_a(new_value);
+    }
+
+    pub(crate) fn execute_ani(&mut self, byte: u8) {
+        let destiny_value = self.get_current_a_value();
+        let new_value = self.perform_and(destiny_value, byte);
         self.save_to_a(new_value);
     }
 
@@ -104,5 +110,23 @@ impl Cpu {
         self.update_flags(answer as u16, false);
         self.flags.carry = false;
         answer
+    }
+}
+
+#[cfg(tests)]
+mod tests {
+    use cpu::Cpu;
+    use cpu::cpu::ROM_MEMORY_LIMIT;
+
+    #[test]
+    fn it_should_execute_ani() {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.save_to_a(0x3a);
+        cpu.execute_ani(0x0f);
+        assert_eq!(cpu.get_current_a_value(), 0x0a);
+        assert!(!cpu.flags.carry);
+        assert!(!cpu.flags.sign);
+        assert!(cpu.flags.parity);
+        assert!(!cpu.flags.zero);
     }
 }
