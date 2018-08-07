@@ -2,6 +2,10 @@ use cpu::cpu::Cpu;
 use disassembler_8080::RegisterType;
 use disassembler_8080::Location;
 
+fn two_bytes_to_address(high_byte: u8, low_byte: u8) -> u16 {
+    (high_byte as u16) << 8 | (low_byte as u16)
+}
+
 impl Cpu {
     pub(crate) fn execute_ldax(&mut self, register: &RegisterType) {
         let source_address = match register {
@@ -28,7 +32,8 @@ impl Cpu {
                 self.save_to_single_register(low_byte, &RegisterType::L);
             },
             RegisterType::Sp =>
-                self.save_to_double_register((high_byte as u16) << 8 | (low_byte as u16), &RegisterType::Sp),
+                self.save_to_double_register(two_bytes_to_address(high_byte, low_byte),
+                                             &RegisterType::Sp),
             _ => panic!("Register {} is not a valid input of LXI", register_type.to_string()),
         }
     }
@@ -56,6 +61,12 @@ impl Cpu {
     pub(crate) fn execute_sphl(&mut self) {
         let hl = self.get_current_hl_value();
         self.save_to_double_register(hl, &RegisterType::Sp);
+    }
+
+    pub(crate) fn execute_sta(&mut self, high_byte: u8, low_byte: u8) {
+        let value = self.get_current_a_value();
+        let destiny_address = two_bytes_to_address(high_byte, low_byte);
+        self.memory[destiny_address as usize] = value;
     }
 
     pub(crate) fn execute_stax(&mut self, register: &RegisterType) {
@@ -245,6 +256,14 @@ mod tests {
         cpu.execute_sphl();
         assert_eq!(cpu.get_current_sp_value(), 0x42);
         assert_eq!(cpu.get_current_hl_value(), 0x42);
+    }
+
+    #[test]
+    fn it_should_execute_sta() {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.save_to_a(0x42);
+        cpu.execute_sta(0x00, 0x24);
+        assert_eq!(cpu.memory[0x24], 0x42);
     }
 
     #[test]

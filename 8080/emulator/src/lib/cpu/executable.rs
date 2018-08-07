@@ -62,6 +62,8 @@ impl Cpu {
                 self.execute_sbb_by_register(&register),
             Instruction::Sbb { source: Location::Memory } => self.execute_sbb_by_memory(),
             Instruction::Sbi { byte } => self.execute_sbi(byte),
+            Instruction::Sta { address } =>
+                self.execute_sta(address[1], address[0]),
             Instruction::Stax { register } => self.execute_stax(&register),
             Instruction::Stc => self.execute_stc(),
             Instruction::Sphl => self.execute_sphl(),
