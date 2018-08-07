@@ -224,7 +224,7 @@ impl Cpu {
 
     #[inline]
     fn perform_sub(&mut self, destiny: u16, source: u16, with_carry: bool) -> u8 {
-        let answer = destiny + !(source as u8) as u16 + 1;
+        let answer = destiny + (!source & 0xff) + 1;
         self.update_flags(answer, false);
         if with_carry {
             self.flags.carry = answer <= 0xff;
