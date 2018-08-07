@@ -24,6 +24,7 @@ impl Cpu {
             Instruction::Ana { source: Location::Register { register } } =>
                 self.execute_ana_by_register(&register),
             Instruction::Ana { source: Location::Memory } => self.execute_ana_by_memory(),
+            Instruction::Ani { byte } => self.execute_ani(byte),
             Instruction::Cma => self.execute_cma(),
             Instruction::Cmc => self.execute_cmc(),
             Instruction::Cmp { source: Location::Register { register } } =>
@@ -70,6 +71,7 @@ impl Cpu {
             Instruction::Xra { source: Location::Register { register } } =>
                 self.execute_xra_by_register(&register),
             Instruction::Xra { source: Location::Memory } => self.execute_xra_by_memory(),
+            Instruction::Xri { byte } => self.execute_xri(byte),
             Instruction::Xthl => self.execute_xthl(),
             _ => println!("Execute: {}", instruction.to_string()),
         }
