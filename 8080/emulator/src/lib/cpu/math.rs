@@ -144,6 +144,13 @@ impl Cpu {
         self.save_to_a(new_value);
     }
 
+    pub(crate) fn execute_sbi(&mut self, byte: u8) {
+        let destiny_value = self.get_current_a_value() as u16;
+        let add = byte as u16 + self.flags.carry as u16;
+        let new_value = self.perform_sub_with_carry(destiny_value, add);
+        self.save_to_a(new_value);
+    }
+
     pub(crate) fn execute_sub_by_register(&mut self, register_type: &RegisterType) {
         let destiny_value = self.get_current_a_value() as u16;
         let source_value = self.get_current_single_register_value(register_type) as u16;
@@ -160,9 +167,7 @@ impl Cpu {
 
     pub(crate) fn execute_sui(&mut self, byte: u8) {
         let destiny_value = self.get_current_a_value() as u16;
-        let carry_as_u16 = self.flags.carry as u16;
-        let new_value = destiny_value + carry_as_u16;
-        let new_value = self.perform_sub_with_carry(new_value, byte as u16);
+        let new_value = self.perform_sub_with_carry(destiny_value, byte as u16);
         self.save_to_a(new_value);
     }
 
@@ -248,6 +253,34 @@ impl Cpu {
 mod tests {
     use cpu::Cpu;
     use cpu::cpu::ROM_MEMORY_LIMIT;
+
+    #[test]
+    fn it_should_execute_sbi_without_carry() {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.save_to_a(0);
+        cpu.flags.carry = false;
+        cpu.execute_sbi(1);
+        assert_eq!(cpu.get_current_a_value(), 0xff);
+        assert!(cpu.flags.carry);
+        assert!(cpu.flags.sign);
+        assert!(cpu.flags.parity);
+        assert!(!cpu.flags.auxiliary_carry);
+        assert!(!cpu.flags.zero);
+    }
+
+    #[test]
+    fn it_should_execute_sbi_with_carry() {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.save_to_a(0);
+        cpu.flags.carry = true;
+        cpu.execute_sbi(1);
+        assert_eq!(cpu.get_current_a_value(), 0xfe);
+        assert!(cpu.flags.carry);
+        assert!(cpu.flags.sign);
+        assert!(!cpu.flags.parity);
+        assert!(!cpu.flags.auxiliary_carry);
+        assert!(!cpu.flags.zero);
+    }
 
     #[test]
     fn it_should_execute_sui() {
