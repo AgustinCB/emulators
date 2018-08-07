@@ -52,6 +52,7 @@ impl Cpu {
             Instruction::Ora { source: Location::Register { register } } =>
                 self.execute_ora_by_register(&register),
             Instruction::Ora { source: Location::Memory } => self.execute_ora_by_memory(),
+            Instruction::Ori { byte } => self.execute_ori(byte),
             Instruction::Ral => self.execute_ral(),
             Instruction::Rar => self.execute_rar(),
             Instruction::Rlc => self.execute_rlc(),
