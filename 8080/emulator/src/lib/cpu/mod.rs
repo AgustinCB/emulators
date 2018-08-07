@@ -1,4 +1,4 @@
-mod branch;
+mod branch_jmp;
 mod cpu;
 mod executable;
 mod helpers;

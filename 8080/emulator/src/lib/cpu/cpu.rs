@@ -166,4 +166,10 @@ impl Cpu {
             *value = new_value;
         }
     }
+
+    #[inline]
+    pub(crate) fn perform_jump(&mut self, high_byte: u8, low_byte: u8) {
+        let new_pc = two_bytes_to_word(high_byte, low_byte);
+        self.pc = new_pc;
+    }
 }

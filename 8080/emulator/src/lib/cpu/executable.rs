@@ -41,8 +41,24 @@ impl Cpu {
                 self.execute_inr_by_register(&register),
             Instruction::Inr { source: Location::Memory } => self.execute_inr_by_memory(),
             Instruction::Inx { register } => self.execute_inx(&register),
+            Instruction::Jc { address } =>
+                self.execute_jc(address[1], address[0]),
+            Instruction::Jm { address } =>
+                self.execute_jm(address[1], address[0]),
+            Instruction::Jnc { address } =>
+                self.execute_jnc(address[1], address[0]),
+            Instruction::Jnz { address } =>
+                self.execute_jnz(address[1], address[0]),
             Instruction::Jmp { address } =>
                 self.execute_jmp(address[1], address[0]),
+            Instruction::Jp { address } =>
+                self.execute_jp(address[1], address[0]),
+            Instruction::Jpe { address } =>
+                self.execute_jpe(address[1], address[0]),
+            Instruction::Jpo { address } =>
+                self.execute_jpo(address[1], address[0]),
+            Instruction::Jz { address } =>
+                self.execute_jz(address[1], address[0]),
             Instruction::Lda { address } =>
                 self.execute_lda(address[1], address[0]),
             Instruction::Ldax { register } => self.execute_ldax(&register),
