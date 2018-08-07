@@ -52,6 +52,7 @@ impl Cpu {
             Instruction::Mvi { source: Location::Memory, byte} => self.execute_mvi_to_memory(byte),
             Instruction::Mvi { source: Location::Register { register }, byte } =>
                 self.save_to_single_register(byte, &register),
+            Instruction::Pchl => self.execute_pchl(),
             Instruction::Pop { register } => self.execute_pop(&register),
             Instruction::Push { register } => self.execute_push(&register),
             Instruction::Ora { source: Location::Register { register } } =>

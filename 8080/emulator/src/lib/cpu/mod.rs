@@ -1,3 +1,4 @@
+mod branch;
 mod cpu;
 mod executable;
 mod logical;
