@@ -1,3 +1,4 @@
+mod branch_call;
 mod branch_jmp;
 mod cpu;
 mod executable;

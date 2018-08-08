@@ -25,6 +25,8 @@ impl Cpu {
                 self.execute_ana_by_register(&register),
             Instruction::Ana { source: Location::Memory } => self.execute_ana_by_memory(),
             Instruction::Ani { byte } => self.execute_ani(byte),
+            Instruction::Call { address } =>
+                self.execute_call(address[1], address[0]),
             Instruction::Cma => self.execute_cma(),
             Instruction::Cmc => self.execute_cmc(),
             Instruction::Cmp { source: Location::Register { register } } =>

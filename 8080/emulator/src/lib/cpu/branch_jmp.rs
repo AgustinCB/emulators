@@ -1,5 +1,4 @@
 use cpu::cpu::Cpu;
-use cpu::helpers::two_bytes_to_word;
 
 impl Cpu {
     pub(crate) fn execute_pchl(&mut self) {
