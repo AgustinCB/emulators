@@ -116,7 +116,7 @@ mod tests {
     }
 
     #[test]
-    fn it_should_execute_cm_if_carry_is_reset() {
+    fn it_should_execute_cm_if_sign_is_reset() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(2, &RegisterType::Sp);
         cpu.pc = 0x2c03;
@@ -129,7 +129,7 @@ mod tests {
     }
 
     #[test]
-    fn it_shouldnt_execute_cm_if_carry_is_set() {
+    fn it_shouldnt_execute_cm_if_sign_is_set() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(2, &RegisterType::Sp);
         cpu.pc = 0x2c03;
@@ -168,7 +168,7 @@ mod tests {
     }
 
     #[test]
-    fn it_should_execute_cnz_if_carry_is_reset() {
+    fn it_should_execute_cnz_if_zero_is_reset() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(2, &RegisterType::Sp);
         cpu.pc = 0x2c03;
@@ -181,7 +181,7 @@ mod tests {
     }
 
     #[test]
-    fn it_shouldnt_execute_cnz_if_carry_is_set() {
+    fn it_shouldnt_execute_cnz_if_zero_is_set() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(2, &RegisterType::Sp);
         cpu.pc = 0x2c03;
@@ -194,7 +194,7 @@ mod tests {
     }
 
     #[test]
-    fn it_should_execute_cp_if_carry_is_set() {
+    fn it_should_execute_cp_if_sign_is_set() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(2, &RegisterType::Sp);
         cpu.pc = 0x2c03;
@@ -207,7 +207,7 @@ mod tests {
     }
 
     #[test]
-    fn it_shouldnt_execute_cp_if_carry_is_reset() {
+    fn it_shouldnt_execute_cp_if_sign_is_reset() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(2, &RegisterType::Sp);
         cpu.pc = 0x2c03;
@@ -220,7 +220,7 @@ mod tests {
     }
 
     #[test]
-    fn it_should_execute_cpe_if_carry_is_set() {
+    fn it_should_execute_cpe_if_parity_is_set() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(2, &RegisterType::Sp);
         cpu.pc = 0x2c03;
@@ -233,7 +233,7 @@ mod tests {
     }
 
     #[test]
-    fn it_shouldnt_execute_cpe_if_carry_is_reset() {
+    fn it_shouldnt_execute_cpe_if_parity_is_reset() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(2, &RegisterType::Sp);
         cpu.pc = 0x2c03;
@@ -246,7 +246,7 @@ mod tests {
     }
 
     #[test]
-    fn it_should_execute_cpo_if_carry_is_reset() {
+    fn it_should_execute_cpo_if_parity_is_reset() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(2, &RegisterType::Sp);
         cpu.pc = 0x2c03;
@@ -259,7 +259,7 @@ mod tests {
     }
 
     #[test]
-    fn it_shouldnt_execute_cpo_if_carry_is_set() {
+    fn it_shouldnt_execute_cpo_if_parity_is_set() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(2, &RegisterType::Sp);
         cpu.pc = 0x2c03;
@@ -272,7 +272,7 @@ mod tests {
     }
 
     #[test]
-    fn it_should_execute_cz_if_carry_is_set() {
+    fn it_should_execute_cz_if_zero_is_set() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(2, &RegisterType::Sp);
         cpu.pc = 0x2c03;
@@ -285,7 +285,7 @@ mod tests {
     }
 
     #[test]
-    fn it_shouldnt_execute_cz_if_carry_is_reset() {
+    fn it_shouldnt_execute_cz_if_zero_is_reset() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(2, &RegisterType::Sp);
         cpu.pc = 0x2c03;
