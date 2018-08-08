@@ -259,12 +259,13 @@ impl Cpu {
 mod tests {
     use cpu::Cpu;
     use cpu::cpu::ROM_MEMORY_LIMIT;
+    use disassembler_8080::Instruction;
 
     #[test]
-    fn it_should_execute_cmi() {
+    fn it_should_execute_cpi() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x4a);
-        cpu.execute_cpi(0x40);
+        cpu.execute_instruction(Instruction::Cpi { byte: 0x40 });
         assert_eq!(cpu.get_current_a_value(), 0x4a);
         assert!(!cpu.flags.carry);
         assert!(!cpu.flags.sign);
@@ -278,7 +279,7 @@ mod tests {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0);
         cpu.flags.carry = false;
-        cpu.execute_sbi(1);
+        cpu.execute_instruction(Instruction::Sbi { byte: 0x01 });
         assert_eq!(cpu.get_current_a_value(), 0xff);
         assert!(cpu.flags.carry);
         assert!(cpu.flags.sign);
@@ -292,7 +293,7 @@ mod tests {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0);
         cpu.flags.carry = true;
-        cpu.execute_sbi(1);
+        cpu.execute_instruction(Instruction::Sbi { byte: 0x01 });
         assert_eq!(cpu.get_current_a_value(), 0xfe);
         assert!(cpu.flags.carry);
         assert!(cpu.flags.sign);
@@ -306,7 +307,7 @@ mod tests {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0);
         cpu.flags.carry = false;
-        cpu.execute_sui(1);
+        cpu.execute_instruction(Instruction::Sui { byte: 0x01 });
         assert_eq!(cpu.get_current_a_value(), 0xff);
         assert!(cpu.flags.carry);
         assert!(cpu.flags.sign);
