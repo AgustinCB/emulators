@@ -4,7 +4,7 @@ use cpu::helpers::{bit_count, two_bytes_to_word};
 use self::disassembler_8080::RegisterType;
 use std::collections::HashMap;
 
-pub(crate) const ROM_MEMORY_LIMIT: usize = 8192;
+pub const ROM_MEMORY_LIMIT: usize = 8192;
 pub(crate) const MAX_INPUT_OUTPUT_DEVICES: usize = 0x100;
 
 pub(crate) enum Register {

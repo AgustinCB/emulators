@@ -11,4 +11,4 @@ mod math;
 mod mov;
 mod stack;
 mod state;
-pub use self::cpu::Cpu;
+pub use self::cpu::{Cpu, ROM_MEMORY_LIMIT};

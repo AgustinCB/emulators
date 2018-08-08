@@ -14,7 +14,7 @@ impl<'a> Cpu<'a> {
         self.execute_instruction(instruction);
     }
 
-    pub(crate) fn execute_instruction(&mut self, instruction: Instruction) {
+    pub fn execute_instruction(&mut self, instruction: Instruction) {
         if !self.can_run(&instruction) {
             return;
         }
