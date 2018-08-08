@@ -55,11 +55,13 @@ impl Cpu {
         }
     }
 
+    #[inline]
     fn perform_call(&mut self, high_byte: u8, low_byte: u8) {
         self.push_program_counter_to_stack();
         self.perform_jump(high_byte, low_byte);
     }
 
+    #[inline]
     fn push_program_counter_to_stack(&mut self) {
         let sp = self.get_current_sp_value() as usize;
         let address = word_to_address(self.pc);
