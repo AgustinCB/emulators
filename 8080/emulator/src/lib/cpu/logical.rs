@@ -129,7 +129,7 @@ impl Cpu {
 mod tests {
     use cpu::Cpu;
     use cpu::cpu::ROM_MEMORY_LIMIT;
-    use disassembler_8080::RegisterType;
+    use disassembler_8080::{Instruction, Location, RegisterType};
 
     #[test]
     fn it_should_execute_ana_by_memory () {
@@ -138,7 +138,7 @@ mod tests {
         cpu.save_to_single_register(0x00, &RegisterType::H);
         cpu.save_to_single_register(0x00, &RegisterType::L);
         cpu.memory[0] = 0x0f;
-        cpu.execute_ana_by_memory();
+        cpu.execute_instruction(Instruction::Ana { source: Location::Memory });
         assert_eq!(cpu.get_current_a_value(), 0x0c);
         assert!(!cpu.flags.carry);
         assert!(!cpu.flags.sign);
@@ -151,7 +151,9 @@ mod tests {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0xfc);
         cpu.save_to_single_register(0x0f, &RegisterType::C);
-        cpu.execute_ana_by_register(&RegisterType::C);
+        cpu.execute_instruction(Instruction::Ana {
+            source: Location::Register { register: RegisterType::C }
+        });
         assert_eq!(cpu.get_current_a_value(), 0x0c);
         assert!(!cpu.flags.carry);
         assert!(!cpu.flags.sign);
@@ -163,7 +165,7 @@ mod tests {
     fn it_should_execute_ani() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x3a);
-        cpu.execute_ani(0x0f);
+        cpu.execute_instruction(Instruction::Ani { byte: 0x0f });
         assert_eq!(cpu.get_current_a_value(), 0x0a);
         assert!(!cpu.flags.carry);
         assert!(!cpu.flags.sign);
@@ -178,7 +180,7 @@ mod tests {
         cpu.save_to_single_register(0x00, &RegisterType::H);
         cpu.save_to_single_register(0x00, &RegisterType::L);
         cpu.memory[0] = 0x0f;
-        cpu.execute_ora_by_memory();
+        cpu.execute_instruction(Instruction::Ora { source: Location::Memory });
         assert_eq!(cpu.get_current_a_value(), 0x3f);
         assert!(!cpu.flags.carry);
         assert!(!cpu.flags.sign);
@@ -191,7 +193,9 @@ mod tests {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x33);
         cpu.save_to_single_register(0x0f, &RegisterType::C);
-        cpu.execute_ora_by_register(&RegisterType::C);
+        cpu.execute_instruction(Instruction::Ora {
+            source: Location::Register { register: RegisterType::C }
+        });
         assert_eq!(cpu.get_current_a_value(), 0x3f);
         assert!(!cpu.flags.carry);
         assert!(!cpu.flags.sign);
@@ -203,7 +207,7 @@ mod tests {
     fn it_should_execute_ori() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0xb5);
-        cpu.execute_ori(0x0f);
+        cpu.execute_instruction(Instruction::Ori { byte: 0x0f });
         assert_eq!(cpu.get_current_a_value(), 0xbf);
         assert!(!cpu.flags.carry);
         assert!(cpu.flags.sign);
@@ -216,7 +220,7 @@ mod tests {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0xb5);
         cpu.flags.carry = false;
-        cpu.execute_ral();
+        cpu.execute_instruction(Instruction::Ral);
         assert_eq!(cpu.get_current_a_value(), 0x6a);
         assert!(cpu.flags.carry);
     }
@@ -226,7 +230,7 @@ mod tests {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x6a);
         cpu.flags.carry = true;
-        cpu.execute_rar();
+        cpu.execute_instruction(Instruction::Rar);
         assert_eq!(cpu.get_current_a_value(), 0xb5);
         assert!(!cpu.flags.carry);
     }
@@ -236,7 +240,7 @@ mod tests {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0xf2);
         cpu.flags.carry = false;
-        cpu.execute_rlc();
+        cpu.execute_instruction(Instruction::Rlc);
         assert_eq!(cpu.get_current_a_value(), 0xe5);
         assert!(cpu.flags.carry);
     }
@@ -246,7 +250,7 @@ mod tests {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0xf2);
         cpu.flags.carry = true;
-        cpu.execute_rrc();
+        cpu.execute_instruction(Instruction::Rrc);
         assert_eq!(cpu.get_current_a_value(), 0x79);
         assert!(!cpu.flags.carry);
     }
@@ -255,7 +259,7 @@ mod tests {
     fn it_should_execute_xri() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x3b);
-        cpu.execute_xri(0x81);
+        cpu.execute_instruction(Instruction::Xri { byte: 0x81 });
         assert_eq!(cpu.get_current_a_value(), 0xba);
         assert!(!cpu.flags.carry);
         assert!(cpu.flags.sign);
@@ -270,7 +274,7 @@ mod tests {
         cpu.save_to_single_register(0x00, &RegisterType::H);
         cpu.save_to_single_register(0x00, &RegisterType::L);
         cpu.memory[0] = 0x5c;
-        cpu.execute_xra_by_memory();
+        cpu.execute_instruction(Instruction::Xra { source: Location::Memory });
         assert_eq!(cpu.get_current_a_value(), 0x24);
         assert!(!cpu.flags.carry);
         assert!(!cpu.flags.sign);
@@ -283,7 +287,9 @@ mod tests {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0xff);
         cpu.save_to_single_register(0x0f, &RegisterType::C);
-        cpu.execute_xra_by_register(&RegisterType::C);
+        cpu.execute_instruction(Instruction::Xra {
+            source: Location::Register { register: RegisterType::C }
+        });
         assert_eq!(cpu.get_current_a_value(), 0xf0);
         assert!(!cpu.flags.carry);
         assert!(cpu.flags.sign);
@@ -295,7 +301,9 @@ mod tests {
     fn it_should_execute_xra_on_itself () {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x33);
-        cpu.execute_xra_by_register(&RegisterType::A);
+        cpu.execute_instruction(Instruction::Xra {
+            source: Location::Register { register: RegisterType::A }
+        });
         assert_eq!(cpu.get_current_a_value(), 0);
         assert!(!cpu.flags.carry);
         assert!(!cpu.flags.sign);

@@ -72,7 +72,7 @@ impl Cpu {
 mod tests {
     use cpu::Cpu;
     use cpu::cpu::ROM_MEMORY_LIMIT;
-    use disassembler_8080::RegisterType;
+    use disassembler_8080::{Instruction, RegisterType};
 
     fn get_pop_ready_cpu() -> Cpu {
         let mut memory = [0; ROM_MEMORY_LIMIT];
@@ -115,7 +115,7 @@ mod tests {
     #[test]
     fn it_should_pop_from_stack_to_b() {
         let mut cpu = get_pop_ready_cpu();
-        cpu.execute_pop(&RegisterType::B);
+        cpu.execute_instruction(Instruction::Pop { register: RegisterType::B });
         assert_eq!(cpu.get_current_bc_value(), 0x933d);
         assert_eq!(cpu.get_current_sp_value(), 0x123b);
     }
@@ -123,7 +123,7 @@ mod tests {
     #[test]
     fn it_should_pop_from_stack_to_d() {
         let mut cpu = get_pop_ready_cpu();
-        cpu.execute_pop(&RegisterType::D);
+        cpu.execute_instruction(Instruction::Pop { register: RegisterType::D });
         assert_eq!(cpu.get_current_de_value(), 0x933d);
         assert_eq!(cpu.get_current_sp_value(), 0x123b);
     }
@@ -131,7 +131,7 @@ mod tests {
     #[test]
     fn it_should_pop_from_stack_to_h() {
         let mut cpu = get_pop_ready_cpu();
-        cpu.execute_pop(&RegisterType::H);
+        cpu.execute_instruction(Instruction::Pop { register: RegisterType::H });
         assert_eq!(cpu.get_current_hl_value(), 0x933d);
         assert_eq!(cpu.get_current_sp_value(), 0x123b);
     }
@@ -139,7 +139,7 @@ mod tests {
     #[test]
     fn it_should_pop_from_stack_to_a_and_flags() {
         let mut cpu = get_pop_ready_cpu();
-        cpu.execute_pop(&RegisterType::Psw);
+        cpu.execute_instruction(Instruction::Pop { register: RegisterType::Psw });
         assert_eq!(cpu.get_current_a_value(), 0x93);
         assert_eq!(cpu.get_current_sp_value(), 0x123b);
         assert!(cpu.flags.zero);
@@ -152,7 +152,7 @@ mod tests {
     #[test]
     fn it_should_push_from_stack_to_b() {
         let mut cpu = get_push_ready_cpu(&RegisterType::B);
-        cpu.execute_push(&RegisterType::B);
+        cpu.execute_instruction(Instruction::Push { register: RegisterType::B });
         assert_eq!(cpu.memory[0x3a2b], 0x8f);
         assert_eq!(cpu.memory[0x3a2a], 0x9d);
         assert_eq!(cpu.get_current_sp_value(), 0x3A2A);
@@ -161,7 +161,7 @@ mod tests {
     #[test]
     fn it_should_push_from_stack_to_d() {
         let mut cpu = get_push_ready_cpu(&RegisterType::D);
-        cpu.execute_push(&RegisterType::D);
+        cpu.execute_instruction(Instruction::Push { register: RegisterType::D });
         assert_eq!(cpu.memory[0x3a2b], 0x8f);
         assert_eq!(cpu.memory[0x3a2a], 0x9d);
         assert_eq!(cpu.get_current_sp_value(), 0x3A2A);
@@ -170,7 +170,7 @@ mod tests {
     #[test]
     fn it_should_push_from_stack_to_h() {
         let mut cpu = get_push_ready_cpu(&RegisterType::H);
-        cpu.execute_push(&RegisterType::H);
+        cpu.execute_instruction(Instruction::Push { register: RegisterType::H });
         assert_eq!(cpu.memory[0x3a2b], 0x8f);
         assert_eq!(cpu.memory[0x3a2a], 0x9d);
         assert_eq!(cpu.get_current_sp_value(), 0x3A2A);
@@ -179,7 +179,7 @@ mod tests {
     #[test]
     fn it_should_push_from_stack_to_a_and_flags() {
         let mut cpu = get_push_ready_cpu(&RegisterType::Psw);
-        cpu.execute_push(&RegisterType::Psw);
+        cpu.execute_instruction(Instruction::Push { register: RegisterType::Psw });
         assert_eq!(cpu.memory[0x3a2b], 0x8f);
         assert_eq!(cpu.memory[0x3a2a], 0x1d);
         assert_eq!(cpu.get_current_sp_value(), 0x3A2A);

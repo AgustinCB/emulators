@@ -144,8 +144,7 @@ impl Cpu {
 mod tests {
     use cpu::Cpu;
     use cpu::cpu::ROM_MEMORY_LIMIT;
-    use disassembler_8080::RegisterType;
-    use disassembler_8080::Location;
+    use disassembler_8080::{Instruction, Location, RegisterType};
 
     fn get_ldax_ready_cpu(register: &RegisterType) -> Cpu {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
@@ -187,21 +186,21 @@ mod tests {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x42);
         cpu.memory[0x24] = 0x24;
-        cpu.execute_lda(0x00, 0x24);
+        cpu.execute_instruction(Instruction::Lda { address: [0x24,0x00] });
         assert_eq!(cpu.get_current_a_value(), 0x24);
     }
 
     #[test]
     fn it_should_execute_ldax_from_b() {
         let mut cpu = get_ldax_ready_cpu(&RegisterType::B);
-        cpu.execute_ldax(&RegisterType::B);
+        cpu.execute_instruction(Instruction::Ldax { register: RegisterType::B });
         assert_eq!(cpu.get_current_a_value(), 42);
     }
 
     #[test]
     fn it_should_execute_ldax_from_d() {
         let mut cpu = get_ldax_ready_cpu(&RegisterType::D);
-        cpu.execute_ldax(&RegisterType::D);
+        cpu.execute_instruction(Instruction::Ldax { register: RegisterType::D });
         assert_eq!(cpu.get_current_a_value(), 42);
     }
 
@@ -210,7 +209,7 @@ mod tests {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.memory[0x025b] = 0xff;
         cpu.memory[0x025c] = 0x03;
-        cpu.execute_lhld(0x02, 0x5b);
+        cpu.execute_instruction(Instruction::Lhld { address: [0x5b, 0x02] });
         assert_eq!(cpu.get_current_single_register_value(&RegisterType::H), 0x03);
         assert_eq!(cpu.get_current_single_register_value(&RegisterType::L), 0xff);
     }
@@ -218,7 +217,11 @@ mod tests {
     #[test]
     fn it_should_execute_lxi_to_b() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
-        cpu.execute_lxi(&RegisterType::B, 0x42, 0x24);
+        cpu.execute_instruction(Instruction::Lxi {
+            register: RegisterType::B,
+            high_byte: 0x42,
+            low_byte: 0x24,
+        });
         assert_eq!(cpu.get_current_single_register_value(&RegisterType::B), 0x42);
         assert_eq!(cpu.get_current_single_register_value(&RegisterType::C), 0x24);
     }
@@ -226,7 +229,11 @@ mod tests {
     #[test]
     fn it_should_execute_lxi_to_d() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
-        cpu.execute_lxi(&RegisterType::D, 0x42, 0x24);
+        cpu.execute_instruction(Instruction::Lxi {
+            register: RegisterType::D,
+            high_byte: 0x42,
+            low_byte: 0x24,
+        });
         assert_eq!(cpu.get_current_single_register_value(&RegisterType::D), 0x42);
         assert_eq!(cpu.get_current_single_register_value(&RegisterType::E), 0x24);
     }
@@ -234,7 +241,11 @@ mod tests {
     #[test]
     fn it_should_execute_lxi_to_h() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
-        cpu.execute_lxi(&RegisterType::H, 0x42, 0x24);
+        cpu.execute_instruction(Instruction::Lxi {
+            register: RegisterType::H,
+            high_byte: 0x42,
+            low_byte: 0x24,
+        });
         assert_eq!(cpu.get_current_single_register_value(&RegisterType::H), 0x42);
         assert_eq!(cpu.get_current_single_register_value(&RegisterType::L), 0x24);
     }
@@ -242,7 +253,11 @@ mod tests {
     #[test]
     fn it_should_execute_lxi_to_sp() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
-        cpu.execute_lxi(&RegisterType::Sp, 0x42, 0x24);
+        cpu.execute_instruction(Instruction::Lxi {
+            register: RegisterType::Sp,
+            high_byte: 0x42,
+            low_byte: 0x24,
+        });
         assert_eq!(cpu.get_current_sp_value(), 0x4224);
     }
 
@@ -250,8 +265,10 @@ mod tests {
     fn it_should_execute_mov_from_register_to_register() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_single_register(0x42, &RegisterType::B);
-        cpu.execute_mov(&Location::Register { register: RegisterType::C },
-                        &Location::Register { register: RegisterType::B });
+        cpu.execute_instruction(Instruction::Mov{
+            destiny: Location::Register { register: RegisterType::C },
+            source: Location::Register { register: RegisterType::B },
+        });
         assert_eq!(cpu.get_current_single_register_value(&RegisterType::C), 0x42);
     }
 
@@ -261,8 +278,10 @@ mod tests {
         cpu.memory[0x42] = 0x24;
         cpu.save_to_single_register(0x00, &RegisterType::H);
         cpu.save_to_single_register(0x42, &RegisterType::L);
-        cpu.execute_mov(&Location::Register { register: RegisterType::C },
-                        &Location::Memory);
+        cpu.execute_instruction(Instruction::Mov{
+            destiny: Location::Register { register: RegisterType::C },
+            source: Location::Memory,
+        });
         assert_eq!(cpu.get_current_single_register_value(&RegisterType::C), 0x24);
     }
 
@@ -272,8 +291,10 @@ mod tests {
         cpu.save_to_single_register(0x24, &RegisterType::C);
         cpu.save_to_single_register(0x00, &RegisterType::H);
         cpu.save_to_single_register(0x42, &RegisterType::L);
-        cpu.execute_mov(&Location::Memory,
-                        &Location::Register { register: RegisterType::C });
+        cpu.execute_instruction(Instruction::Mov{
+            destiny: Location::Memory,
+            source: Location::Register { register: RegisterType::C },
+        });
         assert_eq!(cpu.memory[0x42], 0x24);
     }
 
@@ -282,7 +303,10 @@ mod tests {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_single_register(0x00, &RegisterType::H);
         cpu.save_to_single_register(0x42, &RegisterType::L);
-        cpu.execute_mvi_to_memory(0x24);
+        cpu.execute_instruction(Instruction::Mvi {
+            source: Location::Memory,
+            byte: 0x24,
+        });
         assert_eq!(cpu.memory[0x42], 0x24);
     }
 
@@ -291,7 +315,7 @@ mod tests {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_single_register(0xae, &RegisterType::H);
         cpu.save_to_single_register(0x29, &RegisterType::L);
-        cpu.execute_shld(0x01, 0x0a);
+        cpu.execute_instruction(Instruction::Shld { address: [0x0a, 0x01] });
         assert_eq!(cpu.memory[0x010a], 0x29);
         assert_eq!(cpu.memory[0x010b], 0xae);
     }
@@ -301,7 +325,7 @@ mod tests {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_single_register(0x00, &RegisterType::H);
         cpu.save_to_single_register(0x42, &RegisterType::L);
-        cpu.execute_sphl();
+        cpu.execute_instruction(Instruction::Sphl);
         assert_eq!(cpu.get_current_sp_value(), 0x42);
         assert_eq!(cpu.get_current_hl_value(), 0x42);
     }
@@ -310,21 +334,21 @@ mod tests {
     fn it_should_execute_sta() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x42);
-        cpu.execute_sta(0x00, 0x24);
+        cpu.execute_instruction(Instruction::Sta { address: [0x24, 0x00] });
         assert_eq!(cpu.memory[0x24], 0x42);
     }
 
     #[test]
     fn it_should_execute_stax_for_b() {
         let mut cpu = get_stax_ready_cpu(&RegisterType::B);
-        cpu.execute_stax(&RegisterType::B);
+        cpu.execute_instruction(Instruction::Stax { register: RegisterType::B });
         assert_eq!(cpu.memory[0x3f16], 0x42);
     }
 
     #[test]
     fn it_should_execute_stax_for_d() {
         let mut cpu = get_stax_ready_cpu(&RegisterType::D);
-        cpu.execute_stax(&RegisterType::D);
+        cpu.execute_instruction(Instruction::Stax { register: RegisterType::D });
         assert_eq!(cpu.memory[0x3f16], 0x42);
     }
 
@@ -335,7 +359,7 @@ mod tests {
         cpu.save_to_single_register(0x24, &RegisterType::E);
         cpu.save_to_single_register(0x24, &RegisterType::H);
         cpu.save_to_single_register(0x42, &RegisterType::L);
-        cpu.execute_xchg();
+        cpu.execute_instruction(Instruction::Xchg);
         assert_eq!(cpu.get_current_de_value(), 0x2442);
         assert_eq!(cpu.get_current_hl_value(), 0x4224);
     }
@@ -346,7 +370,7 @@ mod tests {
         cpu.save_to_double_register(0, &RegisterType::Sp);
         cpu.memory[0] = 0x42;
         cpu.memory[1] = 0x24;
-        cpu.execute_xthl();
+        cpu.execute_instruction(Instruction::Xthl);
         assert_eq!(cpu.get_current_hl_value(), 0x2442);
     }
 }
