@@ -44,26 +44,26 @@ impl Cpu {
 
     #[inline]
     pub(crate) fn execute_ral(&mut self) {
-        let value = self.get_current_a_value().rotate_left(1);
-        let carry_mask = if self.flags.carry {
-            0x80
+        let a_value = self.get_current_a_value();
+        let operand  = if self.flags.carry {
+            a_value | 0x80
         } else {
-            0
+            a_value & (!0x80)
         };
-        self.flags.carry = (value & 0x01) != 0;
-        self.save_to_a(value | carry_mask);
+        self.flags.carry = (a_value & 0x80) == 0x80;
+        self.save_to_a(operand.rotate_left(1));
     }
 
     #[inline]
     pub(crate) fn execute_rar(&mut self) {
-        let value = self.get_current_a_value().rotate_right(1);
-        let carry_mask = if self.flags.carry {
-            0x80
+        let a_value = self.get_current_a_value();
+        let new_a_value = if self.flags.carry {
+            a_value.rotate_right(1) | 0x80
         } else {
-            0
+            a_value.rotate_right(1) & (!0x80)
         };
-        self.flags.carry = (value & 0x80) != 0;
-        self.save_to_a(value | carry_mask);
+        self.save_to_a(new_a_value);
+        self.flags.carry = (a_value & 0x01) == 0x01;
     }
 
     #[inline]
@@ -125,7 +125,7 @@ impl Cpu {
     }
 }
 
-#[cfg(tests)]
+#[cfg(test)]
 mod tests {
     use cpu::Cpu;
     use cpu::cpu::ROM_MEMORY_LIMIT;
@@ -236,7 +236,7 @@ mod tests {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0xf2);
         cpu.flags.carry = false;
-        cpu.execute_ral();
+        cpu.execute_rlc();
         assert_eq!(cpu.get_current_a_value(), 0xe5);
         assert!(cpu.flags.carry);
     }
@@ -258,7 +258,7 @@ mod tests {
         cpu.execute_xri(0x81);
         assert_eq!(cpu.get_current_a_value(), 0xba);
         assert!(!cpu.flags.carry);
-        assert!(!cpu.flags.sign);
+        assert!(cpu.flags.sign);
         assert!(!cpu.flags.parity);
         assert!(!cpu.flags.zero);
     }
@@ -270,7 +270,7 @@ mod tests {
         cpu.save_to_single_register(0x00, &RegisterType::H);
         cpu.save_to_single_register(0x00, &RegisterType::L);
         cpu.memory[0] = 0x5c;
-        cpu.execute_ora_by_memory();
+        cpu.execute_xra_by_memory();
         assert_eq!(cpu.get_current_a_value(), 0x24);
         assert!(!cpu.flags.carry);
         assert!(!cpu.flags.sign);
