@@ -107,6 +107,7 @@ impl Cpu {
             Instruction::Rpe => self.execute_rpe(),
             Instruction::Rpo => self.execute_rpo(),
             Instruction::Rrc => self.execute_rrc(),
+            Instruction::Rst { value } => self.execute_rst(value),
             Instruction::Rz => self.execute_rz(),
             Instruction::Sbb { source: Location::Register { register } } =>
                 self.execute_sbb_by_register(&register),

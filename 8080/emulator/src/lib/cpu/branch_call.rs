@@ -3,6 +3,11 @@ use cpu::helpers::word_to_address;
 use disassembler_8080::RegisterType;
 
 impl Cpu {
+    pub(crate) fn execute_rst(&mut self, value: u8) {
+        let low_byte = (value & 0x07) << 3;
+        self.perform_call(0, low_byte);
+    }
+
     pub(crate) fn execute_call(&mut self, high_byte: u8, low_byte: u8) {
         self.perform_call(high_byte, low_byte);
     }
@@ -295,5 +300,17 @@ mod tests {
         assert_eq!(cpu.get_current_sp_value(), 2);
         assert_eq!(cpu.memory[0], 0);
         assert_eq!(cpu.memory[1], 0);
+    }
+
+    #[test]
+    fn it_should_execute_rst() {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.save_to_double_register(2, &RegisterType::Sp);
+        cpu.pc = 0x2c03;
+        cpu.execute_instruction(Instruction::Rst { value: 3 });
+        assert_eq!(cpu.pc, 0x18);
+        assert_eq!(cpu.get_current_sp_value(), 0);
+        assert_eq!(cpu.memory[0], 0x03);
+        assert_eq!(cpu.memory[1], 0x2c);
     }
 }
