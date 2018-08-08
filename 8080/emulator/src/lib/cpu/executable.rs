@@ -27,12 +27,28 @@ impl Cpu {
             Instruction::Ani { byte } => self.execute_ani(byte),
             Instruction::Call { address } =>
                 self.execute_call(address[1], address[0]),
+            Instruction::Cc { address } =>
+                self.execute_cc(address[1], address[0]),
+            Instruction::Cm { address } =>
+                self.execute_cm(address[1], address[0]),
             Instruction::Cma => self.execute_cma(),
             Instruction::Cmc => self.execute_cmc(),
             Instruction::Cmp { source: Location::Register { register } } =>
                 self.execute_cmp_by_register(&register),
             Instruction::Cmp { source: Location::Memory } => self.execute_cmp_by_memory(),
+            Instruction::Cnc { address } =>
+                self.execute_cnc(address[1], address[0]),
+            Instruction::Cnz { address } =>
+                self.execute_cnz(address[1], address[0]),
+            Instruction::Cp { address } =>
+                self.execute_cp(address[1], address[0]),
+            Instruction::Cpe { address } =>
+                self.execute_cpe(address[1], address[0]),
+            Instruction::Cpo { address } =>
+                self.execute_cpo(address[1], address[0]),
             Instruction::Cpi { byte } => self.execute_cpi(byte),
+            Instruction::Cz { address } =>
+                self.execute_cz(address[1], address[0]),
             Instruction::Daa => self.execute_daa(),
             Instruction::Dad { register } => self.execute_dad(&register),
             Instruction::Dcr { source: Location::Register { register } } =>
