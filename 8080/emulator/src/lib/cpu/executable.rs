@@ -14,7 +14,7 @@ impl<'a> Cpu<'a> {
         self.execute_instruction(instruction);
     }
 
-    pub fn execute_instruction(&mut self, instruction: Instruction) {
+    pub(crate) fn execute_instruction(&mut self, instruction: Instruction) {
         if !self.can_run(&instruction) {
             return;
         }
@@ -98,6 +98,7 @@ impl<'a> Cpu<'a> {
             Instruction::Mvi { source: Location::Memory, byte} => self.execute_mvi_to_memory(byte),
             Instruction::Mvi { source: Location::Register { register }, byte } =>
                 self.save_to_single_register(byte, &register),
+            Instruction::Noop => self.execute_noop(),
             Instruction::Pchl => self.execute_pchl(),
             Instruction::Pop { register } => self.execute_pop(&register),
             Instruction::Push { register } => self.execute_push(&register),
@@ -141,7 +142,6 @@ impl<'a> Cpu<'a> {
             Instruction::Xra { source: Location::Memory } => self.execute_xra_by_memory(),
             Instruction::Xri { byte } => self.execute_xri(byte),
             Instruction::Xthl => self.execute_xthl(),
-            _ => println!("Execute: {}", instruction.to_string()),
         }
     }
 
@@ -159,5 +159,32 @@ impl<'a> Cpu<'a> {
             _ if self.state == State::Running => true,
             _ => false,
         }
+    }
+
+    fn execute_noop(&self) {}
+}
+
+#[cfg(test)]
+mod tests {
+    use cpu::cpu::{Cpu, ROM_MEMORY_LIMIT, State};
+
+    #[test]
+    fn it_should_execute_instruction_when_running() {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.state = State::Running;
+        cpu.pc = 0;
+        cpu.memory[0] = 0x00;
+        cpu.execute();
+        assert_eq!(cpu.pc, 0x01);
+    }
+
+    #[test]
+    fn it_shouldnt_execute_instruction_when_stopped() {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.state = State::Stopped;
+        cpu.pc = 0;
+        cpu.memory[0] = 0x00;
+        cpu.execute();
+        assert_eq!(cpu.pc, 0x00);
     }
 }
