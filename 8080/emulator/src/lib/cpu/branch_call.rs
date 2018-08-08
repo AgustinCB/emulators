@@ -2,7 +2,7 @@ use cpu::cpu::{Cpu, State};
 use cpu::helpers::word_to_address;
 use disassembler_8080::RegisterType;
 
-impl Cpu {
+impl<'a> Cpu<'a> {
     pub(crate) fn execute_rst(&mut self, value: u8) {
         if self.interruptions_enabled {
             let low_byte = (value & 0x07) << 3;

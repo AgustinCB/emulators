@@ -5,6 +5,7 @@ mod cpu;
 mod executable;
 mod helpers;
 mod interruptions;
+mod io;
 mod logical;
 mod math;
 mod mov;

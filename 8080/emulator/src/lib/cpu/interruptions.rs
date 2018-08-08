@@ -1,6 +1,6 @@
 use cpu::cpu::{Cpu, State};
 
-impl Cpu {
+impl<'a> Cpu<'a> {
     pub(crate) fn execute_ei(&mut self) {
         self.interruptions_enabled = true;
     }

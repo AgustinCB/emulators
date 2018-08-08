@@ -4,7 +4,7 @@ use self::disassembler_8080::{Instruction, Location};
 use cpu::cpu::{Cpu, State};
 use std::cmp::min;
 
-impl Cpu {
+impl<'a> Cpu<'a> {
     pub fn execute(&mut self) {
         let instruction = Instruction::from_bytes(self.get_next_instruction_bytes());
         if !self.can_run(&instruction) {
@@ -64,6 +64,7 @@ impl Cpu {
             Instruction::Di => self.execute_di(),
             Instruction::Ei => self.execute_ei(),
             Instruction::Hlt => self.execute_hlt(),
+            Instruction::In { byte } => self.execute_in(byte),
             Instruction::Inr { source: Location::Register { register } } =>
                 self.execute_inr_by_register(&register),
             Instruction::Inr { source: Location::Memory } => self.execute_inr_by_memory(),
@@ -104,6 +105,7 @@ impl Cpu {
                 self.execute_ora_by_register(&register),
             Instruction::Ora { source: Location::Memory } => self.execute_ora_by_memory(),
             Instruction::Ori { byte } => self.execute_ori(byte),
+            Instruction::Out { byte } => self.execute_out(byte),
             Instruction::Ral => self.execute_ral(),
             Instruction::Rar => self.execute_rar(),
             Instruction::Rc => self.execute_rc(),

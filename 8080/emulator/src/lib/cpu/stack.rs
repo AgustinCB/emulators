@@ -1,7 +1,7 @@
 use cpu::cpu::Cpu;
 use disassembler_8080::RegisterType;
 
-impl Cpu {
+impl<'a> Cpu<'a> {
     pub(crate) fn execute_push(&mut self, register: &RegisterType) {
         let sp = self.get_current_sp_value() as usize;
         let (first_byte, second_byte) = match register {
@@ -74,7 +74,7 @@ mod tests {
     use cpu::cpu::ROM_MEMORY_LIMIT;
     use disassembler_8080::{Instruction, RegisterType};
 
-    fn get_pop_ready_cpu() -> Cpu {
+    fn get_pop_ready_cpu<'a>() -> Cpu<'a> {
         let mut memory = [0; ROM_MEMORY_LIMIT];
         memory[0x1239] = 0x3d;
         memory[0x123A] = 0x93;

@@ -1,7 +1,7 @@
 use cpu::cpu::Cpu;
 use disassembler_8080::RegisterType;
 
-impl Cpu {
+impl<'a> Cpu<'a> {
     pub(crate) fn execute_aci(&mut self, byte: u8) {
         let carry_as_u16 = self.flags.carry as u16;
         let destiny_value = (self.get_current_a_value() as u16 + carry_as_u16) & 0xff;

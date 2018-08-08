@@ -1,7 +1,7 @@
 use cpu::cpu::Cpu;
 use disassembler_8080::RegisterType;
 
-impl Cpu {
+impl<'a> Cpu<'a> {
     pub(crate) fn execute_ana_by_register(&mut self, register_type: &RegisterType) {
         let destiny_value = self.get_current_a_value();
         let source_value = self.get_current_single_register_value(register_type);

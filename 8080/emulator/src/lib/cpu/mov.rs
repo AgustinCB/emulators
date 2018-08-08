@@ -3,7 +3,7 @@ use cpu::cpu::Cpu;
 use disassembler_8080::RegisterType;
 use disassembler_8080::Location;
 
-impl Cpu {
+impl<'a> Cpu<'a> {
     pub(crate) fn execute_lda(&mut self, high_byte: u8, low_byte: u8) {
         let source_address = two_bytes_to_word(high_byte, low_byte) as usize;
         let value = self.memory[source_address];

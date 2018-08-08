@@ -1,6 +1,6 @@
 use cpu::cpu::Cpu;
 
-impl Cpu {
+impl<'a> Cpu<'a> {
     pub(crate) fn execute_pchl(&mut self) {
         let new_pc = self.get_current_hl_value();
         self.pc = new_pc;

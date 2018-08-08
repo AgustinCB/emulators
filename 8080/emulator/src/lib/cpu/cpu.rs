@@ -5,6 +5,7 @@ use self::disassembler_8080::RegisterType;
 use std::collections::HashMap;
 
 pub(crate) const ROM_MEMORY_LIMIT: usize = 8192;
+pub(crate) const MAX_INPUT_OUTPUT_DEVICES: usize = 0x100;
 
 pub(crate) enum Register {
     SingleRegister { value: u8 },
@@ -15,6 +16,14 @@ pub(crate) enum Register {
 pub(crate) enum State {
     Running,
     Stopped,
+}
+
+pub trait InputDevice {
+    fn read(&mut self) -> u8;
+}
+
+pub trait OutputDevice {
+    fn write(&mut self, byte: u8);
 }
 
 impl Register {
@@ -47,17 +56,19 @@ impl Flags {
     }
 }
 
-pub struct Cpu {
+pub struct Cpu<'a> {
     pub(crate) registers: HashMap<RegisterType, Register>,
     pub(crate) pc: u16,
     pub(crate) memory: [u8; ROM_MEMORY_LIMIT * 8],
     pub(crate) flags: Flags,
     pub(crate) interruptions_enabled: bool,
     pub(crate) state: State,
+    pub(crate) inputs: Vec<&'a mut InputDevice>,
+    pub(crate) outputs: Vec<&'a mut OutputDevice>,
 }
 
-impl Cpu {
-    pub fn new(rom_memory: [u8; ROM_MEMORY_LIMIT]) -> Cpu {
+impl<'a> Cpu<'a> {
+    pub fn new<'b>(rom_memory: [u8; ROM_MEMORY_LIMIT]) -> Cpu<'b> {
         let mut registers = HashMap::new();
         let mut memory = [0; ROM_MEMORY_LIMIT * 8];
         registers.insert(RegisterType::A, Register::new(RegisterType::A));
@@ -78,11 +89,21 @@ impl Cpu {
             flags: Flags::new(),
             interruptions_enabled: true,
             state: State::Running,
+            inputs: Vec::with_capacity(MAX_INPUT_OUTPUT_DEVICES),
+            outputs: Vec::with_capacity(MAX_INPUT_OUTPUT_DEVICES),
         }
     }
 
     pub fn is_done(&self) -> bool {
         (self.pc as usize) >= ROM_MEMORY_LIMIT
+    }
+
+    pub(crate) fn add_input_device(&mut self, device: &'a mut InputDevice) {
+        self.inputs.push(device);
+    }
+
+    pub(crate) fn add_output_device(&mut self, device: &'a mut OutputDevice) {
+        self.outputs.push(device);
     }
 
     #[inline]

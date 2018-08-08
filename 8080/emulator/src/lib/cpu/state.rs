@@ -1,6 +1,6 @@
 use cpu::cpu::Cpu;
 
-impl Cpu {
+impl<'a> Cpu<'a> {
     #[inline]
     pub(crate) fn execute_cma(&mut self) {
         let destiny_value = self.get_current_a_value();

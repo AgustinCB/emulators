@@ -1,7 +1,7 @@
 use cpu::cpu::Cpu;
 use disassembler_8080::RegisterType;
 
-impl Cpu {
+impl<'a> Cpu<'a> {
     pub(crate) fn execute_rc(&mut self) {
         if self.flags.carry {
             self.perform_ret();
