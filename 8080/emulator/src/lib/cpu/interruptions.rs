@@ -1,4 +1,4 @@
-use cpu::cpu::Cpu;
+use cpu::cpu::{Cpu, State};
 
 impl Cpu {
     pub(crate) fn execute_ei(&mut self) {
@@ -8,11 +8,15 @@ impl Cpu {
     pub(crate) fn execute_di(&mut self) {
         self.interruptions_enabled = false;
     }
+
+    pub(crate) fn execute_hlt(&mut self) {
+        self.state = State::Stopped;
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use cpu::cpu::{Cpu, ROM_MEMORY_LIMIT};
+    use cpu::cpu::{Cpu, State, ROM_MEMORY_LIMIT};
     use disassembler_8080::Instruction;
 
     #[test]
@@ -45,5 +49,13 @@ mod tests {
         cpu.interruptions_enabled = false;
         cpu.execute_instruction(Instruction::Di);
         assert!(!cpu.interruptions_enabled);
+    }
+
+    #[test]
+    fn it_should_execute_hlt() {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.state = State::Running;
+        cpu.execute_instruction(Instruction::Hlt);
+        assert_eq!(cpu.state, State::Stopped);
     }
 }

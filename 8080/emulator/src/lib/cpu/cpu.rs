@@ -11,6 +11,12 @@ pub(crate) enum Register {
     DoubleRegister { value: u16 },
 }
 
+#[derive(Debug, Eq, PartialEq)]
+pub(crate) enum State {
+    Running,
+    Stopped,
+}
+
 impl Register {
     fn new(t: RegisterType) -> Register {
         match t {
@@ -47,6 +53,7 @@ pub struct Cpu {
     pub(crate) memory: [u8; ROM_MEMORY_LIMIT * 8],
     pub(crate) flags: Flags,
     pub(crate) interruptions_enabled: bool,
+    pub(crate) state: State,
 }
 
 impl Cpu {
@@ -70,6 +77,7 @@ impl Cpu {
             memory,
             flags: Flags::new(),
             interruptions_enabled: true,
+            state: State::Running,
         }
     }
 

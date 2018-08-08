@@ -1,4 +1,4 @@
-use cpu::cpu::Cpu;
+use cpu::cpu::{Cpu, State};
 use cpu::helpers::word_to_address;
 use disassembler_8080::RegisterType;
 
@@ -7,6 +7,7 @@ impl Cpu {
         if self.interruptions_enabled {
             let low_byte = (value & 0x07) << 3;
             self.perform_call(0, low_byte);
+            self.state = State::Running;
         }
     }
 
@@ -80,7 +81,7 @@ impl Cpu {
 
 #[cfg(test)]
 mod tests {
-    use cpu::cpu::Cpu;
+    use cpu::cpu::{Cpu, State};
     use cpu::cpu::ROM_MEMORY_LIMIT;
     use disassembler_8080::{Instruction, RegisterType};
 
@@ -311,6 +312,7 @@ mod tests {
         cpu.pc = 0x2c03;
         cpu.execute_instruction(Instruction::Rst { value: 3 });
         assert_eq!(cpu.pc, 0x18);
+        assert_eq!(cpu.state, State::Running);
         assert_eq!(cpu.get_current_sp_value(), 0);
         assert_eq!(cpu.memory[0], 0x03);
         assert_eq!(cpu.memory[1], 0x2c);
@@ -324,8 +326,23 @@ mod tests {
         cpu.interruptions_enabled = false;
         cpu.execute_instruction(Instruction::Rst { value: 3 });
         assert_eq!(cpu.pc, 0x2c03);
+        assert_eq!(cpu.state, State::Running);
         assert_eq!(cpu.get_current_sp_value(), 2);
         assert_eq!(cpu.memory[0], 0);
         assert_eq!(cpu.memory[1], 0);
+    }
+
+    #[test]
+    fn it_should_execute_rst_and_restart_cpu_when_stopped() {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.save_to_double_register(2, &RegisterType::Sp);
+        cpu.pc = 0x2c03;
+        cpu.state = State::Stopped;
+        cpu.execute_instruction(Instruction::Rst { value: 3 });
+        assert_eq!(cpu.pc, 0x18);
+        assert_eq!(cpu.state, State::Running);
+        assert_eq!(cpu.get_current_sp_value(), 0);
+        assert_eq!(cpu.memory[0], 0x03);
+        assert_eq!(cpu.memory[1], 0x2c);
     }
 }

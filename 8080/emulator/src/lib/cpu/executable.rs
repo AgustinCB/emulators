@@ -1,17 +1,23 @@
 extern crate disassembler_8080;
 
 use self::disassembler_8080::{Instruction, Location};
-use cpu::cpu::Cpu;
+use cpu::cpu::{Cpu, State};
 use std::cmp::min;
 
 impl Cpu {
     pub fn execute(&mut self) {
         let instruction = Instruction::from_bytes(self.get_next_instruction_bytes());
+        if !self.can_run(&instruction) {
+            return;
+        }
         self.pc += instruction.size() as u16;
         self.execute_instruction(instruction);
     }
 
     pub fn execute_instruction(&mut self, instruction: Instruction) {
+        if !self.can_run(&instruction) {
+            return;
+        }
         match instruction {
             Instruction::Adc { source: Location::Register { register } } =>
                 self.execute_adc_by_register(&register),
@@ -57,6 +63,7 @@ impl Cpu {
             Instruction::Dcx { register } => self.execute_dcx(&register),
             Instruction::Di => self.execute_di(),
             Instruction::Ei => self.execute_ei(),
+            Instruction::Hlt => self.execute_hlt(),
             Instruction::Inr { source: Location::Register { register } } =>
                 self.execute_inr_by_register(&register),
             Instruction::Inr { source: Location::Memory } => self.execute_inr_by_memory(),
@@ -141,5 +148,14 @@ impl Cpu {
         let from = self.pc as usize;
         let to = min(from+3, self.memory.len());
         &(self.memory[from..to])
+    }
+
+    #[inline]
+    fn can_run(&self, instruction: &Instruction) -> bool {
+        match instruction {
+            Instruction::Rst { value: _ } => true,
+            _ if self.state == State::Running => true,
+            _ => false,
+        }
     }
 }

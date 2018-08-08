@@ -71,6 +71,7 @@ pub enum Instruction {
     Stc,
     Cmc,
     Mov { destiny: Location, source: Location },
+    Hlt,
     Add { source: Location },
     Adc { source: Location },
     Sub { source: Location },
@@ -461,10 +462,7 @@ impl Instruction {
                     source: Location::Register { register: RegisterType::L }
                 },
             0x76 =>
-                Instruction::Mov {
-                    destiny: Location::Memory,
-                    source: Location::Memory,
-                },
+                Instruction::Hlt,
             0x77 =>
                 Instruction::Mov {
                     destiny: Location::Memory,
@@ -667,6 +665,7 @@ impl Instruction {
             Instruction::Stc => 1,
             Instruction::Cmc => 1,
             Instruction::Mov { destiny: _, source: _ } => 1,
+            Instruction::Hlt => 1,
             Instruction::Add { source: _ } => 1,
             Instruction::Adc { source: _ } => 1,
             Instruction::Sub { source: _ } => 1,
@@ -760,6 +759,7 @@ impl ToString for Instruction {
             Instruction::Cmc => String::from("SMC"),
             Instruction::Mov { destiny, source } =>
                 format!("MOV {},{}", source.to_string(), destiny.to_string()),
+            Instruction::Hlt => format!("HLT"),
             Instruction::Add { source } => format!("ADD {}", source.to_string()),
             Instruction::Adc { source } => format!("ADC {}", source.to_string()),
             Instruction::Sub { source } => format!("SUB {}", source.to_string()),
