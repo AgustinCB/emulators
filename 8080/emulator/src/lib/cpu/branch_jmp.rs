@@ -29,7 +29,7 @@ impl Cpu {
     }
 
     pub(crate) fn execute_jnz(&mut self, high_byte: u8, low_byte: u8) {
-        if self.flags.zero {
+        if !self.flags.zero {
             self.perform_jump(high_byte, low_byte);
         }
     }
@@ -41,13 +41,13 @@ impl Cpu {
     }
 
     pub(crate) fn execute_jpe(&mut self, high_byte: u8, low_byte: u8) {
-        if !self.flags.parity {
+        if self.flags.parity {
             self.perform_jump(high_byte, low_byte);
         }
     }
 
     pub(crate) fn execute_jpo(&mut self, high_byte: u8, low_byte: u8) {
-        if self.flags.parity {
+        if !self.flags.parity {
             self.perform_jump(high_byte, low_byte);
         }
     }
@@ -59,11 +59,10 @@ impl Cpu {
     }
 }
 
-#[cfg(tests)]
+#[cfg(test)]
 mod tests {
     use cpu::Cpu;
     use cpu::cpu::ROM_MEMORY_LIMIT;
-    use disassembler_8080::RegisterType;
 
     #[test]
     fn it_should_execute_pchl() {
@@ -110,7 +109,7 @@ mod tests {
     fn it_should_execute_jnc_if_carry_is_reset() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.flags.carry = false;
-        cpu.execute_jc(0x3c, 0x03);
+        cpu.execute_jnc(0x3c, 0x03);
         assert_eq!(cpu.pc, 0x3c03);
     }
 
@@ -127,7 +126,7 @@ mod tests {
     fn it_should_execute_jnz_if_carry_is_reset() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.flags.zero = false;
-        cpu.execute_jz(0x3c, 0x03);
+        cpu.execute_jnz(0x3c, 0x03);
         assert_eq!(cpu.pc, 0x3c03);
     }
 
