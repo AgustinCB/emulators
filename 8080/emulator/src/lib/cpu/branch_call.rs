@@ -4,8 +4,10 @@ use disassembler_8080::RegisterType;
 
 impl Cpu {
     pub(crate) fn execute_rst(&mut self, value: u8) {
-        let low_byte = (value & 0x07) << 3;
-        self.perform_call(0, low_byte);
+        if self.interruptions_enabled {
+            let low_byte = (value & 0x07) << 3;
+            self.perform_call(0, low_byte);
+        }
     }
 
     pub(crate) fn execute_call(&mut self, high_byte: u8, low_byte: u8) {
@@ -303,7 +305,7 @@ mod tests {
     }
 
     #[test]
-    fn it_should_execute_rst() {
+    fn it_should_execute_rst_with_interruptions_enabled() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(2, &RegisterType::Sp);
         cpu.pc = 0x2c03;
@@ -312,5 +314,18 @@ mod tests {
         assert_eq!(cpu.get_current_sp_value(), 0);
         assert_eq!(cpu.memory[0], 0x03);
         assert_eq!(cpu.memory[1], 0x2c);
+    }
+
+    #[test]
+    fn it_shouldnt_execute_rst_with_interruptions_disabled() {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.save_to_double_register(2, &RegisterType::Sp);
+        cpu.pc = 0x2c03;
+        cpu.interruptions_enabled = false;
+        cpu.execute_instruction(Instruction::Rst { value: 3 });
+        assert_eq!(cpu.pc, 0x2c03);
+        assert_eq!(cpu.get_current_sp_value(), 2);
+        assert_eq!(cpu.memory[0], 0);
+        assert_eq!(cpu.memory[1], 0);
     }
 }

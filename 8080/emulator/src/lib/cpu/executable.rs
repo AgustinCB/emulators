@@ -55,6 +55,8 @@ impl Cpu {
                 self.execute_dcr_by_register(&register),
             Instruction::Dcr { source: Location::Memory } => self.execute_dcr_by_memory(),
             Instruction::Dcx { register } => self.execute_dcx(&register),
+            Instruction::Di => self.execute_di(),
+            Instruction::Ei => self.execute_ei(),
             Instruction::Inr { source: Location::Register { register } } =>
                 self.execute_inr_by_register(&register),
             Instruction::Inr { source: Location::Memory } => self.execute_inr_by_memory(),

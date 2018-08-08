@@ -122,7 +122,7 @@ pub enum Instruction {
     Rm,
     Sphl,
     Jm { address: Address},
-    El,
+    Ei,
     Cm { address: Address},
     Cpi { byte: u8 },
 }
@@ -629,7 +629,7 @@ impl Instruction {
             0xf8 => Instruction::Rm,
             0xf9 => Instruction::Sphl,
             0xfa => Instruction::Jm { address: [bytes[1], bytes[2]] },
-            0xfb => Instruction::El,
+            0xfb => Instruction::Ei,
             0xfc => Instruction::Cm { address: [bytes[1], bytes[2]] },
             0xfe => Instruction::Cpi { byte: bytes[1] },
             0xff => Instruction::Rst { value: 7 },
@@ -718,7 +718,7 @@ impl Instruction {
             Instruction::Rm => 1,
             Instruction::Sphl => 1,
             Instruction::Jm { address: _ } => 3,
-            Instruction::El => 1,
+            Instruction::Ei => 1,
             Instruction::Cm { address: _ } => 3,
             Instruction::Cpi { byte: _ } => 2,
         }
@@ -828,7 +828,7 @@ impl ToString for Instruction {
             Instruction::Sphl => String::from("SPHL"),
             Instruction::Jm { address } =>
                 format!("JM ${:02x}{:02x}", address[1], address[0]),
-            Instruction::El => String::from("EL"),
+            Instruction::Ei => String::from("EL"),
             Instruction::Cm { address } =>
                 format!("CM ${:02x}{:02x}", address[1], address[0]),
             Instruction::Cpi { byte } => format!("CPI #${:02x}", byte),
