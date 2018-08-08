@@ -1,5 +1,5 @@
 [package]
-name = "emulator_8080"
+name = "emulator_space_invaders"
 version = "0.1.0"
 authors = ["AgustinCB <jnieve@gmail.com>"]
 

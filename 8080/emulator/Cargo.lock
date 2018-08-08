@@ -3,7 +3,7 @@ name = "disassembler_8080"
 version = "0.1.0"
 
 [[package]]
-name = "emulator_8080"
+name = "emulator_space_invaders"
 version = "0.1.0"
 dependencies = [
  "disassembler_8080 0.1.0",

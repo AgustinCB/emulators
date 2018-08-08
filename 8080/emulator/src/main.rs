@@ -1,6 +1,6 @@
-extern crate emulator_8080;
+extern crate emulator_space_invaders;
 
-use emulator_8080::cpu::Cpu;
+use emulator_space_invaders::cpu::Cpu;
 use std::env::args;
 use std::fs::File;
 use std::io::Read;
