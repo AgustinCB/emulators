@@ -2,49 +2,12 @@ extern crate disassembler_8080;
 extern crate emulator_space_invaders;
 
 use emulator_space_invaders::cpu::{Cpu, ROM_MEMORY_LIMIT};
+use emulator_space_invaders::timer::Timer;
 use disassembler_8080::Instruction;
 use std::env::args;
 use std::fs::File;
 use std::io::Read;
 use std::time::{SystemTime, UNIX_EPOCH};
-
-struct Timer {
-    last_trigger: usize,
-    last_check: usize,
-    interval: f64,
-}
-
-impl Timer {
-    pub(crate) fn new(interval: f64) -> Timer {
-        let ms = Timer::get_millis();
-        Timer {
-            interval,
-            last_check: ms,
-            last_trigger: ms,
-        }
-    }
-
-    pub(crate) fn update_last_check(&mut self) {
-        self.last_check =  Timer::get_millis();
-    }
-
-    pub(crate) fn should_trigger(&mut self) -> bool {
-        let ms = Timer::get_millis();
-        let should = (ms as f64 - self.last_trigger as f64) > self.interval;
-        if should {
-            self.last_trigger = ms;
-        }
-        should
-    }
-
-    fn get_millis() -> usize {
-        let start = SystemTime::now();
-        let since_the_epoch = start.duration_since(UNIX_EPOCH)
-            .expect("Time went backwards");
-        (since_the_epoch.as_secs() * 1000) as usize +
-            since_the_epoch.subsec_nanos() as usize / 1_000_000
-    }
-}
 
 fn read_file(file_name: &str) -> std::io::Result<[u8; ROM_MEMORY_LIMIT]> {
     let metadata = std::fs::metadata(file_name)?;
