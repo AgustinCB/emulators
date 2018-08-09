@@ -1,7 +1,13 @@
 use super::cpu::{InputDevice, OutputDevice};
 
+pub struct DummyOutputDevice {}
+
+impl OutputDevice for DummyOutputDevice {
+    fn write(&mut self, _: u8, _: u8) {}
+}
+
 pub struct DummyInputDevice {
-    value: u8,
+    pub value: u8,
 }
 
 impl InputDevice for DummyInputDevice {
