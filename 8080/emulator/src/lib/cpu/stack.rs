@@ -1,5 +1,4 @@
-use cpu::cpu::Cpu;
-use disassembler_8080::RegisterType;
+use cpu::cpu::{Cpu, RegisterType};
 
 impl<'a> Cpu<'a> {
     pub(crate) fn execute_push(&mut self, register: &RegisterType) {
@@ -70,9 +69,8 @@ impl<'a> Cpu<'a> {
 
 #[cfg(test)]
 mod tests {
-    use cpu::Cpu;
-    use cpu::cpu::ROM_MEMORY_LIMIT;
-    use disassembler_8080::{Instruction, RegisterType};
+    use cpu::cpu::{Cpu, RegisterType, ROM_MEMORY_LIMIT};
+    use cpu::instruction::Instruction;
 
     fn get_pop_ready_cpu<'a>() -> Cpu<'a> {
         let mut memory = [0; ROM_MEMORY_LIMIT];

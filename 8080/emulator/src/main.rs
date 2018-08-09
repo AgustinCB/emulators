@@ -1,13 +1,10 @@
-extern crate disassembler_8080;
 extern crate emulator_space_invaders;
 
-use emulator_space_invaders::cpu::{Cpu, ROM_MEMORY_LIMIT};
+use emulator_space_invaders::cpu::{Cpu, Instruction, ROM_MEMORY_LIMIT};
 use emulator_space_invaders::timer::Timer;
-use disassembler_8080::Instruction;
 use std::env::args;
 use std::fs::File;
 use std::io::Read;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 fn read_file(file_name: &str) -> std::io::Result<[u8; ROM_MEMORY_LIMIT]> {
     let metadata = std::fs::metadata(file_name)?;

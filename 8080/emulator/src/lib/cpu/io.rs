@@ -23,7 +23,7 @@ impl<'a> Cpu<'a> {
 #[cfg(test)]
 mod tests {
     use cpu::cpu::{Cpu, InputDevice, OutputDevice, ROM_MEMORY_LIMIT};
-    use disassembler_8080::Instruction;
+    use cpu::instruction::Instruction;
 
     #[test]
     fn it_should_execute_in() {

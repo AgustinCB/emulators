@@ -1,7 +1,5 @@
-extern crate disassembler_8080;
-
-use self::disassembler_8080::{Instruction, Location};
-use cpu::cpu::{Cpu, State};
+use cpu::cpu::{Cpu, Location, State};
+use cpu::instruction::Instruction;
 use std::cmp::min;
 
 impl<'a> Cpu<'a> {

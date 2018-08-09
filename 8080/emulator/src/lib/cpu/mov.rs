@@ -1,7 +1,5 @@
 use cpu::helpers::two_bytes_to_word;
-use cpu::cpu::Cpu;
-use disassembler_8080::RegisterType;
-use disassembler_8080::Location;
+use cpu::cpu::{Cpu, Location, RegisterType};
 
 impl<'a> Cpu<'a> {
     pub(crate) fn execute_lda(&mut self, high_byte: u8, low_byte: u8) {
@@ -142,9 +140,8 @@ impl<'a> Cpu<'a> {
 
 #[cfg(test)]
 mod tests {
-    use cpu::Cpu;
-    use cpu::cpu::ROM_MEMORY_LIMIT;
-    use disassembler_8080::{Instruction, Location, RegisterType};
+    use cpu::cpu::{Cpu, Location, RegisterType, ROM_MEMORY_LIMIT};
+    use cpu::instruction::Instruction;
 
     fn get_ldax_ready_cpu(register: &RegisterType) -> Cpu {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);

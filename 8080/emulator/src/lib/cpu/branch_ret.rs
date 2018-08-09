@@ -1,5 +1,4 @@
-use cpu::cpu::Cpu;
-use disassembler_8080::RegisterType;
+use cpu::cpu::{Cpu, RegisterType};
 
 impl<'a> Cpu<'a> {
     pub(crate) fn execute_rc(&mut self) {
@@ -66,8 +65,8 @@ impl<'a> Cpu<'a> {
 
 #[cfg(test)]
 mod tests {
-    use cpu::cpu::{Cpu, ROM_MEMORY_LIMIT};
-    use disassembler_8080::{Instruction, RegisterType};
+    use cpu::cpu::{Cpu, RegisterType, ROM_MEMORY_LIMIT};
+    use cpu::instruction::Instruction;
 
     #[test]
     fn it_should_execute_rc_if_carry_is_set() {

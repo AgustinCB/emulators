@@ -5,6 +5,3 @@ authors = ["AgustinCB <jnieve@gmail.com>"]
 
 [lib]
 path = "src/lib/lib.rs"
-
-[dependencies]
-disassembler_8080 = { path = "../disassembler" }

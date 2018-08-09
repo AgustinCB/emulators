@@ -61,9 +61,8 @@ impl<'a> Cpu<'a> {
 
 #[cfg(test)]
 mod tests {
-    use cpu::Cpu;
-    use cpu::cpu::ROM_MEMORY_LIMIT;
-    use disassembler_8080::Instruction;
+    use cpu::{Cpu, ROM_MEMORY_LIMIT};
+    use cpu::instruction::Instruction;
 
     #[test]
     fn it_should_execute_pchl() {

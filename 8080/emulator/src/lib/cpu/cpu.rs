@@ -1,11 +1,54 @@
-extern crate disassembler_8080;
-
 use cpu::helpers::{bit_count, two_bytes_to_word};
-use self::disassembler_8080::RegisterType;
 use std::collections::HashMap;
 
 pub const ROM_MEMORY_LIMIT: usize = 8192;
 pub(crate) const MAX_INPUT_OUTPUT_DEVICES: usize = 0x100;
+
+#[derive(Clone, Copy, Hash, PartialEq, Eq)]
+pub enum RegisterType {
+    A,
+    B,
+    C,
+    D,
+    E,
+    H,
+    L,
+    Sp,
+    Psw,
+}
+
+impl ToString for RegisterType {
+    fn to_string(&self) -> String {
+        match self {
+            RegisterType::A => String::from("A"),
+            RegisterType::B => String::from("B"),
+            RegisterType::C => String::from("C"),
+            RegisterType::D => String::from("D"),
+            RegisterType::E => String::from("E"),
+            RegisterType::H => String::from("H"),
+            RegisterType::L => String::from("L"),
+            RegisterType::Sp => String::from("SP"),
+            RegisterType::Psw => String::from("PSW"),
+        }
+    }
+}
+
+pub type Address = [u8; 2];
+
+#[derive(Clone, Copy)]
+pub enum Location {
+    Register { register: RegisterType },
+    Memory,
+}
+
+impl ToString for Location {
+    fn to_string(&self) -> String{
+        match self {
+            Location::Register { register } => register.to_string(),
+            Location::Memory => String::from("(HL)")
+        }
+    }
+}
 
 pub(crate) enum Register {
     SingleRegister { value: u8 },

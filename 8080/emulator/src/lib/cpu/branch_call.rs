@@ -1,6 +1,5 @@
-use cpu::cpu::{Cpu, State};
+use cpu::cpu::{Cpu, RegisterType, State};
 use cpu::helpers::word_to_address;
-use disassembler_8080::RegisterType;
 
 impl<'a> Cpu<'a> {
     pub(crate) fn execute_rst(&mut self, value: u8) {
@@ -81,9 +80,8 @@ impl<'a> Cpu<'a> {
 
 #[cfg(test)]
 mod tests {
-    use cpu::cpu::{Cpu, State};
-    use cpu::cpu::ROM_MEMORY_LIMIT;
-    use disassembler_8080::{Instruction, RegisterType};
+    use cpu::cpu::{Cpu, RegisterType, ROM_MEMORY_LIMIT, State};
+    use cpu::instruction::Instruction;
 
     #[test]
     fn it_should_execute_call() {

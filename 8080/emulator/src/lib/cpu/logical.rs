@@ -1,5 +1,4 @@
-use cpu::cpu::Cpu;
-use disassembler_8080::RegisterType;
+use cpu::cpu::{Cpu, RegisterType};
 
 impl<'a> Cpu<'a> {
     pub(crate) fn execute_ana_by_register(&mut self, register_type: &RegisterType) {
@@ -127,9 +126,8 @@ impl<'a> Cpu<'a> {
 
 #[cfg(test)]
 mod tests {
-    use cpu::Cpu;
-    use cpu::cpu::ROM_MEMORY_LIMIT;
-    use disassembler_8080::{Instruction, Location, RegisterType};
+    use cpu::cpu::{Cpu, Location, RegisterType, ROM_MEMORY_LIMIT};
+    use cpu::instruction::Instruction;
 
     #[test]
     fn it_should_execute_ana_by_memory () {

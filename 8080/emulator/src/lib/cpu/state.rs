@@ -20,14 +20,14 @@ impl<'a> Cpu<'a> {
 
 #[cfg(test)]
 mod tests {
-    use cpu::Cpu;
-    use cpu::cpu::ROM_MEMORY_LIMIT;
+    use cpu::cpu::{Cpu, ROM_MEMORY_LIMIT};
+    use cpu::instruction::Instruction;
 
     #[test]
     fn it_should_set_carry() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.flags.carry = false;
-        cpu.execute_stc();
+        cpu.execute_instruction(Instruction::Stc);
         assert!(cpu.flags.carry);
     }
 
@@ -35,9 +35,9 @@ mod tests {
     fn it_should_invert_carry() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.flags.carry = false;
-        cpu.execute_cmc();
+        cpu.execute_instruction(Instruction::Cmc);
         assert!(cpu.flags.carry);
-        cpu.execute_cmc();
+        cpu.execute_instruction(Instruction::Cmc);
         assert!(!cpu.flags.carry);
     }
 
@@ -45,7 +45,7 @@ mod tests {
     fn it_should_complement_the_accumulator() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(42);
-        cpu.execute_cma();
+        cpu.execute_instruction(Instruction::Cma);
         assert_eq!(213, cpu.get_current_a_value());
     }
 }

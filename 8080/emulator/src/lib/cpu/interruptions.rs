@@ -17,7 +17,7 @@ impl<'a> Cpu<'a> {
 #[cfg(test)]
 mod tests {
     use cpu::cpu::{Cpu, State, ROM_MEMORY_LIMIT};
-    use disassembler_8080::Instruction;
+    use cpu::instruction::Instruction;
 
     #[test]
     fn it_should_execute_ei() {
