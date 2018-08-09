@@ -23,7 +23,8 @@ fn get_instructions(bytes: [u8; ROM_MEMORY_LIMIT]) -> Vec<(u16, Instruction)> {
     let mut pc: u16 = 0;
     for index in 0..bytes.len() {
         if pass == 0 {
-            let i = Instruction::from_bytes(&bytes[index..min(index+3, bytes.len())]);
+            let i =
+                Instruction::from_bytes(&bytes[index..min(index+3, bytes.len())]);
             let instruction_size = i.size();
             pass = instruction_size - 1;
             result.push((pc, i));
@@ -36,14 +37,11 @@ fn get_instructions(bytes: [u8; ROM_MEMORY_LIMIT]) -> Vec<(u16, Instruction)> {
 }
 
 fn read_file(file_name: &str) -> std::io::Result<[u8; ROM_MEMORY_LIMIT]> {
-    let metadata = std::fs::metadata(file_name)?;
     let mut f = File::open(file_name)?;
     // this may blow up memory if the file is big enough
     // TODO: streams???
-    let mut bytes = vec![0; metadata.len() as usize];
-    f.read(&mut bytes[..])?;
     let mut memory = [0; ROM_MEMORY_LIMIT];
-    memory.copy_from_slice(&bytes[..bytes.len()]);
+    f.read(&mut memory)?;
     Ok(memory)
 }
 
