@@ -76,7 +76,7 @@ fn test(memory: [u8; ROM_MEMORY_LIMIT]) {
     let mut cpu = Cpu::new_cp_m_compatible(memory, screen);
 
     // Fix stack pointer
-    cpu.memory[368] = 0x7;
+    //cpu.memory[368] = 0x7;
 
     // Skip DAA test
     cpu.memory[0x059c] = 0xc3;

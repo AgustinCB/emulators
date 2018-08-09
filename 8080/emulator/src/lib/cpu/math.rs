@@ -247,7 +247,7 @@ impl<'a> Cpu<'a> {
 
     #[inline]
     fn update_auxiliary_carry_with_sub(&mut self, destiny: u16, source: u16) {
-        self.flags.auxiliary_carry = (destiny & 0x0f) + ((!source + 1) & 0x0f) > 0x0f;
+        self.flags.auxiliary_carry = (destiny & 0x0f) + (!source & 0x0f) + 1 > 0x0f;
     }
 
     #[inline]
