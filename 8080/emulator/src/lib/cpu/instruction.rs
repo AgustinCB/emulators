@@ -1,5 +1,10 @@
 use cpu::cpu::{RegisterType, Location, Address};
 
+pub(crate) enum Cycles {
+    Single(u8),
+    Conditional { not_met: u8, met: u8 },
+}
+
 #[derive(Clone)]
 pub enum Instruction {
     Noop,
@@ -670,6 +675,125 @@ impl Instruction {
             Instruction::Ei => 1,
             Instruction::Cm { address: _ } => 3,
             Instruction::Cpi { byte: _ } => 2,
+        }
+    }
+
+    pub(crate) fn get_cycles(&self) -> Cycles {
+        match self {
+            Instruction::Noop => Cycles::Single(4),
+            Instruction::Lxi { register: _, low_byte: _, high_byte: _ } => Cycles::Single(10),
+            Instruction::Stax { register: _ } => Cycles::Single(7),
+            Instruction::Inx { register: _ } => Cycles::Single(5),
+            Instruction::Inr {
+                source: Location::Register { register: _ }
+            } => Cycles::Single(5),
+            Instruction::Inr { source: _ } => Cycles::Single(10),
+            Instruction::Dcr {
+                source: Location::Register { register: _ }
+            } => Cycles::Single(5),
+            Instruction::Dcr { source: _ } => Cycles::Single(10),
+            Instruction::Mvi { source: Location::Register { register: _ }, byte: _ } =>
+                Cycles::Single(7),
+            Instruction::Mvi { source: _, byte: _ } => Cycles::Single(10),
+            Instruction::Rlc => Cycles::Single(4),
+            Instruction::Dad { register: _ } => Cycles::Single(10),
+            Instruction::Ldax { register: _ } => Cycles::Single(7),
+            Instruction::Dcx { register: _ } => Cycles::Single(5),
+            Instruction::Rrc => Cycles::Single(4),
+            Instruction::Ral => Cycles::Single(4),
+            Instruction::Rar => Cycles::Single(4),
+            Instruction::Shld { address: _ } => Cycles::Single(16),
+            Instruction::Daa => Cycles::Single(4),
+            Instruction::Lhld { address: _ } => Cycles::Single(16),
+            Instruction::Cma => Cycles::Single(4),
+            Instruction::Sta { address: _ } => Cycles::Single(13),
+            Instruction::Lda { address: _ } => Cycles::Single(13),
+            Instruction::Stc => Cycles::Single(4),
+            Instruction::Cmc => Cycles::Single(4),
+            Instruction::Mov {
+                destiny: Location::Register { register: _ },
+                source: Location::Register { register: _ },
+            } => Cycles::Single(5),
+            Instruction::Mov { destiny: _, source: _ } => Cycles::Single(7),
+            Instruction::Hlt => Cycles::Single(7),
+            Instruction::Add {
+                source: Location::Register { register: _ }
+            } => Cycles::Single(4),
+            Instruction::Add { source: _ } => Cycles::Single(7),
+            Instruction::Adc {
+                source: Location::Register { register: _ }
+            } => Cycles::Single(4),
+            Instruction::Adc { source: _ } => Cycles::Single(7),
+            Instruction::Sub {
+                source: Location::Register { register: _ }
+            } => Cycles::Single(4),
+            Instruction::Sub { source: _ } => Cycles::Single(7),
+            Instruction::Sbb {
+                source: Location::Register { register: _ }
+            } => Cycles::Single(4),
+            Instruction::Sbb { source: _ } => Cycles::Single(7),
+            Instruction::Ana {
+                source: Location::Register { register: _ }
+            } => Cycles::Single(4),
+            Instruction::Ana { source: _ } => Cycles::Single(7),
+            Instruction::Xra {
+                source: Location::Register { register: _ }
+            } => Cycles::Single(4),
+            Instruction::Xra { source: _ } => Cycles::Single(7),
+            Instruction::Ora {
+                source: Location::Register { register: _ }
+            } => Cycles::Single(4),
+            Instruction::Ora { source: _ } => Cycles::Single(7),
+            Instruction::Cmp {
+                source: Location::Register { register: _ }
+            } => Cycles::Single(4),
+            Instruction::Cmp { source: _ } => Cycles::Single(7),
+            Instruction::Rnz => Cycles::Conditional { not_met: 5, met: 11 },
+            Instruction::Pop { register: _ } => Cycles::Single(10),
+            Instruction::Jnz { address: _ } => Cycles::Single(10),
+            Instruction::Jmp { address: _ } => Cycles::Single(10),
+            Instruction::Cnz { address: _ } => Cycles::Conditional { not_met: 11, met: 17 },
+            Instruction::Push { register: _ } => Cycles::Single(11),
+            Instruction::Adi { byte: _ } => Cycles::Single(7),
+            Instruction::Rst { value: _ } => Cycles::Single(11),
+            Instruction::Rz => Cycles::Conditional { not_met: 5, met: 11 },
+            Instruction::Ret => Cycles::Single(10),
+            Instruction::Jz { address: _ } => Cycles::Single(10),
+            Instruction::Cz { address: _ } => Cycles::Conditional { not_met: 11, met: 17 },
+            Instruction::Call { address: _ } => Cycles::Single(17),
+            Instruction::Aci { byte: _ } => Cycles::Single(7),
+            Instruction::Rnc => Cycles::Conditional { not_met: 5, met: 11 },
+            Instruction::Jnc { address: _ } => Cycles::Single(10),
+            Instruction::Out { byte: _ } => Cycles::Single(10),
+            Instruction::Cnc { address: _ } => Cycles::Conditional { not_met: 11, met: 17 },
+            Instruction::Sui { byte: _ } => Cycles::Single(7),
+            Instruction::Rc => Cycles::Conditional { not_met: 5, met: 11 },
+            Instruction::Jc { address: _ } => Cycles::Single(10),
+            Instruction::In { byte: _ } => Cycles::Single(10),
+            Instruction::Cc { address: _ } => Cycles::Conditional { not_met: 11, met: 17 },
+            Instruction::Sbi { byte: _ } => Cycles::Single(7),
+            Instruction::Rpo => Cycles::Conditional { not_met: 5, met: 11 },
+            Instruction::Jpo { address: _ } => Cycles::Single(10),
+            Instruction::Xthl => Cycles::Single(18),
+            Instruction::Cpo { address: _ } => Cycles::Conditional { not_met: 11, met: 17 },
+            Instruction::Ani { byte: _ } => Cycles::Single(7),
+            Instruction::Rpe => Cycles::Conditional { not_met: 5, met: 11 },
+            Instruction::Pchl => Cycles::Single(5),
+            Instruction::Jpe { address: _ } => Cycles::Single(10),
+            Instruction::Xchg => Cycles::Single(4),
+            Instruction::Cpe { address: _ } => Cycles::Conditional { not_met: 11, met: 17 },
+            Instruction::Xri { byte: _ } => Cycles::Single(7),
+            Instruction::Rp => Cycles::Conditional { not_met: 5, met: 11 },
+            Instruction::Jp { address: _ } => Cycles::Single(10),
+            Instruction::Di => Cycles::Single(4),
+            Instruction::Cp { address: _ } => Cycles::Conditional { not_met: 11, met: 17 },
+            Instruction::Ori { byte: _ } => Cycles::Single(7),
+            Instruction::Rm => Cycles::Conditional { not_met: 5, met: 11 },
+            Instruction::Sphl => Cycles::Single(5),
+            Instruction::Jm { address: _ } => Cycles::Single(10),
+            Instruction::Ei => Cycles::Single(4),
+            Instruction::Cm { address: _ } => Cycles::Conditional { not_met: 11, met: 17 },
+            Instruction::Cpi { byte: _ } => Cycles::Single(7),
         }
     }
 }
