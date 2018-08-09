@@ -126,7 +126,7 @@ impl Instruction {
             0x2a => Instruction::Lhld { address: [bytes[1], bytes[2]] },
             0x2b => Instruction::Dcx { register: RegisterType::H },
             0x2c => Instruction::Inr { source: Location::Register { register: RegisterType::L } },
-            0x2d => Instruction::Dcx { register: RegisterType::L },
+            0x2d => Instruction::Dcr { source: Location::Register { register: RegisterType::L } },
             0x2e => Instruction::Mvi { source: Location::Register { register: RegisterType::L }, byte: bytes[1] },
             0x2f => Instruction::Cma,
             0x31 => Instruction::Lxi { register: RegisterType::Sp, low_byte: bytes[1], high_byte: bytes[2] },
@@ -140,7 +140,7 @@ impl Instruction {
             0x3a => Instruction::Lda { address: [bytes[1], bytes[2]] },
             0x3b => Instruction::Dcx { register: RegisterType::Sp },
             0x3c => Instruction::Inr { source: Location::Register { register: RegisterType::A } },
-            0x3d => Instruction::Dcx { register: RegisterType::A },
+            0x3d => Instruction::Dcr { source: Location::Register { register: RegisterType::A } },
             0x3e => Instruction::Mvi { source: Location::Register { register: RegisterType::A }, byte: bytes[1] },
             0x3f => Instruction::Cmc,
             0x40 =>
