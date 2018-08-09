@@ -8,6 +8,7 @@ impl<'a> Cpu<'a> {
         if !self.can_run(&instruction) {
             return;
         }
+        println!("RUNNING {}", instruction.to_string());
         self.pc += instruction.size() as u16;
         self.execute_instruction(instruction);
     }

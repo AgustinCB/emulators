@@ -706,7 +706,7 @@ impl ToString for Instruction {
             Instruction::Stc => String::from("STC"),
             Instruction::Cmc => String::from("SMC"),
             Instruction::Mov { destiny, source } =>
-                format!("MOV {},{}", source.to_string(), destiny.to_string()),
+                format!("MOV {},{}", destiny.to_string(), source.to_string()),
             Instruction::Hlt => format!("HLT"),
             Instruction::Add { source } => format!("ADD {}", source.to_string()),
             Instruction::Adc { source } => format!("ADC {}", source.to_string()),
