@@ -409,7 +409,7 @@ mod tests {
         assert!(!cpu.flags.carry);
         assert!(!cpu.flags.sign);
         assert!(cpu.flags.parity);
-        assert!(!cpu.flags.auxiliary_carry);
+        assert!(cpu.flags.auxiliary_carry);
         assert!(!cpu.flags.zero);
     }
 

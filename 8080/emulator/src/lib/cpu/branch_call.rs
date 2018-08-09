@@ -29,7 +29,7 @@ impl<'a> Cpu<'a> {
     }
 
     pub(crate) fn execute_cm(&mut self, high_byte: u8, low_byte: u8) {
-        if !self.flags.sign {
+        if self.flags.sign {
             self.perform_call(high_byte, low_byte);
         }
     }
@@ -47,7 +47,7 @@ impl<'a> Cpu<'a> {
     }
 
     pub(crate) fn execute_cp(&mut self, high_byte: u8, low_byte: u8) {
-        if self.flags.sign {
+        if !self.flags.sign {
             self.perform_call(high_byte, low_byte);
         }
     }
@@ -183,11 +183,11 @@ mod tests {
     }
 
     #[test]
-    fn it_should_execute_cm_if_sign_is_reset() {
+    fn it_should_execute_cm_if_sign_is_set() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(2, &RegisterType::Sp);
         cpu.pc = 0x2c03;
-        cpu.flags.sign = false;
+        cpu.flags.sign = true;
         cpu.execute_instruction(Instruction::Cm { address: [0x00, 0x3c] });
         assert_eq!(cpu.pc, 0x3c00);
         assert_eq!(cpu.get_current_sp_value(), 0);
@@ -196,11 +196,11 @@ mod tests {
     }
 
     #[test]
-    fn it_shouldnt_execute_cm_if_sign_is_set() {
+    fn it_shouldnt_execute_cm_if_sign_is_reset() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(2, &RegisterType::Sp);
         cpu.pc = 0x2c03;
-        cpu.flags.sign = true;
+        cpu.flags.sign = false;
         cpu.execute_instruction(Instruction::Cm { address: [0x00, 0x3c] });
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
@@ -261,11 +261,11 @@ mod tests {
     }
 
     #[test]
-    fn it_should_execute_cp_if_sign_is_set() {
+    fn it_should_execute_cp_if_sign_is_reset() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(2, &RegisterType::Sp);
         cpu.pc = 0x2c03;
-        cpu.flags.sign = true;
+        cpu.flags.sign = false;
         cpu.execute_instruction(Instruction::Cp { address: [0x00, 0x3c] });
         assert_eq!(cpu.pc, 0x3c00);
         assert_eq!(cpu.get_current_sp_value(), 0);
@@ -274,11 +274,11 @@ mod tests {
     }
 
     #[test]
-    fn it_shouldnt_execute_cp_if_sign_is_reset() {
+    fn it_shouldnt_execute_cp_if_sign_is_set() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(2, &RegisterType::Sp);
         cpu.pc = 0x2c03;
-        cpu.flags.sign = false;
+        cpu.flags.sign = true;
         cpu.execute_instruction(Instruction::Cp { address: [0x00, 0x3c] });
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);

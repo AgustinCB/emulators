@@ -12,7 +12,7 @@ impl<'a> Cpu<'a> {
     }
 
     pub(crate) fn execute_rm(&mut self) {
-        if !self.flags.sign {
+        if self.flags.sign {
             self.perform_ret();
         }
     }
@@ -42,7 +42,7 @@ impl<'a> Cpu<'a> {
     }
 
     pub(crate) fn execute_rp(&mut self) {
-        if self.flags.sign {
+        if !self.flags.sign {
             self.perform_ret();
         }
     }
@@ -107,26 +107,26 @@ mod tests {
     }
 
     #[test]
-    fn it_should_execute_rm_if_sign_is_reset() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
-        cpu.save_to_double_register(0, &RegisterType::Sp);
-        cpu.memory[0] = 0x03;
-        cpu.memory[1] = 0x2c;
-        cpu.pc = 0x2442;
-        cpu.flags.sign = false;
-        cpu.execute_instruction(Instruction::Rm);
-        assert_eq!(cpu.pc, 0x2c03);
-        assert_eq!(cpu.get_current_sp_value(), 2);
-    }
-
-    #[test]
-    fn it_shouldnt_execute_rm_if_sign_is_set() {
+    fn it_should_execute_rm_if_sign_is_set() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(0, &RegisterType::Sp);
         cpu.memory[0] = 0x03;
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.sign = true;
+        cpu.execute_instruction(Instruction::Rm);
+        assert_eq!(cpu.pc, 0x2c03);
+        assert_eq!(cpu.get_current_sp_value(), 2);
+    }
+
+    #[test]
+    fn it_shouldnt_execute_rm_if_sign_is_reset() {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.save_to_double_register(0, &RegisterType::Sp);
+        cpu.memory[0] = 0x03;
+        cpu.memory[1] = 0x2c;
+        cpu.pc = 0x2442;
+        cpu.flags.sign = false;
         cpu.execute_instruction(Instruction::Rm);
         assert_eq!(cpu.pc, 0x2442);
         assert_eq!(cpu.get_current_sp_value(), 0);
@@ -185,26 +185,26 @@ mod tests {
     }
 
     #[test]
-    fn it_should_execute_rp_if_sign_is_set() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
-        cpu.save_to_double_register(0, &RegisterType::Sp);
-        cpu.memory[0] = 0x03;
-        cpu.memory[1] = 0x2c;
-        cpu.pc = 0x2442;
-        cpu.flags.sign = true;
-        cpu.execute_instruction(Instruction::Rp);
-        assert_eq!(cpu.pc, 0x2c03);
-        assert_eq!(cpu.get_current_sp_value(), 2);
-    }
-
-    #[test]
-    fn it_shouldnt_execute_rp_if_sign_is_reset() {
+    fn it_should_execute_rp_if_sign_is_reset() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(0, &RegisterType::Sp);
         cpu.memory[0] = 0x03;
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.sign = false;
+        cpu.execute_instruction(Instruction::Rp);
+        assert_eq!(cpu.pc, 0x2c03);
+        assert_eq!(cpu.get_current_sp_value(), 2);
+    }
+
+    #[test]
+    fn it_shouldnt_execute_rp_if_sign_is_set() {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.save_to_double_register(0, &RegisterType::Sp);
+        cpu.memory[0] = 0x03;
+        cpu.memory[1] = 0x2c;
+        cpu.pc = 0x2442;
+        cpu.flags.sign = true;
         cpu.execute_instruction(Instruction::Rp);
         assert_eq!(cpu.pc, 0x2442);
         assert_eq!(cpu.get_current_sp_value(), 0);
