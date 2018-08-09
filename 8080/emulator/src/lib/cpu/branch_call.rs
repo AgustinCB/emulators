@@ -1,5 +1,6 @@
 use cpu::cpu::{Cpu, RegisterType, State};
-use cpu::helpers::word_to_address;
+use cpu::helpers::{two_bytes_to_word, word_to_address};
+use std::process::exit;
 
 impl<'a> Cpu<'a> {
     pub(crate) fn execute_rst(&mut self, value: u8) {
@@ -11,7 +12,14 @@ impl<'a> Cpu<'a> {
     }
 
     pub(crate) fn execute_call(&mut self, high_byte: u8, low_byte: u8) {
-        self.perform_call(high_byte, low_byte);
+        let address = two_bytes_to_word(high_byte, low_byte);
+        if self.cp_m_compatibility && address == 5 {
+            self.handle_cp_m_print();
+        } else if self.cp_m_compatibility && address == 0 {
+            exit(0);
+        } else {
+            self.perform_call(high_byte, low_byte);
+        }
     }
 
     pub(crate) fn execute_cc(&mut self, high_byte: u8, low_byte: u8) {
@@ -76,11 +84,40 @@ impl<'a> Cpu<'a> {
         self.memory[sp-2] = address[0];
         self.save_to_double_register((sp - 2) as u16, &RegisterType::Sp);
     }
+
+    #[inline]
+    fn handle_cp_m_print(&mut self) {
+        let c_value = self.get_current_single_register_value(&RegisterType::C);
+        if c_value == 9 {
+            self.print_de_to_screen();
+        } else if c_value == 2 {
+            self.print_message(String::from("print char routine called").as_ref());
+        }
+    }
+
+    #[inline]
+    fn print_de_to_screen(&mut self) {
+        let mut address = (self.get_current_de_value() + 3) as usize; // Skip prefix
+        let mut bytes: Vec<u8> = Vec::new();
+        while (self.memory[address] as char) != '$' {
+            bytes.push(self.memory[address]);
+            address += 1;
+        }
+        self.print_message(bytes.as_ref());
+    }
+
+    #[inline]
+    fn print_message(&mut self, bytes: &[u8]) {
+        match self.screen {
+            Some(ref mut screen) => screen.print(bytes),
+            _ => panic!("Screen not configured while in CP/M compatibility mode."),
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use cpu::cpu::{Cpu, RegisterType, ROM_MEMORY_LIMIT, State};
+    use cpu::cpu::{Cpu, RegisterType, ROM_MEMORY_LIMIT, Screen, State};
     use cpu::instruction::Instruction;
 
     #[test]
@@ -93,6 +130,30 @@ mod tests {
         assert_eq!(cpu.get_current_sp_value(), 0);
         assert_eq!(cpu.memory[0], 0x03);
         assert_eq!(cpu.memory[1], 0x2c);
+    }
+
+    #[test]
+    fn it_should_print_when_executing_call_to_5_while_in_cp_m_compatibility_mode() {
+        struct FakePrinter { res: String }
+        impl Screen for FakePrinter {
+            fn print(&mut self, bytes: &[u8]) {
+                self.res = String::from_utf8_lossy(bytes).to_string();
+            }
+        }
+        let screen = &mut (FakePrinter { res: "".to_string() });
+        {
+            let mut cpu = Cpu::new_cp_m_compatible([0; ROM_MEMORY_LIMIT], screen);
+            cpu.pc = 0x2c03;
+            cpu.save_to_single_register(9, &RegisterType::C);
+            cpu.save_to_single_register(0, &RegisterType::D);
+            cpu.save_to_single_register(0, &RegisterType::E);
+            cpu.memory[3] = '4' as u8;
+            cpu.memory[4] = '2' as u8;
+            cpu.memory[5] = '$' as u8;
+            cpu.execute_instruction(Instruction::Call { address: [0x05, 0x00] });
+            assert_eq!(cpu.pc, 0x2c03);
+        }
+        assert_eq!(screen.res, "42");
     }
 
     #[test]

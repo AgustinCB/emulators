@@ -13,4 +13,4 @@ mod mov;
 mod stack;
 mod state;
 pub use self::instruction::Instruction;
-pub use self::cpu::{Cpu, ROM_MEMORY_LIMIT};
+pub use self::cpu::{Cpu, ROM_MEMORY_LIMIT, Screen};

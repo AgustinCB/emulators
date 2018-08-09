@@ -69,6 +69,10 @@ pub trait OutputDevice {
     fn write(&mut self, byte: u8);
 }
 
+pub trait Screen {
+    fn print (&mut self, bytes: &[u8]);
+}
+
 impl Register {
     fn new(t: RegisterType) -> Register {
         match t {
@@ -102,15 +106,24 @@ impl Flags {
 pub struct Cpu<'a> {
     pub(crate) registers: HashMap<RegisterType, Register>,
     pub(crate) pc: u16,
-    pub(crate) memory: [u8; ROM_MEMORY_LIMIT * 8],
+    pub memory: [u8; ROM_MEMORY_LIMIT * 8],
+    pub(crate) cp_m_compatibility: bool,
     pub(crate) flags: Flags,
     pub(crate) interruptions_enabled: bool,
     pub(crate) state: State,
     pub(crate) inputs: Vec<&'a mut InputDevice>,
     pub(crate) outputs: Vec<&'a mut OutputDevice>,
+    pub(crate) screen: Option<&'a mut Screen>,
 }
 
 impl<'a> Cpu<'a> {
+    pub fn new_cp_m_compatible(rom_memory: [u8; ROM_MEMORY_LIMIT], screen: &mut Screen) -> Cpu {
+        let mut cpu = Cpu::new(rom_memory);
+        cpu.cp_m_compatibility = true;
+        cpu.screen = Some(screen);
+        cpu
+    }
+
     pub fn new<'b>(rom_memory: [u8; ROM_MEMORY_LIMIT]) -> Cpu<'b> {
         let mut registers = HashMap::new();
         let mut memory = [0; ROM_MEMORY_LIMIT * 8];
@@ -134,6 +147,8 @@ impl<'a> Cpu<'a> {
             state: State::Running,
             inputs: Vec::with_capacity(MAX_INPUT_OUTPUT_DEVICES),
             outputs: Vec::with_capacity(MAX_INPUT_OUTPUT_DEVICES),
+            cp_m_compatibility: false,
+            screen: None,
         }
     }
 

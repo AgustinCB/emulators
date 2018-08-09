@@ -1,13 +1,21 @@
 extern crate emulator_space_invaders;
 
-use emulator_space_invaders::cpu::{Cpu, Instruction, ROM_MEMORY_LIMIT};
+use emulator_space_invaders::cpu::{Cpu, Instruction, ROM_MEMORY_LIMIT, Screen};
 use emulator_space_invaders::timer::Timer;
 use std::env::args;
 use std::cmp::min;
 use std::fs::File;
 use std::io::Read;
 
-const USAGE: &'static str = "Usage: disassembler-8080 [run|disassemble] [file]";
+const USAGE: &'static str = "Usage: disassembler-8080 [run|test|disassemble] [file]";
+
+struct PrintScreen;
+
+impl Screen for PrintScreen {
+    fn print(&mut self, bytes: &[u8]) {
+        println!("{}", String::from_utf8_lossy(bytes));
+    }
+}
 
 fn get_instructions(bytes: [u8; ROM_MEMORY_LIMIT]) -> Vec<(u16, Instruction)> {
     let mut result = Vec::with_capacity(bytes.len());
@@ -65,6 +73,27 @@ fn disassemble(memory: [u8; ROM_MEMORY_LIMIT]) {
     }
 }
 
+fn test(memory: [u8; ROM_MEMORY_LIMIT]) {
+    let screen = &mut (PrintScreen {});
+    let mut cpu = Cpu::new_cp_m_compatible(memory, screen);
+    // The test always starts at 0x0100
+    cpu.memory[0] = 0xc3;
+    cpu.memory[1] = 0x00;
+    cpu.memory[2] = 0x01;
+
+    // Fix stack pointer
+    cpu.memory[368] = 0x7;
+
+    // Skip DAA test
+    cpu.memory[0x059c] = 0xc3;
+    cpu.memory[0x059d] = 0xc2;
+    cpu.memory[0x059e] = 0x05;
+
+    while !cpu.is_done() {
+        cpu.execute();
+    }
+}
+
 fn main() {
     let args: Vec<String> = args().collect();
     if args.len() != 3 {
@@ -76,6 +105,8 @@ fn main() {
         start_game(memory);
     } else if args[1] == "disassemble" {
         disassemble(memory);
+    } else if args[1] == "test" {
+        test(memory);
     } else {
         panic!(USAGE);
     }
