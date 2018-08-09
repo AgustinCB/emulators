@@ -66,23 +66,22 @@ impl<'a> Cpu<'a> {
         self.perform_sub_with_carry(destiny_value, byte as u16);
     }
 
-    // This is instruction has no tests because I'm not sure I even understand how it works.
-    // It also seems to not be used... So I'll just ignore it for now.
     pub(crate) fn execute_daa(&mut self) {
         let destiny_value = self.get_current_a_value() as u16;
-        let least_significant = destiny_value & 0x0f;
+        let mut least_significant = destiny_value & 0x0f;
         let mut result = destiny_value;
         if least_significant > 9 || self.flags.auxiliary_carry {
             result += 6;
-            self.flags.auxiliary_carry = (result & 0x0f) < least_significant;
+            self.flags.auxiliary_carry = (least_significant + 6) > 0x0f;
+            least_significant = result & 0x0f;
         }
-        let most_significant = (result & 0xf0) >> 4;
+        let mut most_significant = (result & 0xf0) >> 4;
         if most_significant > 9 || self.flags.carry {
-            result = result | ((most_significant + 6) << 4);
-            if result > 0xff {
-                self.flags.carry = true;
-            }
+            most_significant += 6;
+            self.flags.carry = most_significant > 0x0f;
+            most_significant &= 0x0f;
         }
+        result = (most_significant << 4) | least_significant;
         self.update_flags(result, false);
         self.save_to_a(result as u8);
     }
@@ -409,6 +408,51 @@ mod tests {
         assert!(!cpu.flags.carry);
         assert!(!cpu.flags.sign);
         assert!(cpu.flags.parity);
+        assert!(cpu.flags.auxiliary_carry);
+        assert!(!cpu.flags.zero);
+    }
+
+    #[test]
+    fn it_should_execute_daa_without_carries_nor_change() {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.save_to_a(0x55);
+        cpu.flags.auxiliary_carry = false;
+        cpu.flags.carry = false;
+        cpu.execute_instruction(Instruction::Daa);
+        assert_eq!(cpu.get_current_a_value(), 0x55);
+        assert!(!cpu.flags.carry);
+        assert!(!cpu.flags.sign);
+        assert!(cpu.flags.parity);
+        assert!(!cpu.flags.auxiliary_carry);
+        assert!(!cpu.flags.zero);
+    }
+
+    #[test]
+    fn it_should_execute_daa_with_carries() {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.save_to_a(0x10);
+        cpu.flags.auxiliary_carry = true;
+        cpu.flags.carry = true;
+        cpu.execute_instruction(Instruction::Daa);
+        assert_eq!(cpu.get_current_a_value(), 0x76);
+        assert!(!cpu.flags.carry);
+        assert!(!cpu.flags.sign);
+        assert!(!cpu.flags.parity);
+        assert!(!cpu.flags.auxiliary_carry);
+        assert!(!cpu.flags.zero);
+    }
+
+    #[test]
+    fn it_should_execute_daa_without_carries_but_with_change_without_carry() {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.save_to_a(0xaa);
+        cpu.flags.auxiliary_carry = false;
+        cpu.flags.carry = false;
+        cpu.execute_instruction(Instruction::Daa);
+        assert_eq!(cpu.get_current_a_value(), 0x10);
+        assert!(cpu.flags.carry);
+        assert!(!cpu.flags.sign);
+        assert!(!cpu.flags.parity);
         assert!(cpu.flags.auxiliary_carry);
         assert!(!cpu.flags.zero);
     }

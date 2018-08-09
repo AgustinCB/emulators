@@ -91,8 +91,14 @@ impl<'a> Cpu<'a> {
         if c_value == 9 {
             self.print_de_to_screen();
         } else if c_value == 2 {
-            self.print_message(String::from("print char routine called").as_ref());
+            self.print_e_value_to_screen();
         }
+    }
+
+    #[inline]
+    fn print_e_value_to_screen(&mut self) {
+        let e_value = self.get_current_single_register_value(&RegisterType::E);
+        self.print_message(&['E' as u8, ' ' as u8, e_value]);
     }
 
     #[inline]

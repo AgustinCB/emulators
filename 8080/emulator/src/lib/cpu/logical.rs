@@ -104,6 +104,7 @@ impl<'a> Cpu<'a> {
         let answer = destiny & source;
         self.update_flags(answer as u16, false);
         self.flags.carry = false;
+        self.flags.auxiliary_carry = false;
         answer
     }
 
@@ -112,6 +113,7 @@ impl<'a> Cpu<'a> {
         let answer = destiny | source;
         self.update_flags(answer as u16, false);
         self.flags.carry = false;
+        self.flags.auxiliary_carry = false;
         answer
     }
 
@@ -120,6 +122,7 @@ impl<'a> Cpu<'a> {
         let answer = destiny ^ source;
         self.update_flags(answer as u16, false);
         self.flags.carry = false;
+        self.flags.auxiliary_carry = false;
         answer
     }
 }
