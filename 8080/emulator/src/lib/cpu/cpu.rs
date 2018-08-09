@@ -235,10 +235,6 @@ impl<'a> Cpu<'a> {
         }
     }
 
-    pub fn save_to_sp(&mut self, new_value: u16) {
-        self.save_to_double_register(new_value, &RegisterType::Sp);
-    }
-
     #[inline]
     pub(crate) fn save_to_a(&mut self, new_value: u8) {
         self.save_to_single_register(new_value, &RegisterType::A)

@@ -74,11 +74,6 @@ fn disassemble(memory: [u8; ROM_MEMORY_LIMIT]) {
 fn test(memory: [u8; ROM_MEMORY_LIMIT]) {
     let screen = &mut (PrintScreen {});
     let mut cpu = Cpu::new_cp_m_compatible(memory, screen);
-    // Call affects the stack.
-    // The inital value of the stack pointer (SP) is zero.
-    // If we call without setting it somewhere safe, we'd overflow when pushing to it.
-    // Let's use a "safe" (as in big enough) address outside of the rom.
-    cpu.save_to_sp((ROM_MEMORY_LIMIT * 2) as u16);
 
     // Fix stack pointer
     cpu.memory[368] = 0x7;
