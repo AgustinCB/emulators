@@ -72,9 +72,9 @@ fn main() {
     }
     let memory = read_file(&args[2]).unwrap();
 
-    if args[2] == "run" {
+    if args[1] == "run" {
         start_game(memory);
-    } else if args[2] == "disassemble" {
+    } else if args[1] == "disassemble" {
         disassemble(memory);
     } else {
         panic!(USAGE);
