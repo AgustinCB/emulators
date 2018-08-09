@@ -3,7 +3,7 @@ use cpu::cpu::Cpu;
 impl<'a> Cpu<'a> {
     pub(crate) fn execute_in(&mut self, id: u8) {
         let new_a = match self.inputs.get_mut(id as usize) {
-            Some(device) => {
+            Some(Some(device)) => {
                 device.read()
             },
             _ => panic!("Input device {} not configured", id),
@@ -14,7 +14,7 @@ impl<'a> Cpu<'a> {
     pub(crate) fn execute_out(&mut self, id: u8) {
         let a_value = self.get_current_a_value();
         match self.outputs.get_mut(id as usize) {
-            Some(device) => device.write(a_value),
+            Some(Some(device)) => device.write(a_value),
             _ => panic!("Output device {} not configured", id),
         }
     }

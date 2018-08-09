@@ -111,8 +111,8 @@ pub struct Cpu<'a> {
     pub(crate) flags: Flags,
     pub(crate) interruptions_enabled: bool,
     pub(crate) state: State,
-    pub(crate) inputs: Vec<&'a mut InputDevice>,
-    pub(crate) outputs: Vec<&'a mut OutputDevice>,
+    pub(crate) inputs: Vec<Option<&'a mut InputDevice>>,
+    pub(crate) outputs: Vec<Option<&'a mut OutputDevice>>,
     pub(crate) screen: Option<&'a mut Screen>,
 }
 
@@ -157,11 +157,19 @@ impl<'a> Cpu<'a> {
     }
 
     pub(crate) fn add_input_device(&mut self, device: &'a mut InputDevice) {
-        self.inputs.push(device);
+        self.inputs.push(Some(device));
     }
 
     pub(crate) fn add_output_device(&mut self, device: &'a mut OutputDevice) {
-        self.outputs.push(device);
+        self.outputs.push(Some(device));
+    }
+
+    pub(crate) fn add_empty_input_device(&mut self) {
+        self.inputs.push(None);
+    }
+
+    pub(crate) fn add_empty_output_device(&mut self) {
+        self.outputs.push(None);
     }
 
     #[inline]
