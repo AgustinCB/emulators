@@ -4,4 +4,4 @@ version = "0.1.0"
 authors = ["AgustinCB <jnieve@gmail.com>"]
 
 [lib]
-path = "src/lib/lib.rs"
+path = "src/lib/mod.rs"

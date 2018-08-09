@@ -62,11 +62,11 @@ pub(crate) enum State {
 }
 
 pub trait InputDevice {
-    fn read(&mut self) -> u8;
+    fn read(&mut self, port: u8) -> u8;
 }
 
 pub trait OutputDevice {
-    fn write(&mut self, byte: u8);
+    fn write(&mut self, port: u8, byte: u8);
 }
 
 pub trait Screen {
@@ -111,8 +111,8 @@ pub struct Cpu<'a> {
     pub(crate) flags: Flags,
     pub(crate) interruptions_enabled: bool,
     pub(crate) state: State,
-    pub(crate) inputs: Vec<Option<&'a mut InputDevice>>,
-    pub(crate) outputs: Vec<Option<&'a mut OutputDevice>>,
+    pub(crate) inputs: Vec<&'a mut InputDevice>,
+    pub(crate) outputs: Vec<&'a mut OutputDevice>,
     pub(crate) screen: Option<&'a mut Screen>,
 }
 
@@ -157,19 +157,11 @@ impl<'a> Cpu<'a> {
     }
 
     pub(crate) fn add_input_device(&mut self, device: &'a mut InputDevice) {
-        self.inputs.push(Some(device));
+        self.inputs.push(device);
     }
 
     pub(crate) fn add_output_device(&mut self, device: &'a mut OutputDevice) {
-        self.outputs.push(Some(device));
-    }
-
-    pub(crate) fn add_empty_input_device(&mut self) {
-        self.inputs.push(None);
-    }
-
-    pub(crate) fn add_empty_output_device(&mut self) {
-        self.outputs.push(None);
+        self.outputs.push(device);
     }
 
     #[inline]
