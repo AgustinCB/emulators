@@ -3,14 +3,16 @@ use cpu::instruction::Instruction;
 use std::cmp::min;
 
 impl<'a> Cpu<'a> {
-    pub fn execute(&mut self) {
+    pub fn execute(&mut self) -> u8 {
         let instruction = Instruction::from_bytes(self.get_next_instruction_bytes());
         if !self.can_run(&instruction) {
-            return;
+            return 0;
         }
         println!("RUNNING {}", instruction.to_string());
         self.pc += instruction.size() as u16;
+        let cycles = self.get_cycles_for_instruction(&instruction);
         self.execute_instruction(instruction);
+        cycles
     }
 
     pub fn execute_instruction(&mut self, instruction: Instruction) {

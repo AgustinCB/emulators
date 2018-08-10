@@ -2,7 +2,7 @@ use cpu::cpu::Cpu;
 use cpu::instruction::{Cycles, Instruction};
 
 impl<'a> Cpu<'a> {
-    pub fn get_cycles_for_instruction(&self, instruction: Instruction) -> u8 {
+    pub fn get_cycles_for_instruction(&self, instruction: &Instruction) -> u8 {
         match instruction.get_cycles() {
             Cycles::Single(cycles) => cycles,
             Cycles::Conditional { not_met, met } =>
@@ -10,7 +10,7 @@ impl<'a> Cpu<'a> {
         }
     }
 
-    fn get_cycles_from_condition(&self, instruction: Instruction, not_met: u8, met: u8) -> u8 {
+    fn get_cycles_from_condition(&self, instruction: &Instruction, not_met: u8, met: u8) -> u8 {
         match instruction {
             Instruction::Cc { address: _} if self.flags.carry => met,
             Instruction::Cc { address: _} => not_met,

@@ -2,7 +2,6 @@ extern crate emulator_space_invaders;
 
 use emulator_space_invaders::console::Console;
 use emulator_space_invaders::cpu::{Cpu, Instruction, ROM_MEMORY_LIMIT, Screen};
-use emulator_space_invaders::timer::Timer;
 use std::env::args;
 use std::cmp::min;
 use std::fs::File;
@@ -48,21 +47,7 @@ fn read_file(file_name: &str) -> std::io::Result<[u8; ROM_MEMORY_LIMIT]> {
 
 fn start_game(memory: [u8; ROM_MEMORY_LIMIT]) {
     let mut console = Console::new(memory);
-    let mut next_interrupt: u8 = 1;
-    let mut timer = Timer::new(60.0/1.0*1000.0);
-
-    while !console.cpu.is_done() {
-        timer.update_last_check();
-        if timer.should_trigger() {
-            console.cpu.execute_instruction(Instruction::Rst { value: next_interrupt });
-            next_interrupt = if next_interrupt == 1 {
-                2
-            } else {
-                1
-            };
-        }
-        console.cpu.execute();
-    }
+    console.start();
 }
 
 fn disassemble(memory: [u8; ROM_MEMORY_LIMIT]) {

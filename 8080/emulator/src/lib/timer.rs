@@ -10,14 +10,17 @@ impl Timer {
     pub fn new(interval: f64) -> Timer {
         let ms = Timer::get_millis();
         Timer {
-            interval,
             last_check: ms,
             last_trigger: ms,
+            interval,
         }
     }
 
-    pub fn update_last_check(&mut self) {
-        self.last_check =  Timer::get_millis();
+    pub fn update_last_check(&mut self) -> usize {
+        let new_time = Timer::get_millis();
+        let elapsed = new_time - self.last_check;
+        self.last_check =  new_time;
+        elapsed
     }
 
     pub fn should_trigger(&mut self) -> bool {
