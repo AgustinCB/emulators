@@ -1,5 +1,6 @@
 use cpu::helpers::{bit_count, two_bytes_to_word};
 use std::boxed::Box;
+use std::cell::Cell;
 use std::collections::HashMap;
 
 pub const ROM_MEMORY_LIMIT: usize = 8192;
@@ -108,7 +109,7 @@ impl Flags {
 pub struct Cpu<'a> {
     pub(crate) registers: HashMap<RegisterType, Register>,
     pub(crate) pc: u16,
-    pub memory: [u8; ROM_MEMORY_LIMIT * 8],
+    pub memory: Vec<Cell<u8>>,
     pub(crate) cp_m_compatibility: bool,
     pub(crate) flags: Flags,
     pub(crate) interruptions_enabled: bool,
@@ -127,11 +128,15 @@ impl<'a> Cpu<'a> {
     }
 
     pub fn new<'b>(rom_memory: [u8; ROM_MEMORY_LIMIT]) -> Cpu<'b> {
-        let mut memory = [0; ROM_MEMORY_LIMIT * 8];
         let registers = Cpu::make_register_map();
-        for i in 0..rom_memory.len() {
-            memory[i] = rom_memory[i];
+        let mut memory = Vec::with_capacity(ROM_MEMORY_LIMIT * 8);
+        for _ in 0..(ROM_MEMORY_LIMIT * 8) {
+            memory.push(Cell::new(0));
         }
+        for i in 0..rom_memory.len() {
+            memory[i].set(rom_memory[i]);
+        }
+
         Cpu {
             registers,
             pc: 0,
@@ -227,13 +232,13 @@ impl<'a> Cpu<'a> {
     #[inline]
     pub(crate) fn get_value_in_memory_at_hl(&self) -> u8 {
         let source_value_address: u16 = self.get_current_hl_value();
-        self.memory[source_value_address as usize]
+        self.memory[source_value_address as usize].get()
     }
 
     #[inline]
     pub(crate) fn set_value_in_memory_at_hl(&mut self, value: u8) {
         let source_value_address: u16 = self.get_current_hl_value();
-        self.memory[source_value_address as usize] = value;
+        self.memory[source_value_address as usize].set(value);
     }
 
     #[inline]

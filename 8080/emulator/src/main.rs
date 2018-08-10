@@ -24,7 +24,7 @@ fn get_instructions(bytes: [u8; ROM_MEMORY_LIMIT]) -> Vec<(u16, Instruction)> {
     for index in 0..bytes.len() {
         if pass == 0 {
             let i =
-                Instruction::from_bytes(&bytes[index..min(index+3, bytes.len())]);
+                Instruction::from_bytes(bytes[index..min(index+3, bytes.len())].to_vec());
             let instruction_size = i.size();
             pass = instruction_size - 1;
             result.push((pc, i));

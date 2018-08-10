@@ -4,7 +4,7 @@ use cpu::cpu::{Cpu, Location, RegisterType};
 impl<'a> Cpu<'a> {
     pub(crate) fn execute_lda(&mut self, high_byte: u8, low_byte: u8) {
         let source_address = two_bytes_to_word(high_byte, low_byte) as usize;
-        let value = self.memory[source_address];
+        let value = self.memory[source_address].get();
         self.save_to_a(value);
     }
 
@@ -14,14 +14,14 @@ impl<'a> Cpu<'a> {
             RegisterType::D => self.get_current_de_value(),
             _ => panic!("Register {} is not a valid input of LDAX", register.to_string()),
         } as usize;
-        let value = self.memory[source_address];
+        let value = self.memory[source_address].get();
         self.save_to_a(value);
     }
 
     pub(crate) fn execute_lhld(&mut self, high_byte: u8, low_byte: u8) {
         let destiny_address = two_bytes_to_word(high_byte, low_byte) as usize;
-        let l_value = self.memory[destiny_address];
-        let h_value = self.memory[destiny_address+1];
+        let l_value = self.memory[destiny_address].get();
+        let h_value = self.memory[destiny_address+1].get();
         self.save_to_single_register(h_value, &RegisterType::H);
         self.save_to_single_register(l_value, &RegisterType::L);
     }
@@ -64,15 +64,15 @@ impl<'a> Cpu<'a> {
     #[inline]
     pub(crate) fn execute_mvi_to_memory(&mut self, byte: u8) {
         let address = self.get_current_hl_value();
-        self.memory[address as usize] = byte;
+        self.memory[address as usize].set(byte);
     }
 
     pub(crate) fn execute_shld(&mut self, high_byte: u8, low_byte: u8) {
         let h_value = self.get_current_single_register_value(&RegisterType::H);
         let l_value = self.get_current_single_register_value(&RegisterType::L);
         let destiny_address = two_bytes_to_word(high_byte, low_byte) as usize;
-        self.memory[destiny_address] = l_value;
-        self.memory[destiny_address+1] = h_value;
+        self.memory[destiny_address].set(l_value);
+        self.memory[destiny_address+1].set(h_value);
     }
 
     pub(crate) fn execute_sphl(&mut self) {
@@ -83,7 +83,7 @@ impl<'a> Cpu<'a> {
     pub(crate) fn execute_sta(&mut self, high_byte: u8, low_byte: u8) {
         let value = self.get_current_a_value();
         let destiny_address = two_bytes_to_word(high_byte, low_byte);
-        self.memory[destiny_address as usize] = value;
+        self.memory[destiny_address as usize].set(value);
     }
 
     pub(crate) fn execute_stax(&mut self, register: &RegisterType) {
@@ -93,7 +93,7 @@ impl<'a> Cpu<'a> {
             RegisterType::D => self.get_current_de_value(),
             _ => panic!("Register {} is not a valid input of STAX", register.to_string()),
         } as usize;
-        self.memory[destiny_address] = value;
+        self.memory[destiny_address].set(value);
     }
 
     pub(crate) fn execute_xchg(&mut self) {
@@ -109,14 +109,14 @@ impl<'a> Cpu<'a> {
 
     pub(crate) fn execute_xthl(&mut self) {
         let sp = self.get_current_sp_value() as usize;
-        let first_byte = self.memory[sp+1];
-        let second_byte = self.memory[sp];
+        let first_byte = self.memory[sp+1].get();
+        let second_byte = self.memory[sp].get();
         let h_value = self.get_current_single_register_value(&RegisterType::H);
         let l_value = self.get_current_single_register_value(&RegisterType::L);
         self.save_to_single_register(first_byte, &RegisterType::H);
         self.save_to_single_register(second_byte, &RegisterType::L);
-        self.memory[sp+1] = h_value;
-        self.memory[sp] = l_value;
+        self.memory[sp+1].set(h_value);
+        self.memory[sp].set(l_value);
     }
 
     #[inline]
@@ -145,7 +145,7 @@ mod tests {
 
     fn get_ldax_ready_cpu(register: &RegisterType) -> Cpu {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
-        cpu.memory[0x938b] = 42;
+        cpu.memory[0x938b].set(42);
 
         match register {
             RegisterType::B => {
@@ -182,7 +182,7 @@ mod tests {
     fn it_should_execute_lda() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x42);
-        cpu.memory[0x24] = 0x24;
+        cpu.memory[0x24].set(0x24);
         cpu.execute_instruction(Instruction::Lda { address: [0x24,0x00] });
         assert_eq!(cpu.get_current_a_value(), 0x24);
     }
@@ -204,8 +204,8 @@ mod tests {
     #[test]
     fn it_should_execute_lhld() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
-        cpu.memory[0x025b] = 0xff;
-        cpu.memory[0x025c] = 0x03;
+        cpu.memory[0x025b].set(0xff);
+        cpu.memory[0x025c].set(0x03);
         cpu.execute_instruction(Instruction::Lhld { address: [0x5b, 0x02] });
         assert_eq!(cpu.get_current_single_register_value(&RegisterType::H), 0x03);
         assert_eq!(cpu.get_current_single_register_value(&RegisterType::L), 0xff);
@@ -272,7 +272,7 @@ mod tests {
     #[test]
     fn it_should_execute_mov_from_memory_to_register() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
-        cpu.memory[0x42] = 0x24;
+        cpu.memory[0x42].set(0x24);
         cpu.save_to_single_register(0x00, &RegisterType::H);
         cpu.save_to_single_register(0x42, &RegisterType::L);
         cpu.execute_instruction(Instruction::Mov{
@@ -292,7 +292,7 @@ mod tests {
             destiny: Location::Memory,
             source: Location::Register { register: RegisterType::C },
         });
-        assert_eq!(cpu.memory[0x42], 0x24);
+        assert_eq!(cpu.memory[0x42].get(), 0x24);
     }
 
     #[test]
@@ -304,7 +304,7 @@ mod tests {
             source: Location::Memory,
             byte: 0x24,
         });
-        assert_eq!(cpu.memory[0x42], 0x24);
+        assert_eq!(cpu.memory[0x42].get(), 0x24);
     }
 
     #[test]
@@ -313,8 +313,8 @@ mod tests {
         cpu.save_to_single_register(0xae, &RegisterType::H);
         cpu.save_to_single_register(0x29, &RegisterType::L);
         cpu.execute_instruction(Instruction::Shld { address: [0x0a, 0x01] });
-        assert_eq!(cpu.memory[0x010a], 0x29);
-        assert_eq!(cpu.memory[0x010b], 0xae);
+        assert_eq!(cpu.memory[0x010a].get(), 0x29);
+        assert_eq!(cpu.memory[0x010b].get(), 0xae);
     }
 
     #[test]
@@ -332,21 +332,21 @@ mod tests {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x42);
         cpu.execute_instruction(Instruction::Sta { address: [0x24, 0x00] });
-        assert_eq!(cpu.memory[0x24], 0x42);
+        assert_eq!(cpu.memory[0x24].get(), 0x42);
     }
 
     #[test]
     fn it_should_execute_stax_for_b() {
         let mut cpu = get_stax_ready_cpu(&RegisterType::B);
         cpu.execute_instruction(Instruction::Stax { register: RegisterType::B });
-        assert_eq!(cpu.memory[0x3f16], 0x42);
+        assert_eq!(cpu.memory[0x3f16].get(), 0x42);
     }
 
     #[test]
     fn it_should_execute_stax_for_d() {
         let mut cpu = get_stax_ready_cpu(&RegisterType::D);
         cpu.execute_instruction(Instruction::Stax { register: RegisterType::D });
-        assert_eq!(cpu.memory[0x3f16], 0x42);
+        assert_eq!(cpu.memory[0x3f16].get(), 0x42);
     }
 
     #[test]
@@ -365,8 +365,8 @@ mod tests {
     fn it_should_execute_xthl() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(0, &RegisterType::Sp);
-        cpu.memory[0] = 0x42;
-        cpu.memory[1] = 0x24;
+        cpu.memory[0].set(0x42);
+        cpu.memory[1].set(0x24);
         cpu.execute_instruction(Instruction::Xthl);
         assert_eq!(cpu.get_current_hl_value(), 0x2442);
     }

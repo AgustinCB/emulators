@@ -147,10 +147,10 @@ impl<'a> Cpu<'a> {
     }
 
     #[inline]
-    fn get_next_instruction_bytes(&self) -> &[u8] {
+    fn get_next_instruction_bytes(&self) -> Vec<u8> {
         let from = self.pc as usize;
         let to = min(from+3, self.memory.len());
-        &(self.memory[from..to])
+        self.memory[from..to].into_iter().map(|v| v.get()).collect()
     }
 
     #[inline]
@@ -174,7 +174,7 @@ mod tests {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.state = State::Running;
         cpu.pc = 0;
-        cpu.memory[0] = 0x00;
+        cpu.memory[0].set(0x00);
         cpu.execute();
         assert_eq!(cpu.pc, 0x01);
     }
@@ -184,7 +184,7 @@ mod tests {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.state = State::Stopped;
         cpu.pc = 0;
-        cpu.memory[0] = 0x00;
+        cpu.memory[0].set(0x00);
         cpu.execute();
         assert_eq!(cpu.pc, 0x00);
     }
