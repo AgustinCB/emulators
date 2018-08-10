@@ -5,3 +5,6 @@ authors = ["AgustinCB <jnieve@gmail.com>"]
 
 [lib]
 path = "src/lib/mod.rs"
+
+[dependencies]
+termion = "1.5.1"
