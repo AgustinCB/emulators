@@ -1,5 +1,4 @@
 use super::super::cpu::{InputDevice, OutputDevice};
-use std::borrow::BorrowMut;
 use std::cell::Cell;
 
 
@@ -21,7 +20,7 @@ impl ExternalShiftOffsetWriter {
 
 impl OutputDevice for ExternalShiftOffsetWriter {
     fn write(&mut self, value: u8) {
-        self.shift_offset.borrow_mut().set(value & 0x7);
+        self.shift_offset.set(value & 0x7);
     }
 }
 
@@ -32,8 +31,8 @@ pub struct ExternalShiftWriter {
 
 impl OutputDevice for ExternalShiftWriter {
     fn write(&mut self, value: u8) {
-        self.shift0.borrow_mut().set(self.shift1.get());
-        self.shift1.borrow_mut().set(value);
+        self.shift0.set(self.shift1.get());
+        self.shift1.set(value);
     }
 }
 
