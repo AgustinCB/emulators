@@ -4,6 +4,7 @@ use std::collections::HashMap;
 
 pub const ROM_MEMORY_LIMIT: usize = 8192;
 pub(crate) const MAX_INPUT_OUTPUT_DEVICES: usize = 0x100;
+const NUM_REGISTERS: usize = 8;
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq)]
 pub enum RegisterType {
@@ -126,16 +127,8 @@ impl<'a> Cpu<'a> {
     }
 
     pub fn new<'b>(rom_memory: [u8; ROM_MEMORY_LIMIT]) -> Cpu<'b> {
-        let mut registers = HashMap::new();
         let mut memory = [0; ROM_MEMORY_LIMIT * 8];
-        registers.insert(RegisterType::A, Register::new(RegisterType::A));
-        registers.insert(RegisterType::B, Register::new(RegisterType::B));
-        registers.insert(RegisterType::C, Register::new(RegisterType::C));
-        registers.insert(RegisterType::D, Register::new(RegisterType::D));
-        registers.insert(RegisterType::E, Register::new(RegisterType::E));
-        registers.insert(RegisterType::H, Register::new(RegisterType::H));
-        registers.insert(RegisterType::L, Register::new(RegisterType::L));
-        registers.insert(RegisterType::Sp, Register::new(RegisterType::Sp));
+        let registers = Cpu::make_register_map();
         for i in 0..rom_memory.len() {
             memory[i] = rom_memory[i];
         }
@@ -151,6 +144,19 @@ impl<'a> Cpu<'a> {
             cp_m_compatibility: false,
             screen: None,
         }
+    }
+
+    fn make_register_map() -> HashMap<RegisterType, Register> {
+        let mut registers = HashMap::with_capacity(NUM_REGISTERS);
+        registers.insert(RegisterType::A, Register::new(RegisterType::A));
+        registers.insert(RegisterType::B, Register::new(RegisterType::B));
+        registers.insert(RegisterType::C, Register::new(RegisterType::C));
+        registers.insert(RegisterType::D, Register::new(RegisterType::D));
+        registers.insert(RegisterType::E, Register::new(RegisterType::E));
+        registers.insert(RegisterType::H, Register::new(RegisterType::H));
+        registers.insert(RegisterType::L, Register::new(RegisterType::L));
+        registers.insert(RegisterType::Sp, Register::new(RegisterType::Sp));
+        registers
     }
 
     pub fn is_done(&self) -> bool {
