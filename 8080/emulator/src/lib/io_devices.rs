@@ -70,14 +70,25 @@ impl ExternalShiftWriter {
 }
 
 pub(crate) struct ExternalShiftReader {
-    pub(crate) shift_offset: Cell<u8>,
-    pub(crate) shift0: Cell<u8>,
-    pub(crate) shift1: Cell<u8>,
+    shift_offset: Cell<u8>,
+    shift0: Cell<u8>,
+    shift1: Cell<u8>,
 }
 
 impl InputDevice for ExternalShiftReader {
     fn read(&mut self) -> u8 {
         let v = ((self.shift1.get() as u16) << 8) as u8 | self.shift0.get();
         ((v >> (8-self.shift_offset.get())) & 0xff)
+    }
+}
+
+impl ExternalShiftReader {
+    pub fn new(shift_writer: &ExternalShiftWriter, offset_writer: &ExternalShiftOffsetWriter)
+        -> ExternalShiftReader {
+        ExternalShiftReader {
+            shift_offset: offset_writer.get_shift_offset(),
+            shift0: shift_writer.get_shift0(),
+            shift1: shift_writer.get_shift1(),
+        }
     }
 }

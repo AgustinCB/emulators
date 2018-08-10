@@ -10,11 +10,7 @@ impl<'a> Console<'a> {
         let mut cpu = Cpu::new(memory);
         let shift_writer = ExternalShiftWriter::new();
         let offset_writer = ExternalShiftOffsetWriter::new();
-        let shift_reader = ExternalShiftReader {
-            shift_offset: offset_writer.get_shift_offset(),
-            shift0: shift_writer.get_shift0(),
-            shift1: shift_writer.get_shift1(),
-        };
+        let shift_reader = ExternalShiftReader::new(&shift_writer, &offset_writer);
 
         cpu.add_input_device(0, Box::new(DummyInputDevice { value: 0 }));
         cpu.add_input_device(1, Box::new(DummyInputDevice { value: 0 }));
