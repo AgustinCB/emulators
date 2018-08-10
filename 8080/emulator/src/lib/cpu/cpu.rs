@@ -1,4 +1,5 @@
 use cpu::helpers::{bit_count, two_bytes_to_word};
+use std::boxed::Box;
 use std::collections::HashMap;
 
 pub const ROM_MEMORY_LIMIT: usize = 8192;
@@ -111,8 +112,8 @@ pub struct Cpu<'a> {
     pub(crate) flags: Flags,
     pub(crate) interruptions_enabled: bool,
     pub(crate) state: State,
-    pub(crate) inputs: Vec<&'a mut InputDevice>,
-    pub(crate) outputs: Vec<&'a mut OutputDevice>,
+    pub(crate) inputs: Vec<Box<InputDevice>>,
+    pub(crate) outputs: Vec<Box<OutputDevice>>,
     pub(crate) screen: Option<&'a mut Screen>,
 }
 
@@ -156,11 +157,11 @@ impl<'a> Cpu<'a> {
         (self.pc as usize) >= ROM_MEMORY_LIMIT
     }
 
-    pub(crate) fn add_input_device(&mut self, device: &'a mut InputDevice) {
+    pub(crate) fn add_input_device(&mut self, device: Box<InputDevice>) {
         self.inputs.push(device);
     }
 
-    pub(crate) fn add_output_device(&mut self, device: &'a mut OutputDevice) {
+    pub(crate) fn add_output_device(&mut self, device: Box<OutputDevice>) {
         self.outputs.push(device);
     }
 

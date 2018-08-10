@@ -24,6 +24,7 @@ impl<'a> Cpu<'a> {
 mod tests {
     use cpu::cpu::{Cpu, InputDevice, OutputDevice, ROM_MEMORY_LIMIT};
     use cpu::instruction::Instruction;
+    use std::boxed::Box;
 
     #[test]
     fn it_should_execute_in() {
@@ -34,29 +35,25 @@ mod tests {
             }
         }
 
-        let mut input_device = TestInputDevice {};
+        let input_device = TestInputDevice {};
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
-        cpu.add_input_device(&mut input_device);
+        cpu.add_input_device(Box::new(input_device));
         cpu.execute_instruction(Instruction::In { byte: 0 });
         assert_eq!(cpu.get_current_a_value(), 42);
     }
 
     #[test]
     fn it_should_execute_out() {
-        struct TestOutputDevice { value: u8 }
+        struct TestOutputDevice { }
         impl OutputDevice for TestOutputDevice {
             fn write(&mut self, _: u8, new_value: u8) {
-                self.value = new_value;
+                assert_eq!(new_value, 42);
             }
         }
-
-        let mut output_device = TestOutputDevice { value: 0 };
-        {
-            let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
-            cpu.add_output_device(&mut output_device);
-            cpu.save_to_a(42);
-            cpu.execute_instruction(Instruction::Out { byte: 0 });
-        }
-        assert_eq!(output_device.value, 42);
+        let output_device = TestOutputDevice { };
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.add_output_device(Box::new(output_device));
+        cpu.save_to_a(42);
+        cpu.execute_instruction(Instruction::Out { byte: 0 });
     }
 }
