@@ -113,8 +113,8 @@ pub struct Cpu<'a> {
     pub(crate) flags: Flags,
     pub(crate) interruptions_enabled: bool,
     pub(crate) state: State,
-    pub(crate) inputs: Vec<Box<InputDevice>>,
-    pub(crate) outputs: Vec<Box<OutputDevice>>,
+    pub(crate) inputs: Vec<Option<Box<InputDevice>>>,
+    pub(crate) outputs: Vec<Option<Box<OutputDevice>>>,
     pub(crate) screen: Option<&'a mut Screen>,
 }
 
@@ -139,8 +139,8 @@ impl<'a> Cpu<'a> {
             flags: Flags::new(),
             interruptions_enabled: true,
             state: State::Running,
-            inputs: Vec::with_capacity(MAX_INPUT_OUTPUT_DEVICES),
-            outputs: Vec::with_capacity(MAX_INPUT_OUTPUT_DEVICES),
+            inputs: Cpu::make_inputs_vector(),
+            outputs: Cpu::make_outputs_vector(),
             cp_m_compatibility: false,
             screen: None,
         }
@@ -159,16 +159,32 @@ impl<'a> Cpu<'a> {
         registers
     }
 
+    fn make_inputs_vector() -> Vec<Option<Box<InputDevice>>> {
+        let mut v = Vec::with_capacity(MAX_INPUT_OUTPUT_DEVICES);
+        for _ in 0..MAX_INPUT_OUTPUT_DEVICES {
+            v.push(None);
+        }
+        v
+    }
+
+    fn make_outputs_vector() -> Vec<Option<Box<OutputDevice>>> {
+        let mut v = Vec::with_capacity(MAX_INPUT_OUTPUT_DEVICES);
+        for _ in 0..MAX_INPUT_OUTPUT_DEVICES {
+            v.push(None);
+        }
+        v
+    }
+
     pub fn is_done(&self) -> bool {
         (self.pc as usize) >= ROM_MEMORY_LIMIT
     }
 
-    pub(crate) fn add_input_device(&mut self, device: Box<InputDevice>) {
-        self.inputs.push(device);
+    pub(crate) fn add_input_device(&mut self, id: u8, device: Box<InputDevice>) {
+        self.inputs[id as usize] = Some(device);
     }
 
-    pub(crate) fn add_output_device(&mut self, device: Box<OutputDevice>) {
-        self.outputs.push(device);
+    pub(crate) fn add_output_device(&mut self, id: u8, device: Box<OutputDevice>) {
+        self.outputs[id as usize] = Some(device);
     }
 
     #[inline]

@@ -3,7 +3,7 @@ use cpu::cpu::Cpu;
 impl<'a> Cpu<'a> {
     pub(crate) fn execute_in(&mut self, id: u8) {
         let new_a = match self.inputs.get_mut(id as usize) {
-            Some(device) => {
+            Some(Some(device)) => {
                 device.read(id)
             },
             _ => panic!("Input device {} not configured", id),
@@ -14,7 +14,7 @@ impl<'a> Cpu<'a> {
     pub(crate) fn execute_out(&mut self, id: u8) {
         let a_value = self.get_current_a_value();
         match self.outputs.get_mut(id as usize) {
-            Some(device) => device.write(id, a_value),
+            Some(Some(device)) => device.write(id, a_value),
             _ => panic!("Output device {} not configured", id),
         }
     }
@@ -37,7 +37,7 @@ mod tests {
 
         let input_device = TestInputDevice {};
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
-        cpu.add_input_device(Box::new(input_device));
+        cpu.add_input_device(0, Box::new(input_device));
         cpu.execute_instruction(Instruction::In { byte: 0 });
         assert_eq!(cpu.get_current_a_value(), 42);
     }
@@ -52,7 +52,7 @@ mod tests {
         }
         let output_device = TestOutputDevice { };
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
-        cpu.add_output_device(Box::new(output_device));
+        cpu.add_output_device(0, Box::new(output_device));
         cpu.save_to_a(42);
         cpu.execute_instruction(Instruction::Out { byte: 0 });
     }

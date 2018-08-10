@@ -14,14 +14,14 @@ impl<'a> Console<'a> {
     pub fn new<'b>(memory: [u8; ROM_MEMORY_LIMIT]) -> Console<'b> {
         let mut cpu = Cpu::new(memory);
 
-        for _ in 1..NUM_INPUT_DEVICES {
+        for i in 1..NUM_INPUT_DEVICES {
             let mut dev = DummyInputDevice { value: 0 };
-            cpu.add_input_device(Box::new(dev));
+            cpu.add_input_device(i as u8, Box::new(dev));
         }
 
-        for _ in 1..NUM_OUTPUT_DEVICES {
+        for i in 1..NUM_OUTPUT_DEVICES {
             let mut dev = DummyOutputDevice { };
-            cpu.add_output_device(Box::new(dev));
+            cpu.add_output_device(i as u8,Box::new(dev));
         }
 
         Console {
