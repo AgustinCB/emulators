@@ -4,7 +4,7 @@ impl<'a> Cpu<'a> {
     pub(crate) fn execute_in(&mut self, id: u8) {
         let new_a = match self.inputs.get_mut(id as usize) {
             Some(Some(device)) => {
-                device.read(id)
+                device.read()
             },
             _ => panic!("Input device {} not configured", id),
         };
@@ -14,7 +14,7 @@ impl<'a> Cpu<'a> {
     pub(crate) fn execute_out(&mut self, id: u8) {
         let a_value = self.get_current_a_value();
         match self.outputs.get_mut(id as usize) {
-            Some(Some(device)) => device.write(id, a_value),
+            Some(Some(device)) => device.write(a_value),
             _ => panic!("Output device {} not configured", id),
         }
     }
@@ -30,7 +30,7 @@ mod tests {
     fn it_should_execute_in() {
         struct TestInputDevice;
         impl InputDevice for TestInputDevice {
-            fn read(&mut self, _: u8) -> u8 {
+            fn read(&mut self) -> u8 {
                 42
             }
         }
@@ -46,7 +46,7 @@ mod tests {
     fn it_should_execute_out() {
         struct TestOutputDevice { }
         impl OutputDevice for TestOutputDevice {
-            fn write(&mut self, _: u8, new_value: u8) {
+            fn write(&mut self, new_value: u8) {
                 assert_eq!(new_value, 42);
             }
         }

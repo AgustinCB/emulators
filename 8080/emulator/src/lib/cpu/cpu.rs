@@ -64,11 +64,11 @@ pub(crate) enum State {
 }
 
 pub trait InputDevice {
-    fn read(&mut self, port: u8) -> u8;
+    fn read(&mut self) -> u8;
 }
 
 pub trait OutputDevice {
-    fn write(&mut self, port: u8, byte: u8);
+    fn write(&mut self, byte: u8);
 }
 
 pub trait Screen {
