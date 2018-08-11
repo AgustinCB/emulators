@@ -900,7 +900,7 @@ impl ToString for Instruction {
             Instruction::Sphl => String::from("SPHL"),
             Instruction::Jm { address } =>
                 format!("JM ${:02x}{:02x}", address[1], address[0]),
-            Instruction::Ei => String::from("EL"),
+            Instruction::Ei => String::from("EI"),
             Instruction::Cm { address } =>
                 format!("CM ${:02x}{:02x}", address[1], address[0]),
             Instruction::Cpi { byte } => format!("CPI #${:02x}", byte),

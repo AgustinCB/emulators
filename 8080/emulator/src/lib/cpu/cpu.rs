@@ -79,8 +79,7 @@ pub trait Printer {
 impl Register {
     fn new(t: RegisterType) -> Register {
         match t {
-            RegisterType::Sp =>
-                Register::DoubleRegister { value: 0 },
+            RegisterType::Sp => Register::DoubleRegister { value: 0xfff },
             _ => Register::SingleRegister { value: 0 },
         }
     }

@@ -4,7 +4,7 @@ use self::termion::event::{Event, Key};
 use self::termion::input::TermRead;
 use super::super::cpu::InputDevice;
 use std::collections::HashSet;
-use std::io::{Error, stdin};
+use std::io::{Error, Read, stdin};
 
 const NUM_BUTTONS: usize = 5;
 #[derive(Hash, PartialEq, Eq)]
@@ -21,6 +21,7 @@ pub struct KeypadInput {}
 impl KeypadInput {
     fn get_keys() -> Result<HashSet<GameButton>, Error> {
         let mut result = HashSet::with_capacity(NUM_BUTTONS);
+        let mut buff = [0; 5];
         for c in stdin().events() {
             let evt = c?;
             match evt {

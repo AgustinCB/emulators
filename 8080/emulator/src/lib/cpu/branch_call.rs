@@ -8,6 +8,7 @@ impl<'a> Cpu<'a> {
             let low_byte = (value & 0x07) << 3;
             self.perform_call(0, low_byte);
             self.state = State::Running;
+            self.interruptions_enabled = false;
         }
     }
 

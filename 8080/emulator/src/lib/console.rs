@@ -9,7 +9,7 @@ const SCREEN_INTERRUPTIONS_INTERVAL: f64 = (1.0/60.0*1000.0)/2.0;
 
 pub struct Console<'a> {
     cpu: Cpu<'a>,
-    cycles_left: usize,
+    cycles_left: i64,
     prev_interruption: u8,
     screen: Box<Screen>,
     timer: Timer,
@@ -47,24 +47,24 @@ impl<'a> Console<'a> {
         self.timer.reset();
         while !self.cpu.is_done() {
             let elapsed = self.timer.update_last_check();
-            if self.timer.should_trigger() {
+            if self.timer.should_trigger() && self.cpu.interruptions_enabled {
                 self.prev_interruption = if self.prev_interruption == 1 {
-                    self.screen.on_mid_screen();
+                    self.screen.on_full_screen();
                     2
                 } else {
-                    self.screen.on_full_screen();
+                    self.screen.on_mid_screen();
                     1
                 };
                 self.cpu.execute_instruction(Instruction::Rst {
                     value: self.prev_interruption
                 });
             }
-            let mut cycles_to_run = elapsed * 2 + self.cycles_left;
+            let mut cycles_to_run = (elapsed * 2) as i64 + self.cycles_left;
             while cycles_to_run > 0 {
-                cycles_to_run -= self.cpu.execute() as usize;
+                cycles_to_run -= self.cpu.execute() as i64;
             }
             self.cycles_left = cycles_to_run;
-            sleep(Duration::from_millis(8));
+            sleep(Duration::from_millis(1));
         }
     }
 }
