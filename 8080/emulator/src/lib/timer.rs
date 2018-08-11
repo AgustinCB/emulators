@@ -7,13 +7,19 @@ pub struct Timer {
 }
 
 impl Timer {
-    pub fn new(interval: f64) -> Timer {
+    pub(crate) fn new(interval: f64) -> Timer {
         let ms = Timer::get_millis();
         Timer {
             last_check: ms,
             last_trigger: ms,
             interval,
         }
+    }
+
+    pub(crate) fn reset(&mut self) {
+        let ms = Timer::get_millis();
+        self.last_check = ms;
+        self.last_trigger = ms;
     }
 
     pub fn update_last_check(&mut self) -> usize {
@@ -23,7 +29,7 @@ impl Timer {
         elapsed
     }
 
-    pub fn should_trigger(&mut self) -> bool {
+    pub(crate) fn should_trigger(&mut self) -> bool {
         let ms = Timer::get_millis();
         let should = (ms as f64 - self.last_trigger as f64) > self.interval;
         if should {

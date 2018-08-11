@@ -1,4 +1,5 @@
 pub mod console;
 pub mod cpu;
-pub mod io_devices;
+mod io_devices;
+mod screen;
 mod timer;

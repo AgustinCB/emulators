@@ -1,7 +1,7 @@
 extern crate emulator_space_invaders;
 
 use emulator_space_invaders::console::Console;
-use emulator_space_invaders::cpu::{Cpu, Instruction, ROM_MEMORY_LIMIT, Screen};
+use emulator_space_invaders::cpu::{Cpu, Instruction, ROM_MEMORY_LIMIT, Printer};
 use std::env::args;
 use std::cmp::min;
 use std::fs::File;
@@ -11,7 +11,7 @@ const USAGE: &'static str = "Usage: disassembler-8080 [run|test|disassemble] [fi
 
 struct PrintScreen;
 
-impl Screen for PrintScreen {
+impl Printer for PrintScreen {
     fn print(&mut self, bytes: &[u8]) {
         println!("{}", String::from_utf8_lossy(bytes));
     }

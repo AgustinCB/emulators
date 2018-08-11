@@ -72,7 +72,7 @@ pub trait OutputDevice {
     fn write(&mut self, byte: u8);
 }
 
-pub trait Screen {
+pub trait Printer {
     fn print (&mut self, bytes: &[u8]);
 }
 
@@ -116,14 +116,14 @@ pub struct Cpu<'a> {
     pub(crate) state: State,
     pub(crate) inputs: Vec<Option<Box<InputDevice>>>,
     pub(crate) outputs: Vec<Option<Box<OutputDevice>>>,
-    pub(crate) screen: Option<&'a mut Screen>,
+    pub(crate) printer: Option<&'a mut Printer>,
 }
 
 impl<'a> Cpu<'a> {
-    pub fn new_cp_m_compatible(rom_memory: [u8; ROM_MEMORY_LIMIT], screen: &mut Screen) -> Cpu {
+    pub fn new_cp_m_compatible(rom_memory: [u8; ROM_MEMORY_LIMIT], screen: &mut Printer) -> Cpu {
         let mut cpu = Cpu::new(rom_memory);
         cpu.cp_m_compatibility = true;
-        cpu.screen = Some(screen);
+        cpu.printer = Some(screen);
         cpu
     }
 
@@ -147,7 +147,7 @@ impl<'a> Cpu<'a> {
             inputs: Cpu::make_inputs_vector(),
             outputs: Cpu::make_outputs_vector(),
             cp_m_compatibility: false,
-            screen: None,
+            printer: None,
         }
     }
 

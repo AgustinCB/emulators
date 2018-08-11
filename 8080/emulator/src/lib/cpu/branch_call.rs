@@ -114,7 +114,7 @@ impl<'a> Cpu<'a> {
 
     #[inline]
     fn print_message(&mut self, bytes: &[u8]) {
-        match self.screen {
+        match self.printer {
             Some(ref mut screen) => screen.print(bytes),
             _ => panic!("Screen not configured while in CP/M compatibility mode."),
         }
@@ -123,7 +123,7 @@ impl<'a> Cpu<'a> {
 
 #[cfg(test)]
 mod tests {
-    use cpu::cpu::{Cpu, RegisterType, ROM_MEMORY_LIMIT, Screen, State};
+    use cpu::cpu::{Cpu, RegisterType, ROM_MEMORY_LIMIT, Printer, State};
     use cpu::instruction::Instruction;
 
     #[test]
@@ -141,7 +141,7 @@ mod tests {
     #[test]
     fn it_should_print_when_executing_call_to_5_while_in_cp_m_compatibility_mode() {
         struct FakePrinter { res: String }
-        impl Screen for FakePrinter {
+        impl Printer for FakePrinter {
             fn print(&mut self, bytes: &[u8]) {
                 self.res = String::from_utf8_lossy(bytes).to_string();
             }
