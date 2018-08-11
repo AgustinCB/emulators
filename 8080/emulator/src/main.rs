@@ -7,7 +7,7 @@ use std::cmp::min;
 use std::fs::File;
 use std::io::Read;
 
-const USAGE: &'static str = "Usage: disassembler-8080 [run|test|disassemble] [file]";
+const USAGE: &'static str = "Usage: disassembler-8080 [game|test|disassemble] [file]";
 
 struct PrintScreen;
 
@@ -46,8 +46,11 @@ fn read_file(file_name: &str) -> std::io::Result<[u8; ROM_MEMORY_LIMIT]> {
 }
 
 fn start_game(memory: [u8; ROM_MEMORY_LIMIT]) {
-    let mut console = Console::new(memory);
-    console.start();
+    let console = Console::new(memory);
+    match console {
+        Ok(mut console) => console.start(),
+        Err(message) => panic!(message),
+    }
 }
 
 fn disassemble(memory: [u8; ROM_MEMORY_LIMIT]) {
@@ -73,7 +76,7 @@ fn main() {
     }
     let memory = read_file(&args[2]).unwrap();
 
-    if args[1] == "run" {
+    if args[1] == "game" {
         start_game(memory);
     } else if args[1] == "disassemble" {
         disassemble(memory);

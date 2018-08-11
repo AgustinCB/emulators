@@ -7,4 +7,7 @@ authors = ["AgustinCB <jnieve@gmail.com>"]
 path = "src/lib/mod.rs"
 
 [dependencies]
-termion = "1.5.1"
+piston = "0.37.0"
+piston2d-graphics = "0.26.0"
+pistoncore-glutin_window = "0.47.0"
+piston2d-opengl_graphics = "0.53.0"
