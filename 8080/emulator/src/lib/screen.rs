@@ -2,17 +2,18 @@ use std::cell::Cell;
 
 const FRAME_BUFFER_START_ADDRESS: usize = 0x2400;
 const COLUMN_LIMIT_BETWEEN_INTERRUPTIONS: u16 = 96;
-const SCREEN_WIDTH: usize = 224;
-const SCREEN_HEIGHT: usize = 256;
+pub(crate) const SCREEN_WIDTH: usize = 224;
+pub(crate) const SCREEN_HEIGHT: usize = 256;
+
+pub(crate) type Pixel = bool;
+pub(crate) type Line = [Pixel; SCREEN_WIDTH];
+pub(crate) type ScreenLayout = [Line; SCREEN_HEIGHT];
 
 pub(crate) trait Screen {
     fn on_mid_screen(&mut self);
     fn on_full_screen(&mut self);
+    fn get_pixels(&self) -> &ScreenLayout;
 }
-
-type Pixel = bool;
-type Line = [Pixel; SCREEN_WIDTH];
-type ScreenLayout = [Line; SCREEN_HEIGHT];
 
 fn get_bits(byte: u8) -> [bool; 8] {
     let mut bits = [false; 8];
@@ -60,12 +61,14 @@ impl TermScreen {
 
 impl Screen for TermScreen {
     fn on_mid_screen(&mut self) {
-        println!("MID SCREEN FINISHED");
         self.update_columns(COLUMN_LIMIT_BETWEEN_INTERRUPTIONS, SCREEN_WIDTH as u16);
     }
 
     fn on_full_screen(&mut self) {
-        println!("FULL SCREEN FINISHED");
         self.update_columns(0, COLUMN_LIMIT_BETWEEN_INTERRUPTIONS);
+    }
+
+    fn get_pixels(&self) -> &ScreenLayout {
+        &(self.lines)
     }
 }

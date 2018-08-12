@@ -1,4 +1,5 @@
 extern crate glutin_window;
+extern crate graphics;
 extern crate opengl_graphics;
 extern crate piston;
 
@@ -11,11 +12,10 @@ use super::cpu::{Cpu, Instruction, ROM_MEMORY_LIMIT};
 use super::io_devices::*;
 use super::screen::{Screen, TermScreen};
 use super::timer::Timer;
+use super::view::{View, WINDOW_HEIGHT, WINDOW_WIDTH};
 
 const SCREEN_INTERRUPTIONS_INTERVAL: f64 = (1.0/60.0*1000.0)/2.0;
 const OPEN_GL: OpenGL = OpenGL::V3_2;
-const WINDOW_HEIGHT: u32 = 480;
-const WINDOW_WIDTH: u32 = 480;
 
 pub struct Console<'a> {
     cpu: Cpu<'a>,
@@ -25,6 +25,7 @@ pub struct Console<'a> {
     prev_interruption: u8,
     screen: Box<Screen>,
     timer: Timer,
+    view: View,
     window: Window,
 }
 
@@ -36,6 +37,7 @@ impl<'a> Console<'a> {
         let screen = Box::new(TermScreen::new(&cpu.memory));
         let window = Console::create_window()?;
         let gl = GlGraphics::new(OPEN_GL);
+        let view = View::new();
 
         Ok(Console {
             cpu,
@@ -45,6 +47,7 @@ impl<'a> Console<'a> {
             prev_interruption: 2,
             screen,
             timer,
+            view,
             window,
         })
     }
@@ -77,7 +80,7 @@ impl<'a> Console<'a> {
             .build()
     }
 
-    pub fn start(&mut self) {
+    pub fn start(&mut self) -> Result<(), String> {
         self.timer.reset();
         let mut events = Events::new(
             EventSettings::new().ups(1000).max_fps(60));
@@ -86,7 +89,7 @@ impl<'a> Console<'a> {
                 break;
             }
             if let Some(r) = e.render_args() {
-                self.render(&r);
+                self.view.render(&r, &mut self.gl)?;
             }
 
             if let Some(u) = e.update_args() {
@@ -101,10 +104,7 @@ impl<'a> Console<'a> {
                 self.keypad_controller.key_released(key);
             }
         }
-    }
-
-    fn render(&mut self, _args: &RenderArgs) {
-
+        Ok(())
     }
 
     fn update(&mut self, args: &UpdateArgs) {
@@ -117,6 +117,7 @@ impl<'a> Console<'a> {
                 self.screen.on_mid_screen();
                 1
             };
+            self.view.update_image(self.screen.get_pixels());
             self.cpu.execute_instruction(Instruction::Rst {
                 value: self.prev_interruption
             });
