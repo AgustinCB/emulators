@@ -56,8 +56,8 @@ impl<'a> Cpu<'a> {
     #[inline]
     fn perform_ret(&mut self) {
         let sp = self.get_current_sp_value() as usize;
-        let high_byte = self.memory[sp + 1].get();
-        let low_byte = self.memory[sp].get();
+        let high_byte = self.memory[sp + 1];
+        let low_byte = self.memory[sp];
         self.perform_jump(high_byte, low_byte);
         self.save_to_double_register((sp + 2) as u16, &RegisterType::Sp);
     }
@@ -72,8 +72,8 @@ mod tests {
     fn it_should_execute_rc_if_carry_is_set() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(0, &RegisterType::Sp);
-        cpu.memory[0].set(0x03);
-        cpu.memory[1].set(0x2c);
+        cpu.memory[0] = 0x03;
+        cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.carry = true;
         cpu.execute_instruction(Instruction::Rc);
@@ -85,8 +85,8 @@ mod tests {
     fn it_shouldnt_execute_rc_if_carry_is_reset() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(0, &RegisterType::Sp);
-        cpu.memory[0].set(0x03);
-        cpu.memory[1].set(0x2c);
+        cpu.memory[0] = 0x03;
+        cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.carry = false;
         cpu.execute_instruction(Instruction::Rc);
@@ -98,8 +98,8 @@ mod tests {
     fn it_should_execute_ret() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(0, &RegisterType::Sp);
-        cpu.memory[0].set(0x03);
-        cpu.memory[1].set(0x2c);
+        cpu.memory[0] = 0x03;
+        cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.execute_instruction(Instruction::Ret);
         assert_eq!(cpu.pc, 0x2c03);
@@ -110,8 +110,8 @@ mod tests {
     fn it_should_execute_rm_if_sign_is_set() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(0, &RegisterType::Sp);
-        cpu.memory[0].set(0x03);
-        cpu.memory[1].set(0x2c);
+        cpu.memory[0] = 0x03;
+        cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.sign = true;
         cpu.execute_instruction(Instruction::Rm);
@@ -123,8 +123,8 @@ mod tests {
     fn it_shouldnt_execute_rm_if_sign_is_reset() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(0, &RegisterType::Sp);
-        cpu.memory[0].set(0x03);
-        cpu.memory[1].set(0x2c);
+        cpu.memory[0] = 0x03;
+        cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.sign = false;
         cpu.execute_instruction(Instruction::Rm);
@@ -136,8 +136,8 @@ mod tests {
     fn it_should_execute_rnc_if_carry_is_reset() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(0, &RegisterType::Sp);
-        cpu.memory[0].set(0x03);
-        cpu.memory[1].set(0x2c);
+        cpu.memory[0] = 0x03;
+        cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.carry = false;
         cpu.execute_instruction(Instruction::Rnc);
@@ -149,8 +149,8 @@ mod tests {
     fn it_shouldnt_execute_rnc_if_carry_is_set() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(0, &RegisterType::Sp);
-        cpu.memory[0].set(0x03);
-        cpu.memory[1].set(0x2c);
+        cpu.memory[0] = 0x03;
+        cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.carry = true;
         cpu.execute_instruction(Instruction::Rnc);
@@ -162,8 +162,8 @@ mod tests {
     fn it_should_execute_rnz_if_zero_is_reset() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(0, &RegisterType::Sp);
-        cpu.memory[0].set(0x03);
-        cpu.memory[1].set(0x2c);
+        cpu.memory[0] = 0x03;
+        cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.zero = false;
         cpu.execute_instruction(Instruction::Rnz);
@@ -175,8 +175,8 @@ mod tests {
     fn it_shouldnt_execute_rnz_if_zero_is_set() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(0, &RegisterType::Sp);
-        cpu.memory[0].set(0x03);
-        cpu.memory[1].set(0x2c);
+        cpu.memory[0] = 0x03;
+        cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.zero = true;
         cpu.execute_instruction(Instruction::Rnz);
@@ -188,8 +188,8 @@ mod tests {
     fn it_should_execute_rp_if_sign_is_reset() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(0, &RegisterType::Sp);
-        cpu.memory[0].set(0x03);
-        cpu.memory[1].set(0x2c);
+        cpu.memory[0] = 0x03;
+        cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.sign = false;
         cpu.execute_instruction(Instruction::Rp);
@@ -201,8 +201,8 @@ mod tests {
     fn it_shouldnt_execute_rp_if_sign_is_set() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(0, &RegisterType::Sp);
-        cpu.memory[0].set(0x03);
-        cpu.memory[1].set(0x2c);
+        cpu.memory[0] = 0x03;
+        cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.sign = true;
         cpu.execute_instruction(Instruction::Rp);
@@ -214,8 +214,8 @@ mod tests {
     fn it_should_execute_rpe_if_parity_is_set() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(0, &RegisterType::Sp);
-        cpu.memory[0].set(0x03);
-        cpu.memory[1].set(0x2c);
+        cpu.memory[0] = 0x03;
+        cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.parity = true;
         cpu.execute_instruction(Instruction::Rpe);
@@ -227,8 +227,8 @@ mod tests {
     fn it_shouldnt_execute_rpe_if_parity_is_reset() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(0, &RegisterType::Sp);
-        cpu.memory[0].set(0x03);
-        cpu.memory[1].set(0x2c);
+        cpu.memory[0] = 0x03;
+        cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.parity = false;
         cpu.execute_instruction(Instruction::Rpe);
@@ -240,8 +240,8 @@ mod tests {
     fn it_should_execute_rpo_if_parity_is_reset() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(0, &RegisterType::Sp);
-        cpu.memory[0].set(0x03);
-        cpu.memory[1].set(0x2c);
+        cpu.memory[0] = 0x03;
+        cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.parity = false;
         cpu.execute_instruction(Instruction::Rpo);
@@ -253,8 +253,8 @@ mod tests {
     fn it_shouldnt_execute_rpo_if_parity_is_set() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(0, &RegisterType::Sp);
-        cpu.memory[0].set(0x03);
-        cpu.memory[1].set(0x2c);
+        cpu.memory[0] = 0x03;
+        cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.parity = true;
         cpu.execute_instruction(Instruction::Rpo);
@@ -266,8 +266,8 @@ mod tests {
     fn it_should_execute_rz_if_zero_is_set() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(0, &RegisterType::Sp);
-        cpu.memory[0].set(0x03);
-        cpu.memory[1].set(0x2c);
+        cpu.memory[0] = 0x03;
+        cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.zero = true;
         cpu.execute_instruction(Instruction::Rz);
@@ -279,8 +279,8 @@ mod tests {
     fn it_shouldnt_execute_rz_if_zero_is_reset() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_double_register(0, &RegisterType::Sp);
-        cpu.memory[0].set(0x03);
-        cpu.memory[1].set(0x2c);
+        cpu.memory[0] = 0x03;
+        cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.zero = false;
         cpu.execute_instruction(Instruction::Rz);

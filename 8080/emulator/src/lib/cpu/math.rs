@@ -328,7 +328,7 @@ mod tests {
         cpu.save_to_a(0x42);
         cpu.save_to_single_register(0x0, &RegisterType::H);
         cpu.save_to_single_register(0x0, &RegisterType::L);
-        cpu.memory[0].set(0x3d);
+        cpu.memory[0] = 0x3d;
         cpu.flags.carry = true;
         cpu.execute_instruction(Instruction::Adc { source: Location::Memory });
         assert_eq!(cpu.get_current_a_value(), 0x80);
@@ -360,7 +360,7 @@ mod tests {
         cpu.save_to_a(0x6c);
         cpu.save_to_single_register(0x0, &RegisterType::H);
         cpu.save_to_single_register(0x0, &RegisterType::L);
-        cpu.memory[0].set(0x2e);
+        cpu.memory[0] = 0x2e;
         cpu.execute_instruction(Instruction::Add { source: Location::Memory });
         assert_eq!(cpu.get_current_a_value(), 0x9a);
         assert!(!cpu.flags.carry);
@@ -393,7 +393,7 @@ mod tests {
         cpu.save_to_a(0x02);
         cpu.save_to_single_register(0x0, &RegisterType::H);
         cpu.save_to_single_register(0x0, &RegisterType::L);
-        cpu.memory[0].set(0x05);
+        cpu.memory[0] = 0x05;
         cpu.execute_instruction(Instruction::Cmp { source: Location::Memory });
         assert_eq!(cpu.get_current_a_value(), 0x02);
         assert!(cpu.flags.carry);
@@ -497,9 +497,9 @@ mod tests {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_single_register(0x3a, &RegisterType::H);
         cpu.save_to_single_register(0x7c, &RegisterType::L);
-        cpu.memory[0x3a7c].set(0x40);
+        cpu.memory[0x3a7c] = 0x40;
         cpu.execute_instruction(Instruction::Dcr { source: Location::Memory });
-        assert_eq!(cpu.memory[0x3a7c].get(), 0x3f);
+        assert_eq!(cpu.memory[0x3a7c], 0x3f);
         assert!(cpu.flags.carry);
         assert!(!cpu.flags.sign);
         assert!(cpu.flags.parity);
@@ -555,9 +555,9 @@ mod tests {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_single_register(0x3a, &RegisterType::H);
         cpu.save_to_single_register(0x7c, &RegisterType::L);
-        cpu.memory[0x3a7c].set(0x99);
+        cpu.memory[0x3a7c] = 0x99;
         cpu.execute_instruction(Instruction::Inr { source: Location::Memory });
-        assert_eq!(cpu.memory[0x3a7c].get(), 0x9a);
+        assert_eq!(cpu.memory[0x3a7c], 0x9a);
         assert!(cpu.flags.carry);
         assert!(cpu.flags.sign);
         assert!(cpu.flags.parity);
@@ -602,7 +602,7 @@ mod tests {
         cpu.save_to_a(0x04);
         cpu.save_to_single_register(0x0, &RegisterType::H);
         cpu.save_to_single_register(0x0, &RegisterType::L);
-        cpu.memory[0].set(0x02);
+        cpu.memory[0] = 0x02;
         cpu.flags.carry = false;
         cpu.execute_instruction(Instruction::Sbb { source: Location::Memory });
         assert_eq!(cpu.get_current_a_value(), 0x02);
@@ -662,7 +662,7 @@ mod tests {
         cpu.save_to_a(0x3e);
         cpu.save_to_single_register(0x0, &RegisterType::H);
         cpu.save_to_single_register(0x0, &RegisterType::L);
-        cpu.memory[0].set(0x3d);
+        cpu.memory[0] = 0x3d;
         cpu.execute_instruction(Instruction::Sub { source: Location::Memory });
         assert_eq!(cpu.get_current_a_value(), 0x01);
         assert!(!cpu.flags.carry);

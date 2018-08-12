@@ -81,8 +81,8 @@ impl<'a> Cpu<'a> {
     fn push_program_counter_to_stack(&mut self) {
         let sp = self.get_current_sp_value() as usize;
         let address = word_to_address(self.pc);
-        self.memory[sp-1].set(address[1]);
-        self.memory[sp-2].set(address[0]);
+        self.memory[sp-1] = address[1];
+        self.memory[sp-2] = address[0];
         self.save_to_double_register((sp - 2) as u16, &RegisterType::Sp);
     }
 
@@ -106,8 +106,8 @@ impl<'a> Cpu<'a> {
     fn print_de_to_screen(&mut self) {
         let mut address = (self.get_current_de_value() + 3) as usize; // Skip prefix
         let mut bytes: Vec<u8> = Vec::new();
-        while (self.memory[address].get() as char) != '$' {
-            bytes.push(self.memory[address].get());
+        while (self.memory[address] as char) != '$' {
+            bytes.push(self.memory[address]);
             address += 1;
         }
         self.print_message(bytes.as_ref());
@@ -135,8 +135,8 @@ mod tests {
         cpu.execute_instruction(Instruction::Call { address: [0x00, 0x3c] });
         assert_eq!(cpu.pc, 0x3c00);
         assert_eq!(cpu.get_current_sp_value(), 0);
-        assert_eq!(cpu.memory[0].get(), 0x03);
-        assert_eq!(cpu.memory[1].get(), 0x2c);
+        assert_eq!(cpu.memory[0], 0x03);
+        assert_eq!(cpu.memory[1], 0x2c);
     }
 
     #[test]
@@ -154,9 +154,9 @@ mod tests {
             cpu.save_to_single_register(9, &RegisterType::C);
             cpu.save_to_single_register(0, &RegisterType::D);
             cpu.save_to_single_register(0, &RegisterType::E);
-            cpu.memory[3].set('4' as u8);
-            cpu.memory[4].set('2' as u8);
-            cpu.memory[5].set('$' as u8);
+            cpu.memory[3] = '4' as u8;
+            cpu.memory[4] = '2' as u8;
+            cpu.memory[5] = '$' as u8;
             cpu.execute_instruction(Instruction::Call { address: [0x05, 0x00] });
             assert_eq!(cpu.pc, 0x2c03);
         }
@@ -172,8 +172,8 @@ mod tests {
         cpu.execute_instruction(Instruction::Cc { address: [0x00, 0x3c] });
         assert_eq!(cpu.pc, 0x3c00);
         assert_eq!(cpu.get_current_sp_value(), 0);
-        assert_eq!(cpu.memory[0].get(), 0x03);
-        assert_eq!(cpu.memory[1].get(), 0x2c);
+        assert_eq!(cpu.memory[0], 0x03);
+        assert_eq!(cpu.memory[1], 0x2c);
     }
 
     #[test]
@@ -185,8 +185,8 @@ mod tests {
         cpu.execute_instruction(Instruction::Cc { address: [0x00, 0x3c] });
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
-        assert_eq!(cpu.memory[0].get(), 0);
-        assert_eq!(cpu.memory[1].get(), 0);
+        assert_eq!(cpu.memory[0], 0);
+        assert_eq!(cpu.memory[1], 0);
     }
 
     #[test]
@@ -198,8 +198,8 @@ mod tests {
         cpu.execute_instruction(Instruction::Cm { address: [0x00, 0x3c] });
         assert_eq!(cpu.pc, 0x3c00);
         assert_eq!(cpu.get_current_sp_value(), 0);
-        assert_eq!(cpu.memory[0].get(), 0x03);
-        assert_eq!(cpu.memory[1].get(), 0x2c);
+        assert_eq!(cpu.memory[0], 0x03);
+        assert_eq!(cpu.memory[1], 0x2c);
     }
 
     #[test]
@@ -211,8 +211,8 @@ mod tests {
         cpu.execute_instruction(Instruction::Cm { address: [0x00, 0x3c] });
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
-        assert_eq!(cpu.memory[0].get(), 0);
-        assert_eq!(cpu.memory[1].get(), 0);
+        assert_eq!(cpu.memory[0], 0);
+        assert_eq!(cpu.memory[1], 0);
     }
 
     #[test]
@@ -224,8 +224,8 @@ mod tests {
         cpu.execute_instruction(Instruction::Cnc { address: [0x00, 0x3c] });
         assert_eq!(cpu.pc, 0x3c00);
         assert_eq!(cpu.get_current_sp_value(), 0);
-        assert_eq!(cpu.memory[0].get(), 0x03);
-        assert_eq!(cpu.memory[1].get(), 0x2c);
+        assert_eq!(cpu.memory[0], 0x03);
+        assert_eq!(cpu.memory[1], 0x2c);
     }
 
     #[test]
@@ -237,8 +237,8 @@ mod tests {
         cpu.execute_instruction(Instruction::Cnc { address: [0x00, 0x3c] });
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
-        assert_eq!(cpu.memory[0].get(), 0);
-        assert_eq!(cpu.memory[1].get(), 0);
+        assert_eq!(cpu.memory[0], 0);
+        assert_eq!(cpu.memory[1], 0);
     }
 
     #[test]
@@ -250,8 +250,8 @@ mod tests {
         cpu.execute_instruction(Instruction::Cnz { address: [0x00, 0x3c] });
         assert_eq!(cpu.pc, 0x3c00);
         assert_eq!(cpu.get_current_sp_value(), 0);
-        assert_eq!(cpu.memory[0].get(), 0x03);
-        assert_eq!(cpu.memory[1].get(), 0x2c);
+        assert_eq!(cpu.memory[0], 0x03);
+        assert_eq!(cpu.memory[1], 0x2c);
     }
 
     #[test]
@@ -263,8 +263,8 @@ mod tests {
         cpu.execute_instruction(Instruction::Cnz { address: [0x00, 0x3c] });
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
-        assert_eq!(cpu.memory[0].get(), 0);
-        assert_eq!(cpu.memory[1].get(), 0);
+        assert_eq!(cpu.memory[0], 0);
+        assert_eq!(cpu.memory[1], 0);
     }
 
     #[test]
@@ -276,8 +276,8 @@ mod tests {
         cpu.execute_instruction(Instruction::Cp { address: [0x00, 0x3c] });
         assert_eq!(cpu.pc, 0x3c00);
         assert_eq!(cpu.get_current_sp_value(), 0);
-        assert_eq!(cpu.memory[0].get(), 0x03);
-        assert_eq!(cpu.memory[1].get(), 0x2c);
+        assert_eq!(cpu.memory[0], 0x03);
+        assert_eq!(cpu.memory[1], 0x2c);
     }
 
     #[test]
@@ -289,8 +289,8 @@ mod tests {
         cpu.execute_instruction(Instruction::Cp { address: [0x00, 0x3c] });
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
-        assert_eq!(cpu.memory[0].get(), 0);
-        assert_eq!(cpu.memory[1].get(), 0);
+        assert_eq!(cpu.memory[0], 0);
+        assert_eq!(cpu.memory[1], 0);
     }
 
     #[test]
@@ -302,8 +302,8 @@ mod tests {
         cpu.execute_instruction(Instruction::Cpe { address: [0x00, 0x3c] });
         assert_eq!(cpu.pc, 0x3c00);
         assert_eq!(cpu.get_current_sp_value(), 0);
-        assert_eq!(cpu.memory[0].get(), 0x03);
-        assert_eq!(cpu.memory[1].get(), 0x2c);
+        assert_eq!(cpu.memory[0], 0x03);
+        assert_eq!(cpu.memory[1], 0x2c);
     }
 
     #[test]
@@ -315,8 +315,8 @@ mod tests {
         cpu.execute_instruction(Instruction::Cpe { address: [0x00, 0x3c] });
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
-        assert_eq!(cpu.memory[0].get(), 0);
-        assert_eq!(cpu.memory[1].get(), 0);
+        assert_eq!(cpu.memory[0], 0);
+        assert_eq!(cpu.memory[1], 0);
     }
 
     #[test]
@@ -328,8 +328,8 @@ mod tests {
         cpu.execute_instruction(Instruction::Cpo { address: [0x00, 0x3c] });
         assert_eq!(cpu.pc, 0x3c00);
         assert_eq!(cpu.get_current_sp_value(), 0);
-        assert_eq!(cpu.memory[0].get(), 0x03);
-        assert_eq!(cpu.memory[1].get(), 0x2c);
+        assert_eq!(cpu.memory[0], 0x03);
+        assert_eq!(cpu.memory[1], 0x2c);
     }
 
     #[test]
@@ -341,8 +341,8 @@ mod tests {
         cpu.execute_instruction(Instruction::Cpo { address: [0x00, 0x3c] });
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
-        assert_eq!(cpu.memory[0].get(), 0);
-        assert_eq!(cpu.memory[1].get(), 0);
+        assert_eq!(cpu.memory[0], 0);
+        assert_eq!(cpu.memory[1], 0);
     }
 
     #[test]
@@ -354,8 +354,8 @@ mod tests {
         cpu.execute_instruction(Instruction::Cz { address: [0x00, 0x3c] });
         assert_eq!(cpu.pc, 0x3c00);
         assert_eq!(cpu.get_current_sp_value(), 0);
-        assert_eq!(cpu.memory[0].get(), 0x03);
-        assert_eq!(cpu.memory[1].get(), 0x2c);
+        assert_eq!(cpu.memory[0], 0x03);
+        assert_eq!(cpu.memory[1], 0x2c);
     }
 
     #[test]
@@ -367,8 +367,8 @@ mod tests {
         cpu.execute_instruction(Instruction::Cz { address: [0x00, 0x3c] });
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
-        assert_eq!(cpu.memory[0].get(), 0);
-        assert_eq!(cpu.memory[1].get(), 0);
+        assert_eq!(cpu.memory[0], 0);
+        assert_eq!(cpu.memory[1], 0);
     }
 
     #[test]
@@ -380,8 +380,8 @@ mod tests {
         assert_eq!(cpu.pc, 0x18);
         assert_eq!(cpu.state, State::Running);
         assert_eq!(cpu.get_current_sp_value(), 0);
-        assert_eq!(cpu.memory[0].get(), 0x03);
-        assert_eq!(cpu.memory[1].get(), 0x2c);
+        assert_eq!(cpu.memory[0], 0x03);
+        assert_eq!(cpu.memory[1], 0x2c);
     }
 
     #[test]
@@ -394,8 +394,8 @@ mod tests {
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.state, State::Running);
         assert_eq!(cpu.get_current_sp_value(), 2);
-        assert_eq!(cpu.memory[0].get(), 0);
-        assert_eq!(cpu.memory[1].get(), 0);
+        assert_eq!(cpu.memory[0], 0);
+        assert_eq!(cpu.memory[1], 0);
     }
 
     #[test]
@@ -408,7 +408,7 @@ mod tests {
         assert_eq!(cpu.pc, 0x18);
         assert_eq!(cpu.state, State::Running);
         assert_eq!(cpu.get_current_sp_value(), 0);
-        assert_eq!(cpu.memory[0].get(), 0x03);
-        assert_eq!(cpu.memory[1].get(), 0x2c);
+        assert_eq!(cpu.memory[0], 0x03);
+        assert_eq!(cpu.memory[1], 0x2c);
     }
 }

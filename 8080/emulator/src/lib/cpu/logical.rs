@@ -138,7 +138,7 @@ mod tests {
         cpu.save_to_a(0xfc);
         cpu.save_to_single_register(0x00, &RegisterType::H);
         cpu.save_to_single_register(0x00, &RegisterType::L);
-        cpu.memory[0].set(0x0f);
+        cpu.memory[0] = 0x0f;
         cpu.execute_instruction(Instruction::Ana { source: Location::Memory });
         assert_eq!(cpu.get_current_a_value(), 0x0c);
         assert!(!cpu.flags.carry);
@@ -180,7 +180,7 @@ mod tests {
         cpu.save_to_a(0x33);
         cpu.save_to_single_register(0x00, &RegisterType::H);
         cpu.save_to_single_register(0x00, &RegisterType::L);
-        cpu.memory[0].set(0x0f);
+        cpu.memory[0] = 0x0f;
         cpu.execute_instruction(Instruction::Ora { source: Location::Memory });
         assert_eq!(cpu.get_current_a_value(), 0x3f);
         assert!(!cpu.flags.carry);
@@ -274,7 +274,7 @@ mod tests {
         cpu.save_to_a(0x78);
         cpu.save_to_single_register(0x00, &RegisterType::H);
         cpu.save_to_single_register(0x00, &RegisterType::L);
-        cpu.memory[0].set(0x5c);
+        cpu.memory[0] = 0x5c;
         cpu.execute_instruction(Instruction::Xra { source: Location::Memory });
         assert_eq!(cpu.get_current_a_value(), 0x24);
         assert!(!cpu.flags.carry);

@@ -89,7 +89,7 @@ pub enum Instruction {
 
 impl Instruction {
     #[inline]
-    pub fn from_bytes(bytes: Vec<u8>) -> Instruction {
+    pub fn from_bytes(bytes: &[u8]) -> Instruction {
         match bytes[0] {
             0x00 => Instruction::Noop,
             0x01 => Instruction::Lxi { register: RegisterType::B, low_byte: bytes[1], high_byte: bytes[2] },

@@ -10,7 +10,7 @@ use self::piston::event_loop::*;
 use self::piston::input::*;
 use super::cpu::{Cpu, HERTZ, Instruction, ROM_MEMORY_LIMIT};
 use super::io_devices::*;
-use super::screen::{Screen, TermScreen};
+use super::screen::{Screen, GameScreen};
 use super::timer::Timer;
 use super::view::{View, WINDOW_HEIGHT, WINDOW_WIDTH};
 
@@ -35,7 +35,7 @@ impl<'a> Console<'a> {
         let timer = Timer::new(SCREEN_INTERRUPTIONS_INTERVAL);
         let keypad_controller = KeypadController::new();
         let cpu = Console::create_cpu(memory, &keypad_controller);
-        let screen = Box::new(TermScreen::new(&cpu.memory));
+        let screen = Box::new(GameScreen::new());
         let window = Console::create_window()?;
         let gl = GlGraphics::new(OPEN_GL);
         let view = View::new();
@@ -112,10 +112,10 @@ impl<'a> Console<'a> {
         self.timer.update_last_check();
         if self.timer.should_trigger() && self.cpu.interruptions_enabled {
             self.prev_interruption = if self.prev_interruption == 1 {
-                self.screen.on_full_screen();
+                self.screen.on_full_screen(&mut self.cpu.memory);
                 2
             } else {
-                self.screen.on_mid_screen();
+                self.screen.on_mid_screen(&mut self.cpu.memory);
                 1
             };
             self.view.update_image(self.screen.get_pixels());

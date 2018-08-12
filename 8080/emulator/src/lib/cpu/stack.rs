@@ -17,15 +17,15 @@ impl<'a> Cpu<'a> {
                 (self.get_current_a_value(), self.get_current_flags_byte()),
             _ => panic!("{} is not a valid register for push!", register.to_string()),
         };
-        self.memory[sp-1].set(first_byte);
-        self.memory[sp-2].set(second_byte);
+        self.memory[sp-1] = first_byte;
+        self.memory[sp-2] = second_byte;
         self.save_to_double_register((sp-2) as u16, &RegisterType::Sp);
     }
 
     pub(crate) fn execute_pop(&mut self, register: &RegisterType) {
         let sp = self.get_current_sp_value() as usize;
-        let first_byte = self.memory[sp+1].get();
-        let second_byte = self.memory[sp].get();
+        let first_byte = self.memory[sp+1];
+        let second_byte = self.memory[sp];
         match register {
             RegisterType::B => {
                 self.save_to_single_register(first_byte, &RegisterType::B);
@@ -151,8 +151,8 @@ mod tests {
     fn it_should_push_from_stack_to_b() {
         let mut cpu = get_push_ready_cpu(&RegisterType::B);
         cpu.execute_instruction(Instruction::Push { register: RegisterType::B });
-        assert_eq!(cpu.memory[0x3a2b].get(), 0x8f);
-        assert_eq!(cpu.memory[0x3a2a].get(), 0x9d);
+        assert_eq!(cpu.memory[0x3a2b], 0x8f);
+        assert_eq!(cpu.memory[0x3a2a], 0x9d);
         assert_eq!(cpu.get_current_sp_value(), 0x3A2A);
     }
 
@@ -160,8 +160,8 @@ mod tests {
     fn it_should_push_from_stack_to_d() {
         let mut cpu = get_push_ready_cpu(&RegisterType::D);
         cpu.execute_instruction(Instruction::Push { register: RegisterType::D });
-        assert_eq!(cpu.memory[0x3a2b].get(), 0x8f);
-        assert_eq!(cpu.memory[0x3a2a].get(), 0x9d);
+        assert_eq!(cpu.memory[0x3a2b], 0x8f);
+        assert_eq!(cpu.memory[0x3a2a], 0x9d);
         assert_eq!(cpu.get_current_sp_value(), 0x3A2A);
     }
 
@@ -169,8 +169,8 @@ mod tests {
     fn it_should_push_from_stack_to_h() {
         let mut cpu = get_push_ready_cpu(&RegisterType::H);
         cpu.execute_instruction(Instruction::Push { register: RegisterType::H });
-        assert_eq!(cpu.memory[0x3a2b].get(), 0x8f);
-        assert_eq!(cpu.memory[0x3a2a].get(), 0x9d);
+        assert_eq!(cpu.memory[0x3a2b], 0x8f);
+        assert_eq!(cpu.memory[0x3a2a], 0x9d);
         assert_eq!(cpu.get_current_sp_value(), 0x3A2A);
     }
 
@@ -178,8 +178,8 @@ mod tests {
     fn it_should_push_from_stack_to_a_and_flags() {
         let mut cpu = get_push_ready_cpu(&RegisterType::Psw);
         cpu.execute_instruction(Instruction::Push { register: RegisterType::Psw });
-        assert_eq!(cpu.memory[0x3a2b].get(), 0x8f);
-        assert_eq!(cpu.memory[0x3a2a].get(), 0x1d);
+        assert_eq!(cpu.memory[0x3a2b], 0x8f);
+        assert_eq!(cpu.memory[0x3a2a], 0x1d);
         assert_eq!(cpu.get_current_sp_value(), 0x3A2A);
     }
 }
