@@ -196,7 +196,11 @@ impl<'a> Cpu<'a> {
             RegisterType::Sp => self.get_current_sp_value() as u32,
             _ => panic!("{} is not a valid INX argument!", register_type.to_string()),
         };
-        let result = if inc { destiny_value+1 } else { destiny_value - 1 };
+        let result = if inc {
+            destiny_value.wrapping_add(1)
+        } else {
+            destiny_value.wrapping_sub(1)
+        };
         match register_type {
             RegisterType::B => {
                 self.save_to_single_register((result >> 8) as u8, &RegisterType::B);
@@ -510,6 +514,20 @@ mod tests {
         cpu.save_to_single_register(0x00, &RegisterType::L);
         cpu.execute_instruction(Instruction::Dcx { register: RegisterType::H });
         assert_eq!(cpu.get_current_hl_value(), 0x97ff);
+        assert!(cpu.flags.carry);
+        assert!(cpu.flags.sign);
+        assert!(cpu.flags.parity);
+        assert!(cpu.flags.auxiliary_carry);
+        assert!(cpu.flags.zero);
+    }
+
+    #[test]
+    fn it_should_execute_dcx_when_zero() {
+        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        cpu.save_to_single_register(0x00, &RegisterType::H);
+        cpu.save_to_single_register(0x00, &RegisterType::L);
+        cpu.execute_instruction(Instruction::Dcx { register: RegisterType::H });
+        assert_eq!(cpu.get_current_hl_value(), 0xffff);
         assert!(cpu.flags.carry);
         assert!(cpu.flags.sign);
         assert!(cpu.flags.parity);

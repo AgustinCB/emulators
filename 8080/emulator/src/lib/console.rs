@@ -8,13 +8,14 @@ use self::opengl_graphics::{ GlGraphics, OpenGL };
 use self::piston::window::WindowSettings;
 use self::piston::event_loop::*;
 use self::piston::input::*;
-use super::cpu::{Cpu, Instruction, ROM_MEMORY_LIMIT};
+use super::cpu::{Cpu, HERTZ, Instruction, ROM_MEMORY_LIMIT};
 use super::io_devices::*;
 use super::screen::{Screen, TermScreen};
 use super::timer::Timer;
 use super::view::{View, WINDOW_HEIGHT, WINDOW_WIDTH};
 
-const SCREEN_INTERRUPTIONS_INTERVAL: f64 = (1.0/60.0*1000.0)/2.0;
+const FPS: f64 = 60.0;
+const SCREEN_INTERRUPTIONS_INTERVAL: f64 = (1.0/FPS*1000.0)/2.0;
 const OPEN_GL: OpenGL = OpenGL::V3_2;
 
 pub struct Console<'a> {
@@ -118,11 +119,12 @@ impl<'a> Console<'a> {
                 1
             };
             self.view.update_image(self.screen.get_pixels());
+            println!("EXECUTING {}", self.prev_interruption);
             self.cpu.execute_instruction(Instruction::Rst {
                 value: self.prev_interruption
             });
         }
-        let mut cycles_to_run = ((args.dt * 1000.0) as i64 * 2) as i64 + self.cycles_left;
+        let mut cycles_to_run = (args.dt * (HERTZ as f64)) as i64 + self.cycles_left;
         while cycles_to_run > 0 {
             cycles_to_run -= self.cpu.execute() as i64;
         }

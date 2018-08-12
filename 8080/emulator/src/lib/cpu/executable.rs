@@ -8,7 +8,7 @@ impl<'a> Cpu<'a> {
         if !self.can_run(&instruction) {
             return 0;
         }
-        //println!("RUNNING {}", instruction.to_string());
+        println!("RUNNING {}", instruction.to_string());
         self.pc += instruction.size() as u16;
         let cycles = self.get_cycles_for_instruction(&instruction);
         self.execute_instruction(instruction);

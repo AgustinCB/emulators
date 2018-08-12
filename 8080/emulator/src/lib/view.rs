@@ -3,20 +3,14 @@ extern crate image as im;
 extern crate opengl_graphics;
 extern crate piston;
 
-use self::graphics::{clear, image, rectangle};
+use self::graphics::{clear, image};
 use self::im::{ConvertBuffer, GrayImage, ImageBuffer, Luma};
 use self::opengl_graphics::{GlGraphics, Texture, TextureSettings};
 use self::piston::input::*;
 use super::screen::{SCREEN_HEIGHT, SCREEN_WIDTH, ScreenLayout};
 
-pub(crate) const WINDOW_HEIGHT: u32 = 480;
-pub(crate) const WINDOW_WIDTH: u32 = 480;
-const VIEW_AREA: [f64; 4] = [
-    ((WINDOW_HEIGHT as usize - SCREEN_HEIGHT)/2) as f64,
-    ((WINDOW_WIDTH as usize - SCREEN_WIDTH)/2) as f64,
-    (SCREEN_WIDTH + 2) as f64,
-    (SCREEN_HEIGHT + 2)  as f64
-];
+pub(crate) const WINDOW_HEIGHT: u32 = SCREEN_HEIGHT as u32;
+pub(crate) const WINDOW_WIDTH: u32 = SCREEN_WIDTH as u32;
 
 pub(crate) struct View {
     image: GrayImage,
@@ -35,8 +29,8 @@ impl View {
 
     pub fn render(&mut self, args: &RenderArgs, gl: &mut GlGraphics) -> Result<(), String> {
         gl.draw(args.viewport(), |c, gl| {
-            clear([0.0, 0.0, 0.0, 1.0], gl);
-            rectangle([1.0, 0.0, 0.0, 1.0],VIEW_AREA, c.transform,gl);
+            clear([0.0, 1.0, 0.0, 1.0], gl);
+            //rectangle([1.0, 0.0, 0.0, 1.0],VIEW_AREA, c.transform,gl);
             image(&self.texture, c.transform, gl);
         });
         Ok(())

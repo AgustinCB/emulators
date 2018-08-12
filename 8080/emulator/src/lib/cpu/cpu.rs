@@ -6,6 +6,7 @@ use std::collections::HashMap;
 pub const ROM_MEMORY_LIMIT: usize = 8192;
 pub(crate) const MAX_INPUT_OUTPUT_DEVICES: usize = 0x100;
 const NUM_REGISTERS: usize = 8;
+pub const HERTZ: i64 = 2_000_000;
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq)]
 pub enum RegisterType {
