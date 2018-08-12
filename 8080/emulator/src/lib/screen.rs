@@ -38,7 +38,7 @@ impl TermScreen {
         let lines = [[false; SCREEN_WIDTH]; SCREEN_HEIGHT];
         TermScreen {
             lines,
-            memory: memory.iter().map(|v| Cell::clone(&v)).collect(),
+            memory: memory.iter().map(|c| Cell::clone(c)).collect(),
         }
     }
 

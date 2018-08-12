@@ -119,7 +119,6 @@ impl<'a> Console<'a> {
                 1
             };
             self.view.update_image(self.screen.get_pixels());
-            println!("EXECUTING {}", self.prev_interruption);
             self.cpu.execute_instruction(Instruction::Rst {
                 value: self.prev_interruption
             });
