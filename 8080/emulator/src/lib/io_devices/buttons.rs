@@ -2,10 +2,8 @@ extern crate piston;
 
 use self::piston::input::Key;
 use super::super::cpu::InputDevice;
-use std::collections::HashSet;
+use std::cell::Cell;
 
-const NUM_BUTTONS: usize = 5;
-#[derive(Hash, PartialEq, Eq)]
 enum GameButton {
     Coin,
     Left,
@@ -14,58 +12,76 @@ enum GameButton {
     Start,
 }
 
-pub struct KeypadInput {
-    buttons_pressed: HashSet<GameButton>,
+pub struct KeypadController {
+    buttons_pressed: Cell<u8>,
 }
 
-impl KeypadInput {
-    pub fn new() -> KeypadInput {
-        KeypadInput {
-            buttons_pressed: HashSet::with_capacity(NUM_BUTTONS),
+impl KeypadController {
+    pub fn new() -> KeypadController {
+        KeypadController {
+            buttons_pressed: Cell::new(0x08),
         }
     }
 
+    pub fn buttons_pressed(&self) -> Cell<u8> {
+        Cell::clone(&self.buttons_pressed)
+    }
+
     pub fn key_pressed(&mut self, key: Key) {
-        match key {
-            Key::A => self.buttons_pressed.insert(GameButton::Left),
-            Key::S => self.buttons_pressed.insert(GameButton::Right),
-            Key::Insert => self.buttons_pressed.insert(GameButton::Start),
-            Key::C => self.buttons_pressed.insert(GameButton::Coin),
-            Key::Space => self.buttons_pressed.insert(GameButton::Fire),
-            _ => false,
+        let button = self.game_button_from_key(key);
+        let mut result = self.buttons_pressed.get();
+        match button {
+            Some(GameButton::Coin) => result |= 0x01,
+            Some(GameButton::Start) => result |= 0x04,
+            Some(GameButton::Fire) => result |= 0x10,
+            Some(GameButton::Left) => result |= 0x20,
+            Some(GameButton::Right) => result |= 0x40,
+            _ => {},
         };
+        self.buttons_pressed.set(result);
     }
 
     pub fn key_released(&mut self, key: Key) {
-        match key {
-            Key::A => self.buttons_pressed.remove(&GameButton::Left),
-            Key::S => self.buttons_pressed.remove(&GameButton::Right),
-            Key::Insert => self.buttons_pressed.remove(&GameButton::Start),
-            Key::C => self.buttons_pressed.remove(&GameButton::Coin),
-            Key::Space => self.buttons_pressed.remove(&GameButton::Fire),
-            _ => false,
+        let button = self.game_button_from_key(key);
+        let mut result = self.buttons_pressed.get();
+        match button {
+            Some(GameButton::Coin) => result &= !0x01,
+            Some(GameButton::Start) => result &= !0x04,
+            Some(GameButton::Fire) => result &= !0x10,
+            Some(GameButton::Left) => result &= !0x20,
+            Some(GameButton::Right) => result &= !0x40,
+            _ => {},
         };
+        self.buttons_pressed.set(result);
+    }
+
+    #[inline]
+    fn game_button_from_key(&self, key: Key) -> Option<GameButton> {
+        match key {
+            Key::A => Some(GameButton::Left),
+            Key::S => Some(GameButton::Right),
+            Key::Insert => Some(GameButton::Start),
+            Key::C => Some(GameButton::Coin),
+            Key::Space => Some(GameButton::Fire),
+            _ => None,
+        }
+    }
+}
+
+pub struct KeypadInput {
+    buttons_pressed: Cell<u8>,
+}
+
+impl KeypadInput {
+    pub fn new(controller: &KeypadController) -> KeypadInput {
+        KeypadInput {
+            buttons_pressed: controller.buttons_pressed(),
+        }
     }
 }
 
 impl InputDevice for KeypadInput {
     fn read(&mut self) -> u8 {
-        let mut result = 0x08;
-        if self.buttons_pressed.contains(&GameButton::Coin) {
-            result |= 0x01;
-        }
-        if self.buttons_pressed.contains(&GameButton::Start) {
-            result |= 0x04;
-        }
-        if self.buttons_pressed.contains(&GameButton::Fire) {
-            result |= 0x10;
-        }
-        if self.buttons_pressed.contains(&GameButton::Left) {
-            result |= 0x20;
-        }
-        if self.buttons_pressed.contains(&GameButton::Right) {
-            result |= 0x40;
-        }
-        result
+        self.buttons_pressed.get()
     }
 }
