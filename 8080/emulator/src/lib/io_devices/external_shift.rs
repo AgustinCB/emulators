@@ -1,68 +1,68 @@
 use super::super::cpu::{InputDevice, OutputDevice};
-use std::cell::Cell;
-
+use std::cell::RefCell;
+use std::rc::Rc;
 
 pub struct ExternalShiftOffsetWriter {
-    shift_offset: Cell<u8>,
+    shift_offset: Rc<RefCell<u8>>,
 }
 
 impl ExternalShiftOffsetWriter {
     pub fn new() -> ExternalShiftOffsetWriter {
         ExternalShiftOffsetWriter {
-            shift_offset: Cell::new(0),
+            shift_offset: Rc::new(RefCell::new(0)),
         }
     }
 
-    pub fn get_shift_offset(&self) -> Cell<u8> {
+    pub fn get_shift_offset(&self) -> Rc<RefCell<u8>> {
         self.shift_offset.clone()
     }
 }
 
 impl OutputDevice for ExternalShiftOffsetWriter {
     fn write(&mut self, value: u8) {
-        self.shift_offset.set(value & 0x7);
+        *(self.shift_offset.borrow_mut()) = value & 0x07;
     }
 }
 
 pub struct ExternalShiftWriter {
-    shift0: Cell<u8>,
-    shift1: Cell<u8>,
+    shift0: Rc<RefCell<u8>>,
+    shift1: Rc<RefCell<u8>>,
 }
 
 impl OutputDevice for ExternalShiftWriter {
     fn write(&mut self, value: u8) {
-        self.shift0.set(self.shift1.get());
-        self.shift1.set(value);
+        *(self.shift0.borrow_mut()) = *(self.shift1.borrow());
+        *(self.shift1.borrow_mut()) = value;
     }
 }
 
 impl ExternalShiftWriter {
     pub fn new() -> ExternalShiftWriter {
         ExternalShiftWriter {
-            shift0: Cell::new(0),
-            shift1: Cell::new(0),
+            shift0: Rc::new(RefCell::new(0)),
+            shift1: Rc::new(RefCell::new(0)),
         }
     }
 
-    pub fn get_shift0(&self) -> Cell<u8> {
+    pub fn get_shift0(&self) -> Rc<RefCell<u8>> {
         self.shift0.clone()
     }
 
-    pub fn get_shift1(&self) -> Cell<u8> {
+    pub fn get_shift1(&self) -> Rc<RefCell<u8>> {
         self.shift1.clone()
     }
 }
 
 pub struct ExternalShiftReader {
-    shift_offset: Cell<u8>,
-    shift0: Cell<u8>,
-    shift1: Cell<u8>,
+    shift_offset: Rc<RefCell<u8>>,
+    shift0: Rc<RefCell<u8>>,
+    shift1: Rc<RefCell<u8>>,
 }
 
 impl InputDevice for ExternalShiftReader {
     fn read(&mut self) -> u8 {
-        let v = ((self.shift1.get() as u16) << 8) as u8 | self.shift0.get();
-        (((v as u16) >> (8-self.shift_offset.get())) & 0xff) as u8
+        let v = ((*self.shift0.borrow() as u16) << 8) | *self.shift1.borrow() as u16;
+        ((v >> (8-*self.shift_offset.borrow())) & 0xff) as u8
     }
 }
 
@@ -74,5 +74,23 @@ impl ExternalShiftReader {
             shift0: shift_writer.get_shift0(),
             shift1: shift_writer.get_shift1(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_should_perform_shift() {
+        let mut shift_writer = ExternalShiftWriter::new();
+        let mut offset_writer = ExternalShiftOffsetWriter::new();
+        let mut shift_reader = ExternalShiftReader::new(&shift_writer, &offset_writer);
+
+        shift_writer.write(1);
+        shift_writer.write(0);
+        offset_writer.write(6);
+
+        assert_eq!(shift_reader.read(), 64);
     }
 }
