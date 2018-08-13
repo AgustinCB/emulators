@@ -3,7 +3,6 @@ extern crate image as im;
 extern crate opengl_graphics;
 extern crate piston;
 
-use self::graphics::{clear, image};
 use self::im::{ConvertBuffer, RgbaImage, ImageBuffer, Rgba};
 use self::opengl_graphics::{GlGraphics, Texture, TextureSettings};
 use self::piston::input::*;
@@ -28,9 +27,14 @@ impl View {
     }
 
     pub fn render(&mut self, args: &RenderArgs, gl: &mut GlGraphics) -> Result<(), String> {
+        use self::graphics::*;
+        let (x, y) = (
+            (args.width/2) as f64 - (SCREEN_WIDTH / 2) as f64,
+            (args.height/2) as f64 - (SCREEN_HEIGHT / 2) as f64);
         gl.draw(args.viewport(), |c, gl| {
-            clear([0.0, 1.0, 0.0, 1.0], gl);
-            image(&self.texture, c.transform, gl);
+            let transform = c.transform.trans(x, y);
+            clear([0.0, 0.0, 0.0, 1.0], gl);
+            image(&self.texture, transform, gl);
         });
         Ok(())
     }
