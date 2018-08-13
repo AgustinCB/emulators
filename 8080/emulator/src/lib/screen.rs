@@ -43,8 +43,8 @@ impl GameScreen {
                 let address = column * 0x20 + line_group;
                 let bits = get_bits(frame_buffer[address as usize]);
                 for line_index in 0..8 {
-                    let line = line_group * 8 + line_index;
-                    self.lines[line as usize][column as usize] = bits[line_index as usize];
+                    let line = SCREEN_HEIGHT - 1 - (line_group * 8 + line_index) as usize;
+                    self.lines[line][column as usize] = bits[line_index as usize];
                 }
             }
         }
