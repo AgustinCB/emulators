@@ -1,12 +1,10 @@
 use cpu::helpers::{bit_count, two_bytes_to_word};
 use std::boxed::Box;
-use std::collections::HashMap;
 
 pub const ROM_MEMORY_LIMIT: usize = 8192;
 pub(crate) const MAX_INPUT_OUTPUT_DEVICES: usize = 0x100;
 pub(crate) const FRAME_BUFFER_ADDRESS: usize = 0x2400;
 pub(crate) const FRAME_BUFFER_SIZE: usize = 0x1C00;
-const NUM_REGISTERS: usize = 8;
 pub const HERTZ: i64 = 2_000_000;
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq)]
@@ -55,9 +53,21 @@ impl ToString for Location {
     }
 }
 
-pub(crate) enum Register {
-    SingleRegister { value: u8 },
-    DoubleRegister { value: u16 },
+pub(crate) struct RegisterSet {
+    a: u8,
+    b: u8,
+    c: u8,
+    d: u8,
+    e: u8,
+    h: u8,
+    l: u8,
+    sp: u16,
+}
+
+impl RegisterSet {
+    pub(crate) fn new() -> RegisterSet {
+        RegisterSet { a: 0, b: 0, c: 0, d: 0, e: 0, h: 0, l: 0, sp: 0 }
+    }
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -76,15 +86,6 @@ pub trait OutputDevice {
 
 pub trait Printer {
     fn print (&mut self, bytes: &[u8]);
-}
-
-impl Register {
-    fn new(t: RegisterType) -> Register {
-        match t {
-            RegisterType::Sp => Register::DoubleRegister { value: 0xfff },
-            _ => Register::SingleRegister { value: 0 },
-        }
-    }
 }
 
 pub(crate) struct Flags {
@@ -108,7 +109,7 @@ impl Flags {
 }
 
 pub struct Cpu<'a> {
-    pub(crate) registers: HashMap<RegisterType, Register>,
+    pub(crate) registers: RegisterSet,
     pub(crate) pc: u16,
     pub memory: [u8; ROM_MEMORY_LIMIT * 8],
     pub(crate) cp_m_compatibility: bool,
@@ -129,7 +130,7 @@ impl<'a> Cpu<'a> {
     }
 
     pub fn new<'b>(rom_memory: [u8; ROM_MEMORY_LIMIT]) -> Cpu<'b> {
-        let registers = Cpu::make_register_map();
+        let registers = RegisterSet::new();
         let mut memory = [0; ROM_MEMORY_LIMIT * 8];
         for i in 0..(ROM_MEMORY_LIMIT * 8) {
             let value = if i < rom_memory.len() {
@@ -152,19 +153,6 @@ impl<'a> Cpu<'a> {
             cp_m_compatibility: false,
             printer: None,
         }
-    }
-
-    fn make_register_map() -> HashMap<RegisterType, Register> {
-        let mut registers = HashMap::with_capacity(NUM_REGISTERS);
-        registers.insert(RegisterType::A, Register::new(RegisterType::A));
-        registers.insert(RegisterType::B, Register::new(RegisterType::B));
-        registers.insert(RegisterType::C, Register::new(RegisterType::C));
-        registers.insert(RegisterType::D, Register::new(RegisterType::D));
-        registers.insert(RegisterType::E, Register::new(RegisterType::E));
-        registers.insert(RegisterType::H, Register::new(RegisterType::H));
-        registers.insert(RegisterType::L, Register::new(RegisterType::L));
-        registers.insert(RegisterType::Sp, Register::new(RegisterType::Sp));
-        registers
     }
 
     fn make_inputs_vector() -> Vec<Option<Box<InputDevice>>> {
@@ -207,29 +195,23 @@ impl<'a> Cpu<'a> {
 
     #[inline]
     pub(crate) fn get_current_hl_value(&self) -> u16 {
-        match (self.registers.get(&RegisterType::H).unwrap(), self.registers.get(&RegisterType::L).unwrap()) {
-            (Register::SingleRegister { value: h_value }, Register::SingleRegister { value: l_value }) =>
-                two_bytes_to_word(*h_value, *l_value),
-            _ => panic!("Register HL either not registered or Double. Can't happen!"),
-        }
+        let high_value = self.registers.h;
+        let low_value = self.registers.l;
+        two_bytes_to_word(high_value, low_value)
     }
 
     #[inline]
     pub(crate) fn get_current_bc_value(&self) -> u16 {
-        match (self.registers.get(&RegisterType::B).unwrap(), self.registers.get(&RegisterType::C).unwrap()) {
-            (Register::SingleRegister { value: h_value }, Register::SingleRegister { value: l_value }) =>
-                two_bytes_to_word(*h_value, *l_value),
-            _ => panic!("Register HL either not registered or Double. Can't happen!"),
-        }
+        let high_value = self.registers.b;
+        let low_value = self.registers.c;
+        two_bytes_to_word(high_value, low_value)
     }
 
     #[inline]
     pub(crate) fn get_current_de_value(&self) -> u16 {
-        match (self.registers.get(&RegisterType::D).unwrap(), self.registers.get(&RegisterType::E).unwrap()) {
-            (Register::SingleRegister { value: h_value }, Register::SingleRegister { value: l_value }) =>
-                two_bytes_to_word(*h_value, *l_value),
-            _ => panic!("Register HL either not registered or Double. Can't happen!"),
-        }
+        let high_value = self.registers.d;
+        let low_value = self.registers.e;
+        two_bytes_to_word(high_value, low_value)
     }
 
     #[inline]
@@ -251,18 +233,20 @@ impl<'a> Cpu<'a> {
 
     #[inline]
     pub(crate) fn get_current_sp_value(&self) -> u16 {
-        match self.registers.get(&RegisterType::Sp).unwrap() {
-            Register::DoubleRegister { value } => *value,
-            _ => panic!("SP register wasn't a word!")
-        }
+        self.registers.sp
     }
 
     #[inline]
     pub(crate) fn get_current_single_register_value(&self, register: &RegisterType) -> u8 {
-        if let Register::SingleRegister { value } = self.registers.get(register).unwrap() {
-            *value
-        } else {
-            panic!("{} register is double. Can't happen.", register.to_string())
+        match register {
+            RegisterType::A => self.registers.a,
+            RegisterType::B => self.registers.b,
+            RegisterType::C => self.registers.c,
+            RegisterType::D => self.registers.d,
+            RegisterType::E => self.registers.e,
+            RegisterType::H => self.registers.h,
+            RegisterType::L => self.registers.l,
+            _ => panic!("Invalid register {}", register.to_string()),
         }
     }
 
@@ -272,17 +256,22 @@ impl<'a> Cpu<'a> {
     }
 
     #[inline]
-    pub(crate) fn save_to_double_register(&mut self, new_value: u16, register: &RegisterType) {
-        if let Some(Register::DoubleRegister { value }) = self.registers.get_mut(register) {
-            *value = new_value;
-        }
+    pub(crate) fn save_to_sp(&mut self, new_value: u16) {
+        self.registers.sp = new_value;
     }
 
     #[inline]
     pub(crate) fn save_to_single_register(&mut self, new_value: u8, register: &RegisterType) {
-        if let Some(Register::SingleRegister { value }) = self.registers.get_mut(register) {
-            *value = new_value;
-        }
+        match register {
+            RegisterType::A => self.registers.a = new_value,
+            RegisterType::B => self.registers.b = new_value,
+            RegisterType::C => self.registers.c = new_value,
+            RegisterType::D => self.registers.d = new_value,
+            RegisterType::E => self.registers.e = new_value,
+            RegisterType::H => self.registers.h = new_value,
+            RegisterType::L => self.registers.l = new_value,
+            _ => panic!("Invalid register {}", register.to_string()),
+        };
     }
 
     #[inline]

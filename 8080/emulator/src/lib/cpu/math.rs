@@ -214,7 +214,7 @@ impl<'a> Cpu<'a> {
                 self.save_to_single_register((result >> 8) as u8, &RegisterType::H);
                 self.save_to_single_register(result as u8, &RegisterType::L);
             }
-            RegisterType::Sp => self.save_to_double_register(result as u16, &RegisterType::Sp),
+            RegisterType::Sp => self.save_to_sp(result as u16),
             _ => panic!("{} is not a valid INX argument!", register_type.to_string()),
         }
     }

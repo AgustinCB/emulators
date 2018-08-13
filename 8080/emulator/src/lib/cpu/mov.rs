@@ -41,8 +41,7 @@ impl<'a> Cpu<'a> {
                 self.save_to_single_register(low_byte, &RegisterType::L);
             },
             RegisterType::Sp =>
-                self.save_to_double_register(two_bytes_to_word(high_byte, low_byte),
-                                             &RegisterType::Sp),
+                self.save_to_sp(two_bytes_to_word(high_byte, low_byte)),
             _ => panic!("Register {} is not a valid input of LXI", register_type.to_string()),
         }
     }
@@ -77,7 +76,7 @@ impl<'a> Cpu<'a> {
 
     pub(crate) fn execute_sphl(&mut self) {
         let hl = self.get_current_hl_value();
-        self.save_to_double_register(hl, &RegisterType::Sp);
+        self.save_to_sp(hl);
     }
 
     pub(crate) fn execute_sta(&mut self, high_byte: u8, low_byte: u8) {
@@ -364,7 +363,7 @@ mod tests {
     #[test]
     fn it_should_execute_xthl() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
-        cpu.save_to_double_register(0, &RegisterType::Sp);
+        cpu.save_to_sp(0);
         cpu.memory[0] = 0x42;
         cpu.memory[1] = 0x24;
         cpu.execute_instruction(Instruction::Xthl);

@@ -19,7 +19,7 @@ impl<'a> Cpu<'a> {
         };
         self.memory[sp-1] = first_byte;
         self.memory[sp-2] = second_byte;
-        self.save_to_double_register((sp-2) as u16, &RegisterType::Sp);
+        self.save_to_sp((sp-2) as u16);
     }
 
     pub(crate) fn execute_pop(&mut self, register: &RegisterType) {
@@ -45,7 +45,7 @@ impl<'a> Cpu<'a> {
             },
             _ => panic!("{} is not a valid register for push!", register.to_string()),
         };
-        self.save_to_double_register((sp+2) as u16, &RegisterType::Sp);
+        self.save_to_sp((sp+2) as u16);
     }
 
     #[inline]
@@ -77,7 +77,7 @@ mod tests {
         memory[0x1239] = 0x3d;
         memory[0x123A] = 0x93;
         let mut cpu = Cpu::new(memory);
-        cpu.save_to_double_register(0x1239, &RegisterType::Sp);
+        cpu.save_to_sp(0x1239);
         cpu
     }
 
@@ -106,7 +106,7 @@ mod tests {
             }
             _ => panic!("Register {} is not an argument for PUSH.", register.to_string()),
         }
-        cpu.save_to_double_register(0x3A2C, &RegisterType::Sp);
+        cpu.save_to_sp(0x3A2C);
         cpu
     }
 
