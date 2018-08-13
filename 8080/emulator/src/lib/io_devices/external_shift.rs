@@ -31,8 +31,8 @@ pub struct ExternalShiftWriter {
 
 impl OutputDevice for ExternalShiftWriter {
     fn write(&mut self, value: u8) {
-        *(self.shift0.borrow_mut()) = *(self.shift1.borrow());
-        *(self.shift1.borrow_mut()) = value;
+        *(self.shift1.borrow_mut()) = *(self.shift0.borrow());
+        *(self.shift0.borrow_mut()) = value;
     }
 }
 
@@ -62,7 +62,7 @@ pub struct ExternalShiftReader {
 impl InputDevice for ExternalShiftReader {
     fn read(&mut self) -> u8 {
         let v = ((*self.shift0.borrow() as u16) << 8) | *self.shift1.borrow() as u16;
-        ((v >> (8-*self.shift_offset.borrow())) & 0xff) as u8
+        (v >> (8-*self.shift_offset.borrow())) as u8
     }
 }
 
@@ -87,8 +87,8 @@ mod tests {
         let mut offset_writer = ExternalShiftOffsetWriter::new();
         let mut shift_reader = ExternalShiftReader::new(&shift_writer, &offset_writer);
 
-        shift_writer.write(1);
         shift_writer.write(0);
+        shift_writer.write(1);
         offset_writer.write(6);
 
         assert_eq!(shift_reader.read(), 64);
