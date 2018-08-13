@@ -78,7 +78,6 @@ impl<'a> Console<'a> {
         )
             .opengl(OPEN_GL)
             .exit_on_esc(true)
-            .fullscreen(true)
             .build()
     }
 
