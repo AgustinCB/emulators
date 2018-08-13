@@ -78,6 +78,7 @@ impl<'a> Console<'a> {
         )
             .opengl(OPEN_GL)
             .exit_on_esc(true)
+            .srgb(false)
             .build()
     }
 
