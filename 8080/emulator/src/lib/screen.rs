@@ -1,4 +1,3 @@
-const FRAME_BUFFER_START_ADDRESS: usize = 0x2400;
 const COLUMN_LIMIT_BETWEEN_INTERRUPTIONS: u16 = 96;
 pub(crate) const SCREEN_WIDTH: usize = 224;
 pub(crate) const SCREEN_HEIGHT: usize = 256;
@@ -38,17 +37,14 @@ impl GameScreen {
         }
     }
 
-    fn update_columns(&mut self, start_column: u16, end_column: u16, memory: &[u8]) {
+    fn update_columns(&mut self, start_column: u16, end_column: u16, frame_buffer: &[u8]) {
         for column in start_column..end_column {
-            let start_address = FRAME_BUFFER_START_ADDRESS as u16 + column * 0x20;
-            let end_address = start_address + 0x20;
-            for start_line_address in start_address..end_address {
-                let start_line = start_line_address - start_address;
-                let bits = get_bits(memory[start_line_address as usize]);
-                let mut counter: u16 = 0;
-                for bit in bits.iter() {
-                    self.lines[(start_line+counter) as usize][column as usize] = *bit;
-                    counter += 1;
+            for line_group in 0..0x20 {
+                let address = column * 0x20 + line_group;
+                let bits = get_bits(frame_buffer[address as usize]);
+                for line_index in 0..8 {
+                    let line = line_group * 8 + line_index;
+                    self.lines[line as usize][column as usize] = bits[line_index as usize];
                 }
             }
         }
@@ -56,15 +52,301 @@ impl GameScreen {
 }
 
 impl Screen for GameScreen {
-    fn on_mid_screen(&mut self, memory: &[u8]) {
-        self.update_columns(COLUMN_LIMIT_BETWEEN_INTERRUPTIONS, SCREEN_WIDTH as u16, memory);
+    fn on_mid_screen(&mut self, frame_buffer: &[u8]) {
+        self.update_columns(COLUMN_LIMIT_BETWEEN_INTERRUPTIONS, SCREEN_WIDTH as u16, frame_buffer);
     }
 
-    fn on_full_screen(&mut self, memory: &[u8]) {
-        self.update_columns(0, COLUMN_LIMIT_BETWEEN_INTERRUPTIONS, memory);
+    fn on_full_screen(&mut self, frame_buffer: &[u8]) {
+        self.update_columns(0, COLUMN_LIMIT_BETWEEN_INTERRUPTIONS, frame_buffer);
     }
 
     fn get_pixels(&self) -> &ScreenLayout {
         &(self.lines)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{GameScreen, Screen, ScreenLayout, SCREEN_HEIGHT, SCREEN_WIDTH};
+    use super::super::cpu::{FRAME_BUFFER_SIZE, ROM_MEMORY_LIMIT};
+
+    #[test]
+    fn it_should_correctly_translate_from_memory() {
+        let expected_output: Vec<Vec<bool>> = [
+            [true; SCREEN_WIDTH],
+            [true; SCREEN_WIDTH],
+            [true; SCREEN_WIDTH],
+            [true; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [false; SCREEN_WIDTH],
+            [true; SCREEN_WIDTH],
+            [true; SCREEN_WIDTH],
+            [true; SCREEN_WIDTH],
+            [true; SCREEN_WIDTH],
+        ]
+            .iter()
+            .map(|s| s.to_vec())
+            .collect();
+        let mut memory = [0; FRAME_BUFFER_SIZE];
+        for counter in (0x1f..FRAME_BUFFER_SIZE).step_by(0x20) {
+            memory[counter] = 0xf0;
+        }
+        for counter in (0x00..(FRAME_BUFFER_SIZE-0x1f)).step_by(0x20) {
+            memory[counter] = 0x0f;
+        }
+        let mut screen = GameScreen::new();
+        screen.on_full_screen(&memory);
+        screen.on_mid_screen(&memory);
+        let actual_output: Vec<Vec<bool>> = screen.get_pixels()
+            .iter()
+            .map(|s| s.to_vec())
+            .collect();
+        assert_eq!(expected_output, actual_output);
     }
 }

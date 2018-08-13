@@ -4,6 +4,8 @@ use std::collections::HashMap;
 
 pub const ROM_MEMORY_LIMIT: usize = 8192;
 pub(crate) const MAX_INPUT_OUTPUT_DEVICES: usize = 0x100;
+pub(crate) const FRAME_BUFFER_ADDRESS: usize = 0x2400;
+pub(crate) const FRAME_BUFFER_SIZE: usize = 0x1C00;
 const NUM_REGISTERS: usize = 8;
 pub const HERTZ: i64 = 2_000_000;
 
@@ -287,5 +289,9 @@ impl<'a> Cpu<'a> {
     pub(crate) fn perform_jump(&mut self, high_byte: u8, low_byte: u8) {
         let new_pc = two_bytes_to_word(high_byte, low_byte);
         self.pc = new_pc;
+    }
+
+    pub(crate) fn get_frame_buffer(&self) -> &[u8] {
+        &self.memory[FRAME_BUFFER_ADDRESS..(FRAME_BUFFER_ADDRESS + FRAME_BUFFER_SIZE)]
     }
 }

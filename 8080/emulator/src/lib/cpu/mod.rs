@@ -14,4 +14,4 @@ mod mov;
 mod stack;
 mod state;
 pub use self::instruction::Instruction;
-pub use self::cpu::{Cpu, HERTZ, InputDevice, OutputDevice, ROM_MEMORY_LIMIT, Printer};
+pub use self::cpu::*;

@@ -113,10 +113,10 @@ impl<'a> Console<'a> {
         self.timer.update_last_check();
         if self.timer.should_trigger() && self.cpu.interruptions_enabled {
             self.prev_interruption = if self.prev_interruption == 1 {
-                self.screen.on_full_screen(&mut self.cpu.memory);
+                self.screen.on_full_screen(self.cpu.get_frame_buffer());
                 2
             } else {
-                self.screen.on_mid_screen(&mut self.cpu.memory);
+                self.screen.on_mid_screen(self.cpu.get_frame_buffer());
                 1
             };
             self.view.update_image(self.screen.get_pixels());
