@@ -34,7 +34,7 @@ impl<'a> Console<'a> {
     pub fn new<'b>(memory: [u8; ROM_MEMORY_LIMIT], folder: &'b str) -> Result<Console<'b>, String> {
         let timer = Timer::new(SCREEN_INTERRUPTIONS_INTERVAL);
         let keypad_controller = KeypadController::new();
-        let cpu = Console::create_cpu(memory, &keypad_controller);
+        let cpu = Console::create_cpu(memory, &keypad_controller, folder)?;
         let screen = Box::new(GameScreen::new());
         let window = Console::create_window()?;
         let gl = GlGraphics::new(OPEN_GL);
@@ -53,7 +53,10 @@ impl<'a> Console<'a> {
         })
     }
 
-    fn create_cpu<'b>(memory: [u8; ROM_MEMORY_LIMIT], keypad_controller: &KeypadController) -> Cpu<'b> {
+    fn create_cpu<'b>(
+        memory: [u8; ROM_MEMORY_LIMIT],
+        keypad_controller: &KeypadController,
+        folder: &str) -> Result<Cpu<'b>, String> {
         let mut cpu = Cpu::new(memory);
         let shift_writer = ExternalShiftWriter::new();
         let offset_writer = ExternalShiftOffsetWriter::new();
@@ -64,11 +67,11 @@ impl<'a> Console<'a> {
         cpu.add_input_device(2, Box::new(DummyInputDevice { value: 1 }));
         cpu.add_input_device(3, Box::new(shift_reader));
         cpu.add_output_device(2, Box::new(offset_writer));
-        cpu.add_output_device(3, Box::new(DummyOutputDevice{}));
+        cpu.add_output_device(3, Box::new(SoundPort1::new(folder)?));
         cpu.add_output_device(4, Box::new(shift_writer));
-        cpu.add_output_device(5, Box::new(DummyOutputDevice{}));
+        cpu.add_output_device(5, Box::new(SoundPort2::new(folder)?));
         cpu.add_output_device(6, Box::new(DummyOutputDevice{}));
-        cpu
+        Ok(cpu)
     }
 
     fn create_window() -> Result<Window, String> {

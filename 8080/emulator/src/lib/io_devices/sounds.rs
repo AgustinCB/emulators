@@ -1,84 +1,83 @@
-extern crate rodio;
+extern crate ears;
 
-use std::fs::File;
-use std::io::{BufReader, Error};
-use self::rodio::{default_output_device, Decoder, Device, Sink, Source};
+use self::ears::{AudioController, Sound};
+use super::super::cpu::OutputDevice;
 
-struct Sounds {
-    instant_sound_1: File,
-    instant_sound_2: File,
-    instant_sound_3: File,
-    instant_sound_4: File,
-    instant_sound_5: File,
-    instant_sound_6: File,
-    instant_sound_7: File,
-    instant_sound_8: File,
-    background: File,
-}
-
-impl Sounds {
-    fn new(folder: &str) -> Result<Sounds, String> {
-        Ok(Sounds {
-            background: Sounds::create_source(&format!("{}/0.wav", folder))?,
-            instant_sound_1: Sounds::create_source(&format!("{}/1.wav", folder))?,
-            instant_sound_2: Sounds::create_source(&format!("{}/2.wav", folder))?,
-            instant_sound_3: Sounds::create_source(&format!("{}/3.wav", folder))?,
-            instant_sound_4: Sounds::create_source(&format!("{}/4.wav", folder))?,
-            instant_sound_5: Sounds::create_source(&format!("{}/5.wav", folder))?,
-            instant_sound_6: Sounds::create_source(&format!("{}/6.wav", folder))?,
-            instant_sound_7: Sounds::create_source(&format!("{}/7.wav", folder))?,
-            instant_sound_8: Sounds::create_source(&format!("{}/8.wav", folder))?,
-        })
-    }
-
-    fn create_source(file_location: &str) -> Result<File, String> {
-        File::open(file_location)
-            .map_err(|e| e.to_string())
-    }
-}
-
-pub struct SoundOutput {
-    device: Device,
+pub struct SoundPort1 {
     last_value: u8,
-    channel1: Sink,
-    channel2: Sink,
-    sounds: Sounds,
+    background: Sound,
+    instant_sound_1: Sound,
+    instant_sound_2: Sound,
+    instant_sound_3: Sound,
 }
 
-impl SoundOutput {
-    pub fn new(folder: &str) -> Result<SoundOutput, String> {
-        let device = default_output_device()
-            .ok_or("No sound")?;
-        let sink1 = Sink::new(&device);
-        let sink2 = Sink::new(&device);
-        let sounds = Sounds::new(folder)?;
-        Ok(SoundOutput {
-            device,
+pub struct SoundPort2 {
+    last_value: u8,
+    instant_sound_4: Sound,
+    instant_sound_5: Sound,
+    instant_sound_6: Sound,
+    instant_sound_7: Sound,
+    instant_sound_8: Sound,
+}
+
+impl SoundPort1 {
+    pub fn new(folder: &str) -> Result<SoundPort1, String> {
+        Ok(SoundPort1 {
             last_value: 0,
-            channel1: sink1,
-            channel2: sink2,
-            sounds,
+            background: {
+                let mut sound = Sound::new(&format!("{}/0.wav", folder))?;
+                sound.set_looping(true);
+                sound
+            },
+            instant_sound_1: Sound::new(&format!("{}/1.wav", folder))?,
+            instant_sound_2: Sound::new(&format!("{}/2.wav", folder))?,
+            instant_sound_3: Sound::new(&format!("{}/3.wav", folder))?,
         })
     }
+}
 
-    fn play(&self, file: &'static File) -> Result<(), String> {
-        let source = Decoder::new(BufReader::new(file)).map_err(|e| e.to_string())?;
-        self.channel1.append(source);
-        if self.channel1.empty() {
-            self.channel1.play();
+impl SoundPort2 {
+    pub fn new(folder: &str) -> Result<SoundPort2, String> {
+        Ok(SoundPort2 {
+            last_value: 0,
+            instant_sound_4: Sound::new(&format!("{}/4.wav", folder))?,
+            instant_sound_5: Sound::new(&format!("{}/5.wav", folder))?,
+            instant_sound_6: Sound::new(&format!("{}/6.wav", folder))?,
+            instant_sound_7: Sound::new(&format!("{}/7.wav", folder))?,
+            instant_sound_8: Sound::new(&format!("{}/8.wav", folder))?,
+        })
+    }
+}
+
+macro_rules! maybe_play_instant_sound {
+    ($position:expr, $byte:ident, $this:ident, $sound:ident) => {
+        if ($byte & $position) ^ ($byte & $this.last_value) > 0 &&
+            !$this.$sound.is_playing () {
+            $this.$sound.play();
         }
-        Ok(())
     }
-
-    fn repeat(&self, file: &'static File) -> Result<(), String> {
-        let source = Decoder::new(BufReader::new(file)).map_err(|e| e.to_string())?;
-        self.channel2.stop();
-        self.channel2.append(source.repeat_infinite());
-        self.channel2.play();
-        Ok(())
+}
+impl OutputDevice for SoundPort1 {
+    fn write(&mut self, byte: u8) {
+        if (byte & 0x01) ^ (byte & self.last_value) > 0 {
+            if self.background.is_playing() {
+                self.background.stop();
+            } else {
+                self.background.play();
+            }
+        }
+        maybe_play_instant_sound!(0x02, byte, self, instant_sound_1);
+        maybe_play_instant_sound!(0x04, byte, self, instant_sound_2);
+        maybe_play_instant_sound!(0x08, byte, self, instant_sound_3);
     }
+}
 
-    fn stop_repeat(&self) {
-        self.channel2.stop();
+impl OutputDevice for SoundPort2 {
+    fn write(&mut self, byte: u8) {
+        maybe_play_instant_sound!(0x01, byte, self, instant_sound_4);
+        maybe_play_instant_sound!(0x02, byte, self, instant_sound_5);
+        maybe_play_instant_sound!(0x04, byte, self, instant_sound_6);
+        maybe_play_instant_sound!(0x08, byte, self, instant_sound_7);
+        maybe_play_instant_sound!(0x10, byte, self, instant_sound_8);
     }
 }
