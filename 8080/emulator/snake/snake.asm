@@ -91,15 +91,50 @@ CZ MOVE_UP
 CPI 0x04
 CZ MOVE_LEFT
 CALL MOVE_DOWN
-CALL DRAW_NODE
 CALL SAVE_NODE
+CALL DRAW_NODE
 RET
 
 UPDATE_TAIL:
 RET
 
 DRAW_NODE:
-
+MOV C, E
+; Multiply the x coordinate by 0x20 (unconfirmed)
+MVI A, 5
+OUT 4
+MOV A, D
+OUT 2
+MVI A, 0
+OUT 2
+IN 3
+MOV E, A
+MVI A, 0
+OUT 2
+MOV A, D
+OUT 2
+IN 3
+; Sum the result to 0x2400 to get the base address
+MOV D, A
+LXI H, START_FRAME_BUFFER
+DAD D
+; Divide the y coordinate by 8 (integer division) (confirmed)
+MOV A, C
+OUT 2
+MVI A, 0
+OUT 2
+IN 3
+; Sum to HL to get the location of byte that affects the pixel.
+MOV E, A
+MVI D, 0
+DAD D
+MOV A, C
+; Get the rest to know which bit to modify
+ANI 7
+MOV C, A
+MOV A, M
+ORA C
+MOV M, A
 RET
 
 SAVE_NODE:
