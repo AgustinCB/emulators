@@ -1,5 +1,6 @@
 mod buttons;
 mod external_shift;
+mod sounds;
 use super::cpu::{InputDevice, OutputDevice};
 
 pub struct DummyOutputDevice {}
@@ -20,3 +21,4 @@ impl InputDevice for DummyInputDevice {
 
 pub use self::external_shift::*;
 pub use self::buttons::*;
+pub use self::sounds::*;

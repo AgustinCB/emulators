@@ -45,8 +45,10 @@ fn read_file(file_name: &str) -> std::io::Result<[u8; ROM_MEMORY_LIMIT]> {
     Ok(memory)
 }
 
-fn start_game(memory: [u8; ROM_MEMORY_LIMIT]) -> Result<(), String> {
-    let mut console = Console::new(memory)?;
+fn start_game(folder: &str) -> Result<(), String> {
+    let rom_location = format!("{}/rom", folder);
+    let memory = read_file(&rom_location).unwrap();
+    let mut console = Console::new(memory, folder)?;
     console.start()?;
     Ok(())
 }
@@ -72,16 +74,17 @@ fn main() {
     if args.len() != 3 {
         panic!(USAGE);
     }
-    let memory = read_file(&args[2]).unwrap();
 
     if args[1] == "game" {
-        match start_game(memory) {
+        match start_game(&args[2]) {
             Ok(()) => {},
             Err(err) => panic!(err),
         };
     } else if args[1] == "disassemble" {
+        let memory = read_file(&args[2]).unwrap();
         disassemble(memory);
     } else if args[1] == "test" {
+        let memory = read_file(&args[2]).unwrap();
         test(memory);
     } else {
         panic!(USAGE);
