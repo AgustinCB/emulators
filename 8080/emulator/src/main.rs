@@ -7,7 +7,14 @@ use std::cmp::min;
 use std::fs::File;
 use std::io::Read;
 
-const USAGE: &'static str = "Usage: disassembler-8080 [game|test|disassemble] [file]";
+const USAGE: &'static str = "Usage: disassembler-8080 [game|test|disassemble] [file]
+
+If running either test or disassemble, [file] should be a hex file with Intel 8080 instructions.
+
+When selecting the mode game, [file] should be a folder that contains the following content:
+
+./rom # The rom of the game
+./0.wav ... 9.wav # The audio files of the game";
 
 struct PrintScreen;
 
