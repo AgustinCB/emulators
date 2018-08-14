@@ -31,7 +31,7 @@ pub struct Console<'a> {
 }
 
 impl<'a> Console<'a> {
-    pub fn new<'b>(memory: [u8; ROM_MEMORY_LIMIT], folder: &'b str) -> Result<Console<'b>, String> {
+    pub fn new(memory: [u8; ROM_MEMORY_LIMIT], folder: &str) -> Result<Console, String> {
         let timer = Timer::new(SCREEN_INTERRUPTIONS_INTERVAL);
         let keypad_controller = KeypadController::new();
         let cpu = Console::create_cpu(memory, &keypad_controller, folder)?;
