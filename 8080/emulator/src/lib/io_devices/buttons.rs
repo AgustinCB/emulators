@@ -6,11 +6,13 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 enum GameButton {
+    Down,
     Coin,
+    Fire,
     Left,
     Right,
-    Fire,
     Start,
+    Up,
 }
 
 pub struct KeypadController {
@@ -34,9 +36,11 @@ impl KeypadController {
         match button {
             Some(GameButton::Coin) => result |= 0x01,
             Some(GameButton::Start) => result |= 0x04,
+            Some(GameButton::Up) => result |= 0x08,
             Some(GameButton::Fire) => result |= 0x10,
             Some(GameButton::Left) => result |= 0x20,
             Some(GameButton::Right) => result |= 0x40,
+            Some(GameButton::Down) => result |= 0x80,
             _ => {},
         };
         *(self.buttons_pressed.borrow_mut()) = result;
@@ -48,9 +52,11 @@ impl KeypadController {
         match button {
             Some(GameButton::Coin) => result &= !0x01,
             Some(GameButton::Start) => result &= !0x04,
+            Some(GameButton::Up) => result &= !0x08,
             Some(GameButton::Fire) => result &= !0x10,
             Some(GameButton::Left) => result &= !0x20,
             Some(GameButton::Right) => result &= !0x40,
+            Some(GameButton::Down) => result &= !0x80,
             _ => {},
         };
         *(self.buttons_pressed.borrow_mut()) = result;
@@ -59,11 +65,13 @@ impl KeypadController {
     #[inline]
     fn game_button_from_key(&self, key: Key) -> Option<GameButton> {
         match key {
-            Key::A => Some(GameButton::Left),
-            Key::S => Some(GameButton::Right),
-            Key::Space => Some(GameButton::Start),
             Key::C => Some(GameButton::Coin),
+            Key::Down => Some(GameButton::Down),
             Key::F => Some(GameButton::Fire),
+            Key::Left => Some(GameButton::Left),
+            Key::Right => Some(GameButton::Right),
+            Key::Space => Some(GameButton::Start),
+            Key::Up => Some(GameButton::Up),
             _ => None,
         }
     }
