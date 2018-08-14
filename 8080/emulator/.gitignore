@@ -1,3 +1,5 @@
 /target
 **/*.rs.bk
-invaders
+
+# ignore rom and sound data folder
+invaders/
