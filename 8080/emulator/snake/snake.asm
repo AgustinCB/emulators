@@ -38,10 +38,10 @@ MVI B, 1
 ; Initialize the status
 MVI SP, FFFFH
 ; Direction:
-; 0x01 -> Right
-; 0x02 -> Up
-; 0x04 -> Left
-; 0x08 -> Down
+; 0x40 -> Right
+; 0x08 -> Up
+; 0x20 -> Left
+; 0x80 -> Down
 ; Default: Right
 LXI H, STATUS
 MVI D, 01H
@@ -94,11 +94,11 @@ INX L
 CALL LOAD_NODE
 LXI H, STATUS
 MOV A, M
-CPI 0x01
+CPI 0x40
 CZ MOVE_RIGHT
-CPI 0x02
+CPI 0x08
 CZ MOVE_UP
-CPI 0x04
+CPI 0x20
 CZ MOVE_LEFT
 CALL MOVE_DOWN
 CALL SAVE_NODE
@@ -182,6 +182,20 @@ DCX H
 RET
 
 READ_INPUT:
+IN 1
+ANA 0xe8
+ANA 0x40
+JNZ SAVE
+ANA 0x08
+JNZ SAVE
+ANA 0x20
+JNZ SAVE
+ANA 0x80
+JNZ SAVE
+RET
+SAVE:
+LXI H, STATUS
+MOV M, A
 RET
 
 WAIT_HALF_SECOND:
