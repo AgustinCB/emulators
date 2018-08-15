@@ -100,18 +100,18 @@ RET
 
 DRAW_NODE:
 MOV C, E
-; Multiply the x coordinate by 0x20 (unconfirmed)
+; Multiply the x coordinate by 0x20
 MVI A, 5
 OUT 4
-MOV A, D
-OUT 2
 MVI A, 0
+OUT 2
+MOV A, D
 OUT 2
 IN 3
 MOV E, A
-MVI A, 0
-OUT 2
 MOV A, D
+OUT 2
+MVI A, 0
 OUT 2
 IN 3
 ; Sum the result to 0x2400 to get the base address
