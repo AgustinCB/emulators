@@ -44,7 +44,7 @@ MVI SP, FFFFH
 ; 0x80 -> Down
 ; Default: Right
 LXI H, STATUS
-MVI D, 01H
+MVI D, 40H
 MOV M, D
 
 ; Starting position of the snake
@@ -195,6 +195,7 @@ JNZ SAVE
 RET
 SAVE:
 LXI H, STATUS
+INX H
 MOV M, A
 RET
 
@@ -202,6 +203,11 @@ WAIT_HALF_SECOND:
 RET
 
 UPDATE_STATUS:
+LXI H, STATUS
+INX H
+MOV C, M
+DCX H
+MOV M, C
 RET
 
 UPDATE_TIMER:
