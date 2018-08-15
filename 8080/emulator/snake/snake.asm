@@ -35,7 +35,7 @@ INIT:
 ; 0x04 -> All done! Game running!
 MVI B, 1
 
-INIT_STATUS:
+; Initialize the status
 MVI SP, FFFFH
 ; Direction:
 ; 0x01 -> Right
@@ -47,7 +47,6 @@ LXI H, STATUS
 MVI D, 01H
 MOV M, D
 
-INIT_SNAKE:
 ; Starting position of the snake
 ; Snake array.
 ; First byte is the size of the structure.
@@ -60,7 +59,7 @@ INX H
 LXI D, MID_SCREEN
 CALL SAVE_SNAKE_POINT
 
-INIT_SCREEN:
+; Initialize the screen
 ADD B, B
 CALL CLEAR_SCREEN
 CALL DRAW_NODE
