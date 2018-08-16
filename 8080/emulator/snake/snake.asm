@@ -118,6 +118,29 @@ CALL DRAW_NODE
 RET
 
 UPDATE_TAIL:
+LXI H, SNAKE
+MOV C, M ; Get the size of the snake
+MOV A, C
+FIND_LAST_LOOP:
+INX H
+DCR C
+JNZ FIND_LAST_LOOP
+CALL LOAD_NODE
+MOV B, D
+MOV C, E
+CPI 1
+JZ LOAD_PREV
+JMP FINISH
+LOAD_PREV:
+DCX H
+CALL LOAD_NODE
+FINISH:
+; Here in BC we have the coordinates of the last vertex of the snake
+; And in DE we have the coordinates of the previous to last vertex of the snake
+; We have to:
+;   Clear the bit in the frame buffer for the last vertex.
+;   Update the position of the last vertex
+;   Remove the last vertex if it's the same of the previous one
 RET
 
 DRAW_NODE:
