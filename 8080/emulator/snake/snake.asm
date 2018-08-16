@@ -138,9 +138,29 @@ FINISH:
 ;   Clear the bit in the frame buffer for the last vertex.
 ;   Update the position of the last vertex
 ;   Remove the last vertex if it's the same of the previous one
+
+; Update the bit
+PUSH B
+CALL GET_BIT
+MOV A, C
+XRA FFH
+MOV C, A
+MOV A, M
+ANA C
+MOV M, A
 RET
 
 DRAW_NODE:
+CALL GET_BIT
+MOV A, M
+ORA C
+MOV M, A
+RET
+
+GET_BIT:
+; This method will get in HL the address of the byte in which that contains the bit in the frame buffer
+; That affects the position at DE
+; It will also set C to contain a mask that refers to that pixel.
 MOV C, E
 ; Multiply the x coordinate by 0x20
 MVI A, 5
@@ -174,10 +194,7 @@ MOV A, C
 ; Get the rest to know which bit to modify
 ANI 7
 MOV C, A
-MOV A, M
-ORA C
-MOV M, A
-RET
+; TODO: Now C contains the rest, but we need a mask built from that rest (i.e. map C to 2^C).
 
 SAVE_NODE:
 ; Puts D in the x coordinate of the node pointed by HL
