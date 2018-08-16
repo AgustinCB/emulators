@@ -1,4 +1,8 @@
 SNAKE               EQU     4001H
+; Status storage
+; 2000 -> Direction
+; 2001 -> Next direction
+; 2002 -> Timer
 STATUS              EQU     2000H
 MID_WIDTH           EQU     112
 MID_HEIGHT          EQU     128
@@ -200,6 +204,14 @@ MOV M, A
 RET
 
 WAIT_HALF_SECOND:
+LXI H, STATUS
+INX H
+INX H
+MVI M, 60 ; The variable will get updated every 1/120 second. So there'd be 120 updates per second
+WAIT_HALF_SECOND_LOOP:
+MOV A, M
+CPI 0
+JNZ WAIT_HALF_SECOND_LOOP
 RET
 
 UPDATE_STATUS:
@@ -211,4 +223,10 @@ MOV M, C
 RET
 
 UPDATE_TIMER:
+LXI H, STATUS
+INX H
+INX H
+MOV C, M
+DCR C
+MOV M, C
 RET
