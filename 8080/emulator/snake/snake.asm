@@ -138,9 +138,11 @@ FINISH:
 ;   Clear the bit in the frame buffer for the last vertex.
 ;   Update the position of the last vertex
 ;   Remove the last vertex if it's the same of the previous one
+;   Save new state
 
 ; Update the bit
 PUSH B
+PUSH D
 CALL GET_BIT
 MOV A, C
 XRA FFH
@@ -148,6 +150,36 @@ MOV C, A
 MOV A, M
 ANA C
 MOV M, A
+
+; Update the position of the last vertex
+POP D
+POP B
+MOV A, D
+SUB B
+JZ SAME_COLUMN
+
+; If the row is the same
+JM GO_RIGHT
+DCR D
+JMP REMOVE_LAST_VERTEX
+GO_RIGHT:
+INC D
+JMP REMOVE_LAST_VERTEX
+
+; If the column is the same
+SAME_COLUMN:
+MOV A, E
+SUB C
+JM GO_UP
+DCR E
+JMP REMOVE_LAST_VERTEX
+GO_UP:
+INC E
+JMP REMOVE_LAST_VERTEX
+
+REMOVE_LAST_VERTEX:
+
+UPDATE_VERTEX:
 RET
 
 DRAW_NODE:
