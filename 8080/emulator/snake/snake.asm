@@ -54,21 +54,23 @@ MVI SP, FFFFH
 ; 0x08 -> Up
 ; 0x20 -> Left
 ; 0x80 -> Down
-; Default: Right
+; Default: Up
 LXI H, STATUS
-MVI D, 40H
+MVI D, 08H
 MOV M, D
 
 ; Starting position of the snake
 ; Snake array.
 ; First byte is the size of the structure.
-; Then each couple of bytes is the location of a node, starting from the tail.
+; Then each couple of bytes is the location of a node, starting from the head.
 ; Each node are the vertices of the snake.
 ADD B, B
 LXI H, SNAKE
-MVI M, 1
+MVI M, 2
 INX H
 LXI D, MID_SCREEN
+CALL SAVE_SNAKE_POINT
+INX D
 CALL SAVE_SNAKE_POINT
 
 ; Initialize the screen
@@ -120,23 +122,18 @@ RET
 UPDATE_TAIL:
 LXI H, SNAKE
 MOV C, M ; Get the size of the snake
-MOV A, C
-FIND_LAST_LOOP:
+DCR C
+FIND_PREV_LAST_LOOP:
 INX H
 DCR C
-JNZ FIND_LAST_LOOP
+JNZ FIND_PREV_LAST_LOOP
 CALL LOAD_NODE
 MOV B, D
 MOV C, E
-CPI 1
-JZ LOAD_PREV
-JMP FINISH
-LOAD_PREV:
-DCX H
 CALL LOAD_NODE
 FINISH:
-; Here in BC we have the coordinates of the last vertex of the snake
-; And in DE we have the coordinates of the previous to last vertex of the snake
+; Here in DE we have the coordinates of the last vertex of the snake
+; And in BC we have the coordinates of the previous to last vertex of the snake
 ; We have to:
 ;   Clear the bit in the frame buffer for the last vertex.
 ;   Update the position of the last vertex
@@ -185,10 +182,11 @@ RET
 SAVE_NODE:
 ; Puts D in the x coordinate of the node pointed by HL
 ; And E in the y coordinate of the node pointed by HL+1
+; Also advance H to the next node.
 MOV M, D
 INX H
 MOV M, E
-DCX H
+INX H
 RET
 
 MOVE_RIGHT:
@@ -210,10 +208,11 @@ RET
 LOAD_NODE:
 ; Puts the x coordinate of the node pointed by HL int D
 ; And the y coordinate in E
+; Also advance H to the next node
 MOV D, M
 INX H
 MOV E, M
-DCX H
+INX H
 RET
 
 READ_INPUT:
