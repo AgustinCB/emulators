@@ -1,6 +1,6 @@
 #[macro_use] extern crate failure;
 
-use self::failure::{Fail, Error};
+use self::failure::Fail;
 
 #[derive(Debug, Fail)]
 pub enum ConsoleError {

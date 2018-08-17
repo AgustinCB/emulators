@@ -23,7 +23,7 @@ mod tests {
     fn it_should_execute_ei() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.interruptions_enabled = false;
-        cpu.execute_instruction(Instruction::Ei);
+        cpu.execute_instruction(Instruction::Ei).unwrap();
         assert!(cpu.interruptions_enabled);
     }
 
@@ -31,7 +31,7 @@ mod tests {
     fn it_shouldnt_execute_ei_when_enabled() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.interruptions_enabled = true;
-        cpu.execute_instruction(Instruction::Ei);
+        cpu.execute_instruction(Instruction::Ei).unwrap();
         assert!(cpu.interruptions_enabled);
     }
 
@@ -39,7 +39,7 @@ mod tests {
     fn it_should_execute_di() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.interruptions_enabled = true;
-        cpu.execute_instruction(Instruction::Di);
+        cpu.execute_instruction(Instruction::Di).unwrap();
         assert!(!cpu.interruptions_enabled);
     }
 
@@ -47,7 +47,7 @@ mod tests {
     fn it_shouldnt_execute_di_when_disabled() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.interruptions_enabled = false;
-        cpu.execute_instruction(Instruction::Di);
+        cpu.execute_instruction(Instruction::Di).unwrap();
         assert!(!cpu.interruptions_enabled);
     }
 
@@ -55,7 +55,7 @@ mod tests {
     fn it_should_execute_hlt() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.state = State::Running;
-        cpu.execute_instruction(Instruction::Hlt);
+        cpu.execute_instruction(Instruction::Hlt).unwrap();
         assert_eq!(cpu.state, State::Stopped);
     }
 }

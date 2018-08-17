@@ -9,7 +9,7 @@ use self::piston::window::WindowSettings;
 use self::piston::event_loop::*;
 use self::piston::input::*;
 use super::ConsoleError;
-use super::cpu::{Cpu, HERTZ, Instruction, ROM_MEMORY_LIMIT};
+use super::cpu::{Cpu, CpuError, HERTZ, Instruction, ROM_MEMORY_LIMIT};
 use super::failure::Error;
 use super::io_devices::*;
 use super::screen::{Screen, GameScreen};
@@ -88,7 +88,7 @@ impl<'a> Console<'a> {
             .map_err(|e| Error::from(ConsoleError::CantCreateWindow { msg: e }))
     }
 
-    pub fn start(&mut self) {
+    pub fn start(&mut self) -> Result<(), CpuError> {
         self.timer.reset();
         let mut events = Events::new(
             EventSettings::new().ups(1000).max_fps(60));
@@ -101,7 +101,7 @@ impl<'a> Console<'a> {
             }
 
             if let Some(u) = e.update_args() {
-                self.update(&u);
+                self.update(&u)?;
             }
 
             if let Some(Button::Keyboard(key)) = e.press_args() {
@@ -112,9 +112,10 @@ impl<'a> Console<'a> {
                 self.keypad_controller.key_released(key);
             }
         }
+        Ok(())
     }
 
-    fn update(&mut self, args: &UpdateArgs) {
+    fn update(&mut self, args: &UpdateArgs) -> Result<(), CpuError> {
         self.timer.update_last_check();
         if self.timer.should_trigger() && self.cpu.interruptions_enabled {
             self.prev_interruption = if self.prev_interruption == 1 {
@@ -127,12 +128,13 @@ impl<'a> Console<'a> {
             self.view.update_image(self.screen.get_pixels());
             self.cpu.execute_instruction(Instruction::Rst {
                 value: self.prev_interruption
-            });
+            })?;
         }
         let mut cycles_to_run = (args.dt * (HERTZ as f64)) as i64 + self.cycles_left;
         while cycles_to_run > 0 {
-            cycles_to_run -= self.cpu.execute() as i64;
+            cycles_to_run -= self.cpu.execute()? as i64;
         }
         self.cycles_left = cycles_to_run;
+        Ok(())
     }
 }

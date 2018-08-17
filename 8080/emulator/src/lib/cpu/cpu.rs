@@ -1,5 +1,7 @@
 use cpu::helpers::{bit_count, two_bytes_to_word};
 use std::boxed::Box;
+use std::fmt;
+use super::CpuError;
 
 pub const ROM_MEMORY_LIMIT: usize = 8192;
 pub(crate) const MAX_INPUT_OUTPUT_DEVICES: usize = 0x100;
@@ -7,7 +9,7 @@ pub(crate) const FRAME_BUFFER_ADDRESS: usize = 0x2400;
 pub(crate) const FRAME_BUFFER_SIZE: usize = 0x1C00;
 pub const HERTZ: i64 = 2_000_000;
 
-#[derive(Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub enum RegisterType {
     A,
     B,
@@ -20,19 +22,9 @@ pub enum RegisterType {
     Psw,
 }
 
-impl ToString for RegisterType {
-    fn to_string(&self) -> String {
-        match self {
-            RegisterType::A => String::from("A"),
-            RegisterType::B => String::from("B"),
-            RegisterType::C => String::from("C"),
-            RegisterType::D => String::from("D"),
-            RegisterType::E => String::from("E"),
-            RegisterType::H => String::from("H"),
-            RegisterType::L => String::from("L"),
-            RegisterType::Sp => String::from("SP"),
-            RegisterType::Psw => String::from("PSW"),
-        }
+impl fmt::Display for RegisterType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.to_string())
     }
 }
 
@@ -227,7 +219,7 @@ impl<'a> Cpu<'a> {
     }
 
     #[inline]
-    pub(crate) fn get_current_a_value(&self) -> u8 {
+    pub(crate) fn get_current_a_value(&self) -> Result<u8, CpuError> {
         self.get_current_single_register_value(&RegisterType::A)
     }
 
@@ -237,21 +229,22 @@ impl<'a> Cpu<'a> {
     }
 
     #[inline]
-    pub(crate) fn get_current_single_register_value(&self, register: &RegisterType) -> u8 {
+    pub(crate) fn get_current_single_register_value(&self, register: &RegisterType)
+        -> Result<u8, CpuError> {
         match register {
-            RegisterType::A => self.registers.a,
-            RegisterType::B => self.registers.b,
-            RegisterType::C => self.registers.c,
-            RegisterType::D => self.registers.d,
-            RegisterType::E => self.registers.e,
-            RegisterType::H => self.registers.h,
-            RegisterType::L => self.registers.l,
-            _ => panic!("Invalid register {}", register.to_string()),
+            RegisterType::A => Ok(self.registers.a),
+            RegisterType::B => Ok(self.registers.b),
+            RegisterType::C => Ok(self.registers.c),
+            RegisterType::D => Ok(self.registers.d),
+            RegisterType::E => Ok(self.registers.e),
+            RegisterType::H => Ok(self.registers.h),
+            RegisterType::L => Ok(self.registers.l),
+            _ => Err(CpuError::VirtualRegister { register: *register }),
         }
     }
 
     #[inline]
-    pub(crate) fn save_to_a(&mut self, new_value: u8) {
+    pub(crate) fn save_to_a(&mut self, new_value: u8) -> Result<(), CpuError> {
         self.save_to_single_register(new_value, &RegisterType::A)
     }
 
@@ -261,17 +254,39 @@ impl<'a> Cpu<'a> {
     }
 
     #[inline]
-    pub(crate) fn save_to_single_register(&mut self, new_value: u8, register: &RegisterType) {
+    pub(crate) fn save_to_single_register(&mut self, new_value: u8, register: &RegisterType)
+        -> Result<(), CpuError> {
         match register {
-            RegisterType::A => self.registers.a = new_value,
-            RegisterType::B => self.registers.b = new_value,
-            RegisterType::C => self.registers.c = new_value,
-            RegisterType::D => self.registers.d = new_value,
-            RegisterType::E => self.registers.e = new_value,
-            RegisterType::H => self.registers.h = new_value,
-            RegisterType::L => self.registers.l = new_value,
-            _ => panic!("Invalid register {}", register.to_string()),
-        };
+            RegisterType::A => {
+                self.registers.a = new_value;
+                Ok(())
+            },
+            RegisterType::B => {
+                self.registers.b = new_value;
+                Ok(())
+            },
+            RegisterType::C => {
+                self.registers.c = new_value;
+                Ok(())
+            },
+            RegisterType::D => {
+                self.registers.d = new_value;
+                Ok(())
+            },
+            RegisterType::E => {
+                self.registers.e = new_value;
+                Ok(())
+            },
+            RegisterType::H => {
+                self.registers.h = new_value;
+                Ok(())
+            },
+            RegisterType::L => {
+                self.registers.l = new_value;
+                Ok(())
+            },
+            _ => Err(CpuError::VirtualRegister { register: *register }),
+        }
     }
 
     #[inline]

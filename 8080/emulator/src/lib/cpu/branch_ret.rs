@@ -76,7 +76,7 @@ mod tests {
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.carry = true;
-        cpu.execute_instruction(Instruction::Rc);
+        cpu.execute_instruction(Instruction::Rc).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
     }
@@ -89,7 +89,7 @@ mod tests {
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.carry = false;
-        cpu.execute_instruction(Instruction::Rc);
+        cpu.execute_instruction(Instruction::Rc).unwrap();
         assert_eq!(cpu.pc, 0x2442);
         assert_eq!(cpu.get_current_sp_value(), 0);
     }
@@ -101,7 +101,7 @@ mod tests {
         cpu.memory[0] = 0x03;
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
-        cpu.execute_instruction(Instruction::Ret);
+        cpu.execute_instruction(Instruction::Ret).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
     }
@@ -114,7 +114,7 @@ mod tests {
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.sign = true;
-        cpu.execute_instruction(Instruction::Rm);
+        cpu.execute_instruction(Instruction::Rm).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
     }
@@ -127,7 +127,7 @@ mod tests {
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.sign = false;
-        cpu.execute_instruction(Instruction::Rm);
+        cpu.execute_instruction(Instruction::Rm).unwrap();
         assert_eq!(cpu.pc, 0x2442);
         assert_eq!(cpu.get_current_sp_value(), 0);
     }
@@ -140,7 +140,7 @@ mod tests {
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.carry = false;
-        cpu.execute_instruction(Instruction::Rnc);
+        cpu.execute_instruction(Instruction::Rnc).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
     }
@@ -153,7 +153,7 @@ mod tests {
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.carry = true;
-        cpu.execute_instruction(Instruction::Rnc);
+        cpu.execute_instruction(Instruction::Rnc).unwrap();
         assert_eq!(cpu.pc, 0x2442);
         assert_eq!(cpu.get_current_sp_value(), 0);
     }
@@ -166,7 +166,7 @@ mod tests {
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.zero = false;
-        cpu.execute_instruction(Instruction::Rnz);
+        cpu.execute_instruction(Instruction::Rnz).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
     }
@@ -179,7 +179,7 @@ mod tests {
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.zero = true;
-        cpu.execute_instruction(Instruction::Rnz);
+        cpu.execute_instruction(Instruction::Rnz).unwrap();
         assert_eq!(cpu.pc, 0x2442);
         assert_eq!(cpu.get_current_sp_value(), 0);
     }
@@ -192,7 +192,7 @@ mod tests {
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.sign = false;
-        cpu.execute_instruction(Instruction::Rp);
+        cpu.execute_instruction(Instruction::Rp).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
     }
@@ -205,7 +205,7 @@ mod tests {
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.sign = true;
-        cpu.execute_instruction(Instruction::Rp);
+        cpu.execute_instruction(Instruction::Rp).unwrap();
         assert_eq!(cpu.pc, 0x2442);
         assert_eq!(cpu.get_current_sp_value(), 0);
     }
@@ -218,7 +218,7 @@ mod tests {
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.parity = true;
-        cpu.execute_instruction(Instruction::Rpe);
+        cpu.execute_instruction(Instruction::Rpe).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
     }
@@ -231,7 +231,7 @@ mod tests {
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.parity = false;
-        cpu.execute_instruction(Instruction::Rpe);
+        cpu.execute_instruction(Instruction::Rpe).unwrap();
         assert_eq!(cpu.pc, 0x2442);
         assert_eq!(cpu.get_current_sp_value(), 0);
     }
@@ -244,7 +244,7 @@ mod tests {
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.parity = false;
-        cpu.execute_instruction(Instruction::Rpo);
+        cpu.execute_instruction(Instruction::Rpo).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
     }
@@ -257,7 +257,7 @@ mod tests {
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.parity = true;
-        cpu.execute_instruction(Instruction::Rpo);
+        cpu.execute_instruction(Instruction::Rpo).unwrap();
         assert_eq!(cpu.pc, 0x2442);
         assert_eq!(cpu.get_current_sp_value(), 0);
     }
@@ -270,7 +270,7 @@ mod tests {
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.zero = true;
-        cpu.execute_instruction(Instruction::Rz);
+        cpu.execute_instruction(Instruction::Rz).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
     }
@@ -283,7 +283,7 @@ mod tests {
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.zero = false;
-        cpu.execute_instruction(Instruction::Rz);
+        cpu.execute_instruction(Instruction::Rz).unwrap();
         assert_eq!(cpu.pc, 0x2442);
         assert_eq!(cpu.get_current_sp_value(), 0);
     }

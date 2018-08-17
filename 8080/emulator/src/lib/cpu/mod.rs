@@ -1,3 +1,5 @@
+use super::failure::Fail;
+
 mod branch_call;
 mod branch_jmp;
 mod branch_ret;
@@ -13,5 +15,28 @@ mod math;
 mod mov;
 mod stack;
 mod state;
+
+#[derive(Debug, Fail)]
+pub enum CpuError {
+    #[fail(display = "Attempt to read from a device that doesn't exist: {}", id)]
+    InputDeviceNotConfigured {
+        id: u8,
+    },
+    #[fail(display = "This register is an invalid argument for that instruction: {}", register)]
+    InvalidRegisterArgument {
+        register: RegisterType,
+    },
+    #[fail(display = "You can't move data from (HL) to (HL)")]
+    InvalidMemoryAccess,
+    #[fail(display = "Attempt to write to a device that doesn't exist: {}", id)]
+    OutputDeviceNotConfigured {
+        id: u8,
+    },
+    #[fail(display = "This isn't a physical register: {}", register)]
+    VirtualRegister {
+        register: RegisterType,
+    },
+}
+
 pub use self::instruction::Instruction;
 pub use self::cpu::*;

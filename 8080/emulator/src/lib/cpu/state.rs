@@ -1,10 +1,11 @@
 use cpu::cpu::Cpu;
+use super::CpuError;
 
 impl<'a> Cpu<'a> {
     #[inline]
-    pub(crate) fn execute_cma(&mut self) {
-        let destiny_value = self.get_current_a_value();
-        self.save_to_a(!destiny_value);
+    pub(crate) fn execute_cma(&mut self) -> Result<(), CpuError> {
+        let destiny_value = self.get_current_a_value()?;
+        self.save_to_a(!destiny_value)
     }
 
     #[inline]
@@ -27,7 +28,7 @@ mod tests {
     fn it_should_set_carry() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.flags.carry = false;
-        cpu.execute_instruction(Instruction::Stc);
+        cpu.execute_instruction(Instruction::Stc).unwrap();
         assert!(cpu.flags.carry);
     }
 
@@ -35,17 +36,17 @@ mod tests {
     fn it_should_invert_carry() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.flags.carry = false;
-        cpu.execute_instruction(Instruction::Cmc);
+        cpu.execute_instruction(Instruction::Cmc).unwrap();
         assert!(cpu.flags.carry);
-        cpu.execute_instruction(Instruction::Cmc);
+        cpu.execute_instruction(Instruction::Cmc).unwrap();
         assert!(!cpu.flags.carry);
     }
 
     #[test]
     fn it_should_complement_the_accumulator() {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
-        cpu.save_to_a(42);
-        cpu.execute_instruction(Instruction::Cma);
-        assert_eq!(213, cpu.get_current_a_value());
+        cpu.save_to_a(42).unwrap();
+        cpu.execute_instruction(Instruction::Cma).unwrap();
+        assert_eq!(213, cpu.get_current_a_value().unwrap());
     }
 }

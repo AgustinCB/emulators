@@ -1,6 +1,7 @@
 use cpu::cpu::{Cpu, RegisterType, State};
 use cpu::helpers::{two_bytes_to_word, word_to_address};
 use std::process::exit;
+use super::CpuError;
 
 impl<'a> Cpu<'a> {
     pub(crate) fn execute_rst(&mut self, value: u8) {
@@ -12,15 +13,16 @@ impl<'a> Cpu<'a> {
         }
     }
 
-    pub(crate) fn execute_call(&mut self, high_byte: u8, low_byte: u8) {
+    pub(crate) fn execute_call(&mut self, high_byte: u8, low_byte: u8) -> Result<(), CpuError> {
         let address = two_bytes_to_word(high_byte, low_byte);
         if self.cp_m_compatibility && address == 5 {
-            self.handle_cp_m_print();
+            self.handle_cp_m_print()?;
         } else if self.cp_m_compatibility && address == 0 {
             exit(0);
         } else {
             self.perform_call(high_byte, low_byte);
         }
+        Ok(())
     }
 
     pub(crate) fn execute_cc(&mut self, high_byte: u8, low_byte: u8) {
@@ -87,19 +89,21 @@ impl<'a> Cpu<'a> {
     }
 
     #[inline]
-    fn handle_cp_m_print(&mut self) {
-        let c_value = self.get_current_single_register_value(&RegisterType::C);
+    fn handle_cp_m_print(&mut self) -> Result<(), CpuError> {
+        let c_value = self.get_current_single_register_value(&RegisterType::C)?;
         if c_value == 9 {
             self.print_de_to_screen();
         } else if c_value == 2 {
-            self.print_e_value_to_screen();
+            self.print_e_value_to_screen()?;
         }
+        Ok(())
     }
 
     #[inline]
-    fn print_e_value_to_screen(&mut self) {
-        let e_value = self.get_current_single_register_value(&RegisterType::E);
+    fn print_e_value_to_screen(&mut self) -> Result<(), CpuError> {
+        let e_value = self.get_current_single_register_value(&RegisterType::E)?;
         self.print_message(&['E' as u8, ' ' as u8, e_value]);
+        Ok(())
     }
 
     #[inline]
@@ -132,7 +136,7 @@ mod tests {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
-        cpu.execute_instruction(Instruction::Call { address: [0x00, 0x3c] });
+        cpu.execute_instruction(Instruction::Call { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x3c00);
         assert_eq!(cpu.get_current_sp_value(), 0);
         assert_eq!(cpu.memory[0], 0x03);
@@ -151,13 +155,13 @@ mod tests {
         {
             let mut cpu = Cpu::new_cp_m_compatible([0; ROM_MEMORY_LIMIT], screen);
             cpu.pc = 0x2c03;
-            cpu.save_to_single_register(9, &RegisterType::C);
-            cpu.save_to_single_register(0, &RegisterType::D);
-            cpu.save_to_single_register(0, &RegisterType::E);
+            cpu.save_to_single_register(9, &RegisterType::C).unwrap();
+            cpu.save_to_single_register(0, &RegisterType::D).unwrap();
+            cpu.save_to_single_register(0, &RegisterType::E).unwrap();
             cpu.memory[3] = '4' as u8;
             cpu.memory[4] = '2' as u8;
             cpu.memory[5] = '$' as u8;
-            cpu.execute_instruction(Instruction::Call { address: [0x05, 0x00] });
+            cpu.execute_instruction(Instruction::Call { address: [0x05, 0x00] }).unwrap();
             assert_eq!(cpu.pc, 0x2c03);
         }
         assert_eq!(screen.res, "42");
@@ -169,7 +173,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.flags.carry = true;
-        cpu.execute_instruction(Instruction::Cc { address: [0x00, 0x3c] });
+        cpu.execute_instruction(Instruction::Cc { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x3c00);
         assert_eq!(cpu.get_current_sp_value(), 0);
         assert_eq!(cpu.memory[0], 0x03);
@@ -182,7 +186,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.flags.carry = false;
-        cpu.execute_instruction(Instruction::Cc { address: [0x00, 0x3c] });
+        cpu.execute_instruction(Instruction::Cc { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
         assert_eq!(cpu.memory[0], 0);
@@ -195,7 +199,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.flags.sign = true;
-        cpu.execute_instruction(Instruction::Cm { address: [0x00, 0x3c] });
+        cpu.execute_instruction(Instruction::Cm { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x3c00);
         assert_eq!(cpu.get_current_sp_value(), 0);
         assert_eq!(cpu.memory[0], 0x03);
@@ -208,7 +212,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.flags.sign = false;
-        cpu.execute_instruction(Instruction::Cm { address: [0x00, 0x3c] });
+        cpu.execute_instruction(Instruction::Cm { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
         assert_eq!(cpu.memory[0], 0);
@@ -221,7 +225,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.flags.carry = false;
-        cpu.execute_instruction(Instruction::Cnc { address: [0x00, 0x3c] });
+        cpu.execute_instruction(Instruction::Cnc { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x3c00);
         assert_eq!(cpu.get_current_sp_value(), 0);
         assert_eq!(cpu.memory[0], 0x03);
@@ -234,7 +238,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.flags.carry = true;
-        cpu.execute_instruction(Instruction::Cnc { address: [0x00, 0x3c] });
+        cpu.execute_instruction(Instruction::Cnc { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
         assert_eq!(cpu.memory[0], 0);
@@ -247,7 +251,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.flags.zero = false;
-        cpu.execute_instruction(Instruction::Cnz { address: [0x00, 0x3c] });
+        cpu.execute_instruction(Instruction::Cnz { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x3c00);
         assert_eq!(cpu.get_current_sp_value(), 0);
         assert_eq!(cpu.memory[0], 0x03);
@@ -260,7 +264,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.flags.zero = true;
-        cpu.execute_instruction(Instruction::Cnz { address: [0x00, 0x3c] });
+        cpu.execute_instruction(Instruction::Cnz { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
         assert_eq!(cpu.memory[0], 0);
@@ -273,7 +277,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.flags.sign = false;
-        cpu.execute_instruction(Instruction::Cp { address: [0x00, 0x3c] });
+        cpu.execute_instruction(Instruction::Cp { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x3c00);
         assert_eq!(cpu.get_current_sp_value(), 0);
         assert_eq!(cpu.memory[0], 0x03);
@@ -286,7 +290,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.flags.sign = true;
-        cpu.execute_instruction(Instruction::Cp { address: [0x00, 0x3c] });
+        cpu.execute_instruction(Instruction::Cp { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
         assert_eq!(cpu.memory[0], 0);
@@ -299,7 +303,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.flags.parity = true;
-        cpu.execute_instruction(Instruction::Cpe { address: [0x00, 0x3c] });
+        cpu.execute_instruction(Instruction::Cpe { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x3c00);
         assert_eq!(cpu.get_current_sp_value(), 0);
         assert_eq!(cpu.memory[0], 0x03);
@@ -312,7 +316,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.flags.parity = false;
-        cpu.execute_instruction(Instruction::Cpe { address: [0x00, 0x3c] });
+        cpu.execute_instruction(Instruction::Cpe { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
         assert_eq!(cpu.memory[0], 0);
@@ -325,7 +329,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.flags.parity = false;
-        cpu.execute_instruction(Instruction::Cpo { address: [0x00, 0x3c] });
+        cpu.execute_instruction(Instruction::Cpo { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x3c00);
         assert_eq!(cpu.get_current_sp_value(), 0);
         assert_eq!(cpu.memory[0], 0x03);
@@ -338,7 +342,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.flags.parity = true;
-        cpu.execute_instruction(Instruction::Cpo { address: [0x00, 0x3c] });
+        cpu.execute_instruction(Instruction::Cpo { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
         assert_eq!(cpu.memory[0], 0);
@@ -351,7 +355,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.flags.zero = true;
-        cpu.execute_instruction(Instruction::Cz { address: [0x00, 0x3c] });
+        cpu.execute_instruction(Instruction::Cz { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x3c00);
         assert_eq!(cpu.get_current_sp_value(), 0);
         assert_eq!(cpu.memory[0], 0x03);
@@ -364,7 +368,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.flags.zero = false;
-        cpu.execute_instruction(Instruction::Cz { address: [0x00, 0x3c] });
+        cpu.execute_instruction(Instruction::Cz { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
         assert_eq!(cpu.memory[0], 0);
@@ -376,7 +380,7 @@ mod tests {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
-        cpu.execute_instruction(Instruction::Rst { value: 3 });
+        cpu.execute_instruction(Instruction::Rst { value: 3 }).unwrap();
         assert_eq!(cpu.pc, 0x18);
         assert_eq!(cpu.state, State::Running);
         assert_eq!(cpu.get_current_sp_value(), 0);
@@ -390,7 +394,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.interruptions_enabled = false;
-        cpu.execute_instruction(Instruction::Rst { value: 3 });
+        cpu.execute_instruction(Instruction::Rst { value: 3 }).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.state, State::Running);
         assert_eq!(cpu.get_current_sp_value(), 2);
@@ -404,7 +408,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.state = State::Stopped;
-        cpu.execute_instruction(Instruction::Rst { value: 3 });
+        cpu.execute_instruction(Instruction::Rst { value: 3 }).unwrap();
         assert_eq!(cpu.pc, 0x18);
         assert_eq!(cpu.state, State::Running);
         assert_eq!(cpu.get_current_sp_value(), 0);

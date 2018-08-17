@@ -58,8 +58,7 @@ fn start_game(folder: &str) -> Result<(), Error> {
     let rom_location = format!("{}/rom", folder);
     let memory = read_file(&rom_location)?;
     let mut console = Console::new(memory, folder)?;
-    console.start();
-    Ok(())
+    console.start().map_err(|e| Error::from(e))
 }
 
 fn disassemble(memory: [u8; ROM_MEMORY_LIMIT]) {
@@ -69,13 +68,21 @@ fn disassemble(memory: [u8; ROM_MEMORY_LIMIT]) {
     }
 }
 
-fn test(memory: [u8; ROM_MEMORY_LIMIT]) {
+fn test(memory: [u8; ROM_MEMORY_LIMIT]) -> Result<(), Error> {
     let screen = &mut (PrintScreen {});
     let mut cpu = Cpu::new_cp_m_compatible(memory, screen);
 
     while !cpu.is_done() {
-        cpu.execute();
+        cpu.execute()?;
     }
+    Ok(())
+}
+
+fn handle_result(r: Result<(), Error>) {
+    match r {
+        Ok(()) => {},
+        Err(err) => panic!(err),
+    };
 }
 
 fn main() {
@@ -85,16 +92,13 @@ fn main() {
     }
 
     if args[1] == "game" {
-        match start_game(&args[2]) {
-            Ok(()) => {},
-            Err(err) => panic!(err),
-        };
+        handle_result(start_game(&args[2]));
     } else if args[1] == "disassemble" {
         let memory = read_file(&args[2]).unwrap();
         disassemble(memory);
     } else if args[1] == "test" {
         let memory = read_file(&args[2]).unwrap();
-        test(memory);
+        handle_result(test(memory));
     } else {
         panic!(USAGE);
     }

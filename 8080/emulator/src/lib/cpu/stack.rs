@@ -1,51 +1,53 @@
 use cpu::cpu::{Cpu, RegisterType};
+use super::CpuError;
 
 impl<'a> Cpu<'a> {
-    pub(crate) fn execute_push(&mut self, register: &RegisterType) {
+    pub(crate) fn execute_push(&mut self, register: &RegisterType) -> Result<(), CpuError> {
         let sp = self.get_current_sp_value() as usize;
         let (first_byte, second_byte) = match register {
             RegisterType::B =>
-                (self.get_current_single_register_value(&RegisterType::B),
-                 self.get_current_single_register_value(&RegisterType::C)),
+                Ok((self.get_current_single_register_value(&RegisterType::B)?,
+                 self.get_current_single_register_value(&RegisterType::C)?)),
             RegisterType::D =>
-                (self.get_current_single_register_value(&RegisterType::D),
-                 self.get_current_single_register_value(&RegisterType::E)),
+                Ok((self.get_current_single_register_value(&RegisterType::D)?,
+                 self.get_current_single_register_value(&RegisterType::E)?)),
             RegisterType::H =>
-                (self.get_current_single_register_value(&RegisterType::H),
-                 self.get_current_single_register_value(&RegisterType::L)),
+                Ok((self.get_current_single_register_value(&RegisterType::H)?,
+                 self.get_current_single_register_value(&RegisterType::L)?)),
             RegisterType::Psw =>
-                (self.get_current_a_value(), self.get_current_flags_byte()),
-            _ => panic!("{} is not a valid register for push!", register.to_string()),
-        };
+                Ok((self.get_current_a_value()?, self.get_current_flags_byte())),
+            _ => Err(CpuError::InvalidRegisterArgument { register: *register }),
+        }?;
         self.memory[sp-1] = first_byte;
         self.memory[sp-2] = second_byte;
         self.save_to_sp((sp-2) as u16);
+        Ok(())
     }
 
-    pub(crate) fn execute_pop(&mut self, register: &RegisterType) {
+    pub(crate) fn execute_pop(&mut self, register: &RegisterType) -> Result<(), CpuError> {
         let sp = self.get_current_sp_value() as usize;
         let first_byte = self.memory[sp+1];
         let second_byte = self.memory[sp];
+        self.save_to_sp((sp+2) as u16);
         match register {
             RegisterType::B => {
-                self.save_to_single_register(first_byte, &RegisterType::B);
-                self.save_to_single_register(second_byte, &RegisterType::C);
+                self.save_to_single_register(first_byte, &RegisterType::B)?;
+                self.save_to_single_register(second_byte, &RegisterType::C)
             },
             RegisterType::D => {
-                self.save_to_single_register(first_byte, &RegisterType::D);
-                self.save_to_single_register(second_byte, &RegisterType::E);
+                self.save_to_single_register(first_byte, &RegisterType::D)?;
+                self.save_to_single_register(second_byte, &RegisterType::E)
             },
             RegisterType::H => {
-                self.save_to_single_register(first_byte, &RegisterType::H);
-                self.save_to_single_register(second_byte, &RegisterType::L);
+                self.save_to_single_register(first_byte, &RegisterType::H)?;
+                self.save_to_single_register(second_byte, &RegisterType::L)
             },
             RegisterType::Psw => {
-                self.save_to_a(first_byte);
                 self.set_flags_byte(second_byte);
+                self.save_to_a(first_byte)
             },
-            _ => panic!("{} is not a valid register for push!", register.to_string()),
-        };
-        self.save_to_sp((sp+2) as u16);
+            _ => Err(CpuError::InvalidRegisterArgument { register: *register })
+        }
     }
 
     #[inline]
@@ -85,19 +87,19 @@ mod tests {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
         match register {
             RegisterType::B => {
-                cpu.save_to_single_register(0x8f, &RegisterType::B);
-                cpu.save_to_single_register(0x9d, &RegisterType::C);
+                cpu.save_to_single_register(0x8f, &RegisterType::B).unwrap();
+                cpu.save_to_single_register(0x9d, &RegisterType::C).unwrap();
             },
             RegisterType::D => {
-                cpu.save_to_single_register(0x8f, &RegisterType::D);
-                cpu.save_to_single_register(0x9d, &RegisterType::E);
+                cpu.save_to_single_register(0x8f, &RegisterType::D).unwrap();
+                cpu.save_to_single_register(0x9d, &RegisterType::E).unwrap();
             },
             RegisterType::H => {
-                cpu.save_to_single_register(0x8f, &RegisterType::H);
-                cpu.save_to_single_register(0x9d, &RegisterType::L);
+                cpu.save_to_single_register(0x8f, &RegisterType::H).unwrap();
+                cpu.save_to_single_register(0x9d, &RegisterType::L).unwrap();
             }
             RegisterType::Psw => {
-                cpu.save_to_single_register(0x8f, &RegisterType::A);
+                cpu.save_to_single_register(0x8f, &RegisterType::A).unwrap();
                 cpu.flags.zero = true;
                 cpu.flags.sign = false;
                 cpu.flags.parity = true;
@@ -113,7 +115,7 @@ mod tests {
     #[test]
     fn it_should_pop_from_stack_to_b() {
         let mut cpu = get_pop_ready_cpu();
-        cpu.execute_instruction(Instruction::Pop { register: RegisterType::B });
+        cpu.execute_instruction(Instruction::Pop { register: RegisterType::B }).unwrap();
         assert_eq!(cpu.get_current_bc_value(), 0x933d);
         assert_eq!(cpu.get_current_sp_value(), 0x123b);
     }
@@ -121,7 +123,7 @@ mod tests {
     #[test]
     fn it_should_pop_from_stack_to_d() {
         let mut cpu = get_pop_ready_cpu();
-        cpu.execute_instruction(Instruction::Pop { register: RegisterType::D });
+        cpu.execute_instruction(Instruction::Pop { register: RegisterType::D }).unwrap();
         assert_eq!(cpu.get_current_de_value(), 0x933d);
         assert_eq!(cpu.get_current_sp_value(), 0x123b);
     }
@@ -129,7 +131,7 @@ mod tests {
     #[test]
     fn it_should_pop_from_stack_to_h() {
         let mut cpu = get_pop_ready_cpu();
-        cpu.execute_instruction(Instruction::Pop { register: RegisterType::H });
+        cpu.execute_instruction(Instruction::Pop { register: RegisterType::H }).unwrap();
         assert_eq!(cpu.get_current_hl_value(), 0x933d);
         assert_eq!(cpu.get_current_sp_value(), 0x123b);
     }
@@ -137,8 +139,8 @@ mod tests {
     #[test]
     fn it_should_pop_from_stack_to_a_and_flags() {
         let mut cpu = get_pop_ready_cpu();
-        cpu.execute_instruction(Instruction::Pop { register: RegisterType::Psw });
-        assert_eq!(cpu.get_current_a_value(), 0x93);
+        cpu.execute_instruction(Instruction::Pop { register: RegisterType::Psw }).unwrap();
+        assert_eq!(cpu.get_current_a_value().unwrap(), 0x93);
         assert_eq!(cpu.get_current_sp_value(), 0x123b);
         assert!(cpu.flags.zero);
         assert!(!cpu.flags.sign);
@@ -150,7 +152,7 @@ mod tests {
     #[test]
     fn it_should_push_from_stack_to_b() {
         let mut cpu = get_push_ready_cpu(&RegisterType::B);
-        cpu.execute_instruction(Instruction::Push { register: RegisterType::B });
+        cpu.execute_instruction(Instruction::Push { register: RegisterType::B }).unwrap();
         assert_eq!(cpu.memory[0x3a2b], 0x8f);
         assert_eq!(cpu.memory[0x3a2a], 0x9d);
         assert_eq!(cpu.get_current_sp_value(), 0x3A2A);
@@ -159,7 +161,7 @@ mod tests {
     #[test]
     fn it_should_push_from_stack_to_d() {
         let mut cpu = get_push_ready_cpu(&RegisterType::D);
-        cpu.execute_instruction(Instruction::Push { register: RegisterType::D });
+        cpu.execute_instruction(Instruction::Push { register: RegisterType::D }).unwrap();
         assert_eq!(cpu.memory[0x3a2b], 0x8f);
         assert_eq!(cpu.memory[0x3a2a], 0x9d);
         assert_eq!(cpu.get_current_sp_value(), 0x3A2A);
@@ -168,7 +170,7 @@ mod tests {
     #[test]
     fn it_should_push_from_stack_to_h() {
         let mut cpu = get_push_ready_cpu(&RegisterType::H);
-        cpu.execute_instruction(Instruction::Push { register: RegisterType::H });
+        cpu.execute_instruction(Instruction::Push { register: RegisterType::H }).unwrap();
         assert_eq!(cpu.memory[0x3a2b], 0x8f);
         assert_eq!(cpu.memory[0x3a2a], 0x9d);
         assert_eq!(cpu.get_current_sp_value(), 0x3A2A);
@@ -177,7 +179,7 @@ mod tests {
     #[test]
     fn it_should_push_from_stack_to_a_and_flags() {
         let mut cpu = get_push_ready_cpu(&RegisterType::Psw);
-        cpu.execute_instruction(Instruction::Push { register: RegisterType::Psw });
+        cpu.execute_instruction(Instruction::Push { register: RegisterType::Psw }).unwrap();
         assert_eq!(cpu.memory[0x3a2b], 0x8f);
         assert_eq!(cpu.memory[0x3a2a], 0x1d);
         assert_eq!(cpu.get_current_sp_value(), 0x3A2A);
