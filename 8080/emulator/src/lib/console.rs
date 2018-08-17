@@ -8,7 +8,9 @@ use self::opengl_graphics::{ GlGraphics, OpenGL };
 use self::piston::window::WindowSettings;
 use self::piston::event_loop::*;
 use self::piston::input::*;
+use super::ConsoleError;
 use super::cpu::{Cpu, HERTZ, Instruction, ROM_MEMORY_LIMIT};
+use super::failure::Error;
 use super::io_devices::*;
 use super::screen::{Screen, GameScreen};
 use super::timer::Timer;
@@ -31,7 +33,7 @@ pub struct Console<'a> {
 }
 
 impl<'a> Console<'a> {
-    pub fn new(memory: [u8; ROM_MEMORY_LIMIT], folder: &str) -> Result<Console, String> {
+    pub fn new(memory: [u8; ROM_MEMORY_LIMIT], folder: &str) -> Result<Console, Error> {
         let timer = Timer::new(SCREEN_INTERRUPTIONS_INTERVAL);
         let keypad_controller = KeypadController::new();
         let cpu = Console::create_cpu(memory, &keypad_controller, folder)?;
@@ -56,7 +58,7 @@ impl<'a> Console<'a> {
     fn create_cpu<'b>(
         memory: [u8; ROM_MEMORY_LIMIT],
         keypad_controller: &KeypadController,
-        folder: &str) -> Result<Cpu<'b>, String> {
+        folder: &str) -> Result<Cpu<'b>, Error> {
         let mut cpu = Cpu::new(memory);
         let shift_writer = ExternalShiftWriter::new();
         let offset_writer = ExternalShiftOffsetWriter::new();
@@ -74,7 +76,7 @@ impl<'a> Console<'a> {
         Ok(cpu)
     }
 
-    fn create_window() -> Result<Window, String> {
+    fn create_window() -> Result<Window, Error> {
         WindowSettings::new(
             "Space Invaders",
             [WINDOW_WIDTH, WINDOW_HEIGHT]
@@ -83,9 +85,10 @@ impl<'a> Console<'a> {
             .exit_on_esc(true)
             .srgb(false)
             .build()
+            .map_err(|e| Error::from(ConsoleError::CantCreateWindow { msg: e }))
     }
 
-    pub fn start(&mut self) -> Result<(), String> {
+    pub fn start(&mut self) {
         self.timer.reset();
         let mut events = Events::new(
             EventSettings::new().ups(1000).max_fps(60));
@@ -94,7 +97,7 @@ impl<'a> Console<'a> {
                 break;
             }
             if let Some(r) = e.render_args() {
-                self.view.render(&r, &mut self.gl)?;
+                self.view.render(&r, &mut self.gl);
             }
 
             if let Some(u) = e.update_args() {
@@ -109,7 +112,6 @@ impl<'a> Console<'a> {
                 self.keypad_controller.key_released(key);
             }
         }
-        Ok(())
     }
 
     fn update(&mut self, args: &UpdateArgs) {

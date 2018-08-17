@@ -26,7 +26,7 @@ impl View {
         }
     }
 
-    pub fn render(&mut self, args: &RenderArgs, gl: &mut GlGraphics) -> Result<(), String> {
+    pub fn render(&mut self, args: &RenderArgs, gl: &mut GlGraphics) {
         use self::graphics::*;
         let (x, y) = (
             (args.width/2) as f64 - (SCREEN_WIDTH / 2) as f64,
@@ -36,7 +36,6 @@ impl View {
             clear([0.0, 0.0, 0.0, 1.0], gl);
             image(&self.texture, transform, gl);
         });
-        Ok(())
     }
 
     pub fn update_image(&mut self, pixels: &ScreenLayout) {

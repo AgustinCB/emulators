@@ -1,7 +1,9 @@
 extern crate ears;
 
 use self::ears::{AudioController, Sound};
+use super::super::ConsoleError;
 use super::super::cpu::OutputDevice;
+use super::super::failure::Error;
 
 pub struct SoundPort1 {
     last_value: u8,
@@ -20,31 +22,35 @@ pub struct SoundPort2 {
     instant_sound_8: Sound,
 }
 
+fn create_sound(path: &str) -> Result<Sound, Error> {
+    Sound::new(path).map_err(|e| Error::from(ConsoleError::CantCreateSound { msg: e }))
+}
+
 impl SoundPort1 {
-    pub fn new(folder: &str) -> Result<SoundPort1, String> {
+    pub fn new(folder: &str) -> Result<SoundPort1, Error> {
         Ok(SoundPort1 {
             last_value: 0,
             background: {
-                let mut sound = Sound::new(&format!("{}/0.wav", folder))?;
+                let mut sound = create_sound(&format!("{}/0.wav", folder))?;
                 sound.set_looping(true);
                 sound
             },
-            instant_sound_1: Sound::new(&format!("{}/1.wav", folder))?,
-            instant_sound_2: Sound::new(&format!("{}/2.wav", folder))?,
-            instant_sound_3: Sound::new(&format!("{}/3.wav", folder))?,
+            instant_sound_1: create_sound(&format!("{}/1.wav", folder))?,
+            instant_sound_2: create_sound(&format!("{}/2.wav", folder))?,
+            instant_sound_3: create_sound(&format!("{}/3.wav", folder))?,
         })
     }
 }
 
 impl SoundPort2 {
-    pub fn new(folder: &str) -> Result<SoundPort2, String> {
+    pub fn new(folder: &str) -> Result<SoundPort2, Error> {
         Ok(SoundPort2 {
             last_value: 0,
-            instant_sound_4: Sound::new(&format!("{}/4.wav", folder))?,
-            instant_sound_5: Sound::new(&format!("{}/5.wav", folder))?,
-            instant_sound_6: Sound::new(&format!("{}/6.wav", folder))?,
-            instant_sound_7: Sound::new(&format!("{}/7.wav", folder))?,
-            instant_sound_8: Sound::new(&format!("{}/8.wav", folder))?,
+            instant_sound_4: create_sound(&format!("{}/4.wav", folder))?,
+            instant_sound_5: create_sound(&format!("{}/5.wav", folder))?,
+            instant_sound_6: create_sound(&format!("{}/6.wav", folder))?,
+            instant_sound_7: create_sound(&format!("{}/7.wav", folder))?,
+            instant_sound_8: create_sound(&format!("{}/8.wav", folder))?,
         })
     }
 }

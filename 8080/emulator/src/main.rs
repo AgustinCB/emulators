@@ -1,7 +1,9 @@
 extern crate emulator_space_invaders;
+extern crate failure;
 
 use emulator_space_invaders::console::Console;
 use emulator_space_invaders::cpu::{Cpu, Instruction, ROM_MEMORY_LIMIT, Printer};
+use failure::Error;
 use std::env::args;
 use std::cmp::min;
 use std::fs::File;
@@ -52,11 +54,11 @@ fn read_file(file_name: &str) -> std::io::Result<[u8; ROM_MEMORY_LIMIT]> {
     Ok(memory)
 }
 
-fn start_game(folder: &str) -> Result<(), String> {
+fn start_game(folder: &str) -> Result<(), Error> {
     let rom_location = format!("{}/rom", folder);
-    let memory = read_file(&rom_location).unwrap();
+    let memory = read_file(&rom_location)?;
     let mut console = Console::new(memory, folder)?;
-    console.start()?;
+    console.start();
     Ok(())
 }
 
