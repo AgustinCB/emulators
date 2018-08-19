@@ -240,8 +240,13 @@ DAD D
 MOV A, C
 ; Get the rest to know which bit to modify
 ANI 7
+OUT 4
+MVI A, 0
+OUT 2
+MVI A, 1
+OUT 2
+IN A
 MOV C, A
-; TODO: Now C contains the rest, but we need a mask built from that rest (i.e. map C to 2^C).
 
 SAVE_NODE:
 ; Puts D in the x coordinate of the node pointed by HL
