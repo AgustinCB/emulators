@@ -22,7 +22,18 @@ pub enum RegisterType {
 
 impl fmt::Display for RegisterType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.to_string())
+        let s = match self {
+            RegisterType::A => String::from("A"),
+            RegisterType::B => String::from("B"),
+            RegisterType::C => String::from("C"),
+            RegisterType::D => String::from("D"),
+            RegisterType::E => String::from("E"),
+            RegisterType::H => String::from("H"),
+            RegisterType::L => String::from("L"),
+            RegisterType::Sp => String::from("Sp"),
+            RegisterType::Psw => String::from("Psw"),
+        };
+        write!(f, "{}", s)
     }
 }
 
