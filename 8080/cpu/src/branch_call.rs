@@ -1,5 +1,5 @@
-use cpu::cpu::{Cpu, RegisterType, State};
-use cpu::helpers::{two_bytes_to_word, word_to_address};
+use cpu::{Cpu, RegisterType, State};
+use helpers::{two_bytes_to_word, word_to_address};
 use std::process::exit;
 use super::CpuError;
 
@@ -128,8 +128,8 @@ impl<'a> Cpu<'a> {
 
 #[cfg(test)]
 mod tests {
-    use cpu::cpu::{Cpu, RegisterType, ROM_MEMORY_LIMIT, Printer, State};
-    use cpu::instruction::Instruction;
+    use cpu::{Cpu, RegisterType, ROM_MEMORY_LIMIT, Printer, State};
+    use instruction::Instruction;
 
     #[test]
     fn it_should_execute_call() {

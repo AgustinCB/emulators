@@ -1,4 +1,4 @@
-use cpu::cpu::Cpu;
+use cpu::Cpu;
 use super::CpuError;
 
 impl<'a> Cpu<'a> {
@@ -24,8 +24,8 @@ impl<'a> Cpu<'a> {
 
 #[cfg(test)]
 mod tests {
-    use cpu::cpu::{Cpu, InputDevice, OutputDevice, ROM_MEMORY_LIMIT};
-    use cpu::instruction::Instruction;
+    use cpu::{Cpu, InputDevice, OutputDevice, ROM_MEMORY_LIMIT};
+    use instruction::Instruction;
     use std::boxed::Box;
 
     #[test]

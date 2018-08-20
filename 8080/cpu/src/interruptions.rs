@@ -1,4 +1,4 @@
-use cpu::cpu::{Cpu, State};
+use cpu::{Cpu, State};
 
 impl<'a> Cpu<'a> {
     pub(crate) fn execute_ei(&mut self) {
@@ -16,8 +16,8 @@ impl<'a> Cpu<'a> {
 
 #[cfg(test)]
 mod tests {
-    use cpu::cpu::{Cpu, State, ROM_MEMORY_LIMIT};
-    use cpu::instruction::Instruction;
+    use cpu::{Cpu, State, ROM_MEMORY_LIMIT};
+    use instruction::Instruction;
 
     #[test]
     fn it_should_execute_ei() {

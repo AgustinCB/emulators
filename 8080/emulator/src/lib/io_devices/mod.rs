@@ -1,7 +1,9 @@
+extern crate cpu;
+use self::cpu::{InputDevice, OutputDevice};
+
 mod buttons;
 mod external_shift;
 mod sounds;
-use super::cpu::{InputDevice, OutputDevice};
 
 pub struct DummyOutputDevice {}
 

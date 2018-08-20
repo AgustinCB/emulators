@@ -1,4 +1,4 @@
-use cpu::cpu::Cpu;
+use cpu::Cpu;
 
 impl<'a> Cpu<'a> {
     pub(crate) fn execute_rc(&mut self) {
@@ -65,8 +65,8 @@ impl<'a> Cpu<'a> {
 
 #[cfg(test)]
 mod tests {
-    use cpu::cpu::{Cpu, ROM_MEMORY_LIMIT};
-    use cpu::instruction::Instruction;
+    use cpu::{Cpu, ROM_MEMORY_LIMIT};
+    use instruction::Instruction;
 
     #[test]
     fn it_should_execute_rc_if_carry_is_set() {

@@ -1,5 +1,5 @@
-use cpu::helpers::two_bytes_to_word;
-use cpu::cpu::{Cpu, Location, RegisterType};
+use helpers::two_bytes_to_word;
+use cpu::{Cpu, Location, RegisterType};
 use super::CpuError;
 
 impl<'a> Cpu<'a> {
@@ -147,8 +147,8 @@ impl<'a> Cpu<'a> {
 
 #[cfg(test)]
 mod tests {
-    use cpu::cpu::{Cpu, Location, RegisterType, ROM_MEMORY_LIMIT};
-    use cpu::instruction::Instruction;
+    use cpu::{Cpu, Location, RegisterType, ROM_MEMORY_LIMIT};
+    use instruction::Instruction;
 
     fn get_ldax_ready_cpu(register: &RegisterType) -> Cpu {
         let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);

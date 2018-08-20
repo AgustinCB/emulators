@@ -1,4 +1,6 @@
-use super::failure::Fail;
+#[macro_use] extern crate failure;
+
+use failure::Fail;
 
 mod branch_call;
 mod branch_jmp;
@@ -38,5 +40,5 @@ pub enum CpuError {
     },
 }
 
-pub use self::instruction::Instruction;
-pub use self::cpu::*;
+pub use instruction::Instruction;
+pub use cpu::*;

@@ -1,4 +1,4 @@
-use cpu::cpu::{RegisterType, Location, Address};
+use cpu::{RegisterType, Location, Address};
 
 pub(crate) enum Cycles {
     Single(u8),

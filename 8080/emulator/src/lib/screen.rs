@@ -68,7 +68,7 @@ impl Screen for GameScreen {
 #[cfg(test)]
 mod tests {
     use super::{GameScreen, Screen, SCREEN_WIDTH};
-    use super::super::cpu::FRAME_BUFFER_SIZE;
+    use super::super::console::FRAME_BUFFER_SIZE;
 
     #[test]
     fn it_should_correctly_translate_from_memory() {

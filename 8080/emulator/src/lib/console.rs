@@ -1,15 +1,16 @@
+extern crate cpu;
 extern crate glutin_window;
 extern crate graphics;
 extern crate opengl_graphics;
 extern crate piston;
 
+use self::cpu::{Cpu, CpuError, HERTZ, Instruction, ROM_MEMORY_LIMIT};
 use self::glutin_window::GlutinWindow as Window;
 use self::opengl_graphics::{ GlGraphics, OpenGL };
 use self::piston::window::WindowSettings;
 use self::piston::event_loop::*;
 use self::piston::input::*;
 use super::ConsoleError;
-use super::cpu::{Cpu, CpuError, HERTZ, Instruction, ROM_MEMORY_LIMIT};
 use super::failure::Error;
 use super::io_devices::*;
 use super::screen::{Screen, GameScreen};
@@ -19,6 +20,8 @@ use super::view::{View, WINDOW_HEIGHT, WINDOW_WIDTH};
 const FPS: f64 = 60.0;
 const SCREEN_INTERRUPTIONS_INTERVAL: f64 = (1.0/FPS*1000.0)/2.0;
 const OPEN_GL: OpenGL = OpenGL::V3_2;
+pub(crate) const FRAME_BUFFER_ADDRESS: usize = 0x2400;
+pub(crate) const FRAME_BUFFER_SIZE: usize = 0x1C00;
 
 pub struct Console<'a> {
     cpu: Cpu<'a>,
@@ -119,10 +122,14 @@ impl<'a> Console<'a> {
         self.timer.update_last_check();
         if self.timer.should_trigger() && self.cpu.interruptions_enabled {
             self.prev_interruption = if self.prev_interruption == 1 {
-                self.screen.on_full_screen(self.cpu.get_frame_buffer());
+                let frame_buffer =
+                    &self.cpu.memory[FRAME_BUFFER_ADDRESS..(FRAME_BUFFER_ADDRESS + FRAME_BUFFER_SIZE)];
+                self.screen.on_full_screen(frame_buffer);
                 2
             } else {
-                self.screen.on_mid_screen(self.cpu.get_frame_buffer());
+                let frame_buffer =
+                    &self.cpu.memory[FRAME_BUFFER_ADDRESS..(FRAME_BUFFER_ADDRESS + FRAME_BUFFER_SIZE)];
+                self.screen.on_mid_screen(frame_buffer);
                 1
             };
             self.view.update_image(self.screen.get_pixels());

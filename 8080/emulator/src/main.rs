@@ -1,8 +1,9 @@
+extern crate cpu;
 extern crate emulator_space_invaders;
 extern crate failure;
 
+use cpu::{Cpu, Instruction, ROM_MEMORY_LIMIT, Printer};
 use emulator_space_invaders::console::Console;
-use emulator_space_invaders::cpu::{Cpu, Instruction, ROM_MEMORY_LIMIT, Printer};
 use failure::Error;
 use std::env::args;
 use std::cmp::min;

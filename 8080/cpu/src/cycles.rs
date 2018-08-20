@@ -1,5 +1,5 @@
-use cpu::cpu::Cpu;
-use cpu::instruction::{Cycles, Instruction};
+use cpu::Cpu;
+use instruction::{Cycles, Instruction};
 
 impl<'a> Cpu<'a> {
     pub(crate) fn get_cycles_for_instruction(&self, instruction: &Instruction) -> u8 {

@@ -1,5 +1,5 @@
-use cpu::cpu::{Cpu, Location, State};
-use cpu::instruction::Instruction;
+use cpu::{Cpu, Location, State};
+use instruction::Instruction;
 use std::cmp::min;
 use super::CpuError;
 
@@ -169,7 +169,7 @@ impl<'a> Cpu<'a> {
 
 #[cfg(test)]
 mod tests {
-    use cpu::cpu::{Cpu, ROM_MEMORY_LIMIT, State};
+    use cpu::{Cpu, ROM_MEMORY_LIMIT, State};
 
     #[test]
     fn it_should_execute_instruction_when_running() {

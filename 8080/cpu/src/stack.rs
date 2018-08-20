@@ -1,4 +1,4 @@
-use cpu::cpu::{Cpu, RegisterType};
+use cpu::{Cpu, RegisterType};
 use super::CpuError;
 
 impl<'a> Cpu<'a> {
@@ -71,8 +71,8 @@ impl<'a> Cpu<'a> {
 
 #[cfg(test)]
 mod tests {
-    use cpu::cpu::{Cpu, RegisterType, ROM_MEMORY_LIMIT};
-    use cpu::instruction::Instruction;
+    use cpu::{Cpu, RegisterType, ROM_MEMORY_LIMIT};
+    use instruction::Instruction;
 
     fn get_pop_ready_cpu<'a>() -> Cpu<'a> {
         let mut memory = [0; ROM_MEMORY_LIMIT];

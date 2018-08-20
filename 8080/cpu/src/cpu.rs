@@ -1,12 +1,10 @@
-use cpu::helpers::{bit_count, two_bytes_to_word};
+use helpers::{bit_count, two_bytes_to_word};
 use std::boxed::Box;
 use std::fmt;
 use super::CpuError;
 
 pub const ROM_MEMORY_LIMIT: usize = 8192;
 pub(crate) const MAX_INPUT_OUTPUT_DEVICES: usize = 0x100;
-pub(crate) const FRAME_BUFFER_ADDRESS: usize = 0x2400;
-pub(crate) const FRAME_BUFFER_SIZE: usize = 0x1C00;
 pub const HERTZ: i64 = 2_000_000;
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -106,7 +104,7 @@ pub struct Cpu<'a> {
     pub memory: [u8; ROM_MEMORY_LIMIT * 8],
     pub(crate) cp_m_compatibility: bool,
     pub(crate) flags: Flags,
-    pub(crate) interruptions_enabled: bool,
+    pub interruptions_enabled: bool,
     pub(crate) state: State,
     pub(crate) inputs: Vec<Option<Box<InputDevice>>>,
     pub(crate) outputs: Vec<Option<Box<OutputDevice>>>,
@@ -167,11 +165,11 @@ impl<'a> Cpu<'a> {
         (self.pc as usize) >= ROM_MEMORY_LIMIT
     }
 
-    pub(crate) fn add_input_device(&mut self, id: u8, device: Box<InputDevice>) {
+    pub fn add_input_device(&mut self, id: u8, device: Box<InputDevice>) {
         self.inputs[id as usize] = Some(device);
     }
 
-    pub(crate) fn add_output_device(&mut self, id: u8, device: Box<OutputDevice>) {
+    pub fn add_output_device(&mut self, id: u8, device: Box<OutputDevice>) {
         self.outputs[id as usize] = Some(device);
     }
 
@@ -293,9 +291,5 @@ impl<'a> Cpu<'a> {
     pub(crate) fn perform_jump(&mut self, high_byte: u8, low_byte: u8) {
         let new_pc = two_bytes_to_word(high_byte, low_byte);
         self.pc = new_pc;
-    }
-
-    pub(crate) fn get_frame_buffer(&self) -> &[u8] {
-        &self.memory[FRAME_BUFFER_ADDRESS..(FRAME_BUFFER_ADDRESS + FRAME_BUFFER_SIZE)]
     }
 }

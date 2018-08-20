@@ -1,7 +1,7 @@
 extern crate piston;
 
 use self::piston::input::Key;
-use super::super::cpu::InputDevice;
+use super::cpu::InputDevice;
 use std::cell::RefCell;
 use std::rc::Rc;
 

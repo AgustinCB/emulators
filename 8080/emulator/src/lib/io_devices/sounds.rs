@@ -1,8 +1,8 @@
 extern crate ears;
 
 use self::ears::{AudioController, Sound};
+use super::cpu::OutputDevice;
 use super::super::ConsoleError;
-use super::super::cpu::OutputDevice;
 use super::super::failure::Error;
 
 pub struct SoundPort1 {

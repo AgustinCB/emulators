@@ -19,7 +19,6 @@ pub enum ConsoleError {
 }
 
 pub mod console;
-pub mod cpu;
 mod io_devices;
 mod screen;
 mod timer;

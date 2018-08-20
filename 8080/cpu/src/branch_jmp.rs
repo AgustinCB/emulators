@@ -1,5 +1,5 @@
-use cpu::cpu::Cpu;
-use cpu::helpers::two_bytes_to_word;
+use cpu::Cpu;
+use helpers::two_bytes_to_word;
 use std::process::exit;
 
 impl<'a> Cpu<'a> {
@@ -69,7 +69,7 @@ impl<'a> Cpu<'a> {
 #[cfg(test)]
 mod tests {
     use cpu::{Cpu, ROM_MEMORY_LIMIT};
-    use cpu::instruction::Instruction;
+    use instruction::Instruction;
 
     #[test]
     fn it_should_execute_pchl() {
