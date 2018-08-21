@@ -7,7 +7,6 @@ mod branch_call;
 mod branch_jmp;
 mod branch_ret;
 mod intel8080cpu;
-mod cycles;
 mod executable;
 mod helpers;
 mod instruction;

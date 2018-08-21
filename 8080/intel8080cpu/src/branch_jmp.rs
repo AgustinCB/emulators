@@ -70,6 +70,7 @@ impl<'a> Intel8080Cpu<'a> {
 mod tests {
     use intel8080cpu::{Intel8080Cpu, ROM_MEMORY_LIMIT};
     use instruction::Intel8080Instruction;
+    use super::super::cpu::Cpu;
 
     #[test]
     fn it_should_execute_pchl() {

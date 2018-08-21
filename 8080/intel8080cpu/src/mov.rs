@@ -149,6 +149,7 @@ impl<'a> Intel8080Cpu<'a> {
 mod tests {
     use intel8080cpu::{Intel8080Cpu, Location, RegisterType, ROM_MEMORY_LIMIT};
     use instruction::Intel8080Instruction;
+    use super::super::cpu::Cpu;
 
     fn get_ldax_ready_cpu(register: &RegisterType) -> Intel8080Cpu {
         let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);

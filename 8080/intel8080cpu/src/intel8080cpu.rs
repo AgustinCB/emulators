@@ -165,18 +165,6 @@ impl<'a> Intel8080Cpu<'a> {
         v
     }
 
-    pub fn is_done(&self) -> bool {
-        (self.pc as usize) >= ROM_MEMORY_LIMIT
-    }
-
-    pub fn add_input_device(&mut self, id: u8, device: Box<InputDevice>) {
-        self.inputs[id as usize] = Some(device);
-    }
-
-    pub fn add_output_device(&mut self, id: u8, device: Box<OutputDevice>) {
-        self.outputs[id as usize] = Some(device);
-    }
-
     #[inline]
     pub(crate) fn update_flags(&mut self, answer: u16, with_carry: bool) {
         self.flags.zero = (answer & 0xff) == 0;
@@ -296,4 +284,6 @@ impl<'a> Intel8080Cpu<'a> {
         let new_pc = two_bytes_to_word(high_byte, low_byte);
         self.pc = new_pc;
     }
+
+    pub(crate) fn execute_noop(&self) {}
 }

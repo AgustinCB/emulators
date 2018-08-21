@@ -1,24 +1,11 @@
-use intel8080cpu::{Intel8080Cpu, Location, State};
+use intel8080cpu::{Intel8080Cpu, Location, State, ROM_MEMORY_LIMIT};
 use instruction::Intel8080Instruction;
 use std::cmp::min;
-use super::cpu::Instruction;
+use super::cpu::{Cpu, InputDevice, OutputDevice};
 use super::CpuError;
 
-impl<'a> Intel8080Cpu<'a> {
-    pub fn execute(&mut self) -> Result<u8, CpuError> {
-        let instruction = Intel8080Instruction::from(
-            self.get_next_instruction_bytes().to_vec());
-        if !self.can_run(&instruction) {
-            return Ok(0);
-        }
-        println!("{}", instruction.to_string());
-        self.pc += instruction.size() as u16;
-        let cycles = self.get_cycles_for_instruction(&instruction);
-        self.execute_instruction(instruction)?;
-        Ok(cycles)
-    }
-
-    pub fn execute_instruction(&mut self, instruction: Intel8080Instruction) -> Result<(), CpuError> {
+impl<'a> Cpu<u8, Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
+    fn execute_instruction(&mut self, instruction: Intel8080Instruction) -> Result<(), CpuError> {
         if !self.can_run(&instruction) {
             return Ok(());
         }
@@ -166,12 +153,65 @@ impl<'a> Intel8080Cpu<'a> {
         }
     }
 
-    fn execute_noop(&self) {}
+    fn is_done(&self) -> bool {
+        (self.pc as usize) >= ROM_MEMORY_LIMIT
+    }
+
+    fn add_input_device(&mut self, id: u8, device: Box<InputDevice>) {
+        self.inputs[id as usize] = Some(device);
+    }
+
+    fn add_output_device(&mut self, id: u8, device: Box<OutputDevice>) {
+        self.outputs[id as usize] = Some(device);
+    }
+
+    fn increase_pc(&mut self, steps: u8) {
+        self.pc += steps as u16;
+    }
+
+    fn get_cycles_from_condition(&self, instruction: &Intel8080Instruction, not_met: u8, met: u8) -> u8 {
+        match instruction {
+            Intel8080Instruction::Cc { address: _} if self.flags.carry => met,
+            Intel8080Instruction::Cc { address: _} => not_met,
+            Intel8080Instruction::Cnc { address: _} if !self.flags.carry => met,
+            Intel8080Instruction::Cnc { address: _} => not_met,
+            Intel8080Instruction::Cz { address: _} if self.flags.zero => met,
+            Intel8080Instruction::Cz { address: _} => not_met,
+            Intel8080Instruction::Cnz { address: _} if !self.flags.zero => met,
+            Intel8080Instruction::Cnz { address: _} => not_met,
+            Intel8080Instruction::Cm { address: _} if self.flags.sign => met,
+            Intel8080Instruction::Cm { address: _} => not_met,
+            Intel8080Instruction::Cp { address: _} if !self.flags.sign => met,
+            Intel8080Instruction::Cp { address: _} => not_met,
+            Intel8080Instruction::Cpe { address: _} if self.flags.parity => met,
+            Intel8080Instruction::Cpe { address: _} => not_met,
+            Intel8080Instruction::Cpo { address: _} if !self.flags.parity => met,
+            Intel8080Instruction::Cpo { address: _} => not_met,
+            Intel8080Instruction::Rc if self.flags.carry => met,
+            Intel8080Instruction::Rc => not_met,
+            Intel8080Instruction::Rnc if !self.flags.carry => met,
+            Intel8080Instruction::Rnc => not_met,
+            Intel8080Instruction::Rz if self.flags.zero => met,
+            Intel8080Instruction::Rz => not_met,
+            Intel8080Instruction::Rnz if !self.flags.zero => met,
+            Intel8080Instruction::Rnz => not_met,
+            Intel8080Instruction::Rm if self.flags.sign => met,
+            Intel8080Instruction::Rm => not_met,
+            Intel8080Instruction::Rp if !self.flags.sign => met,
+            Intel8080Instruction::Rp => not_met,
+            Intel8080Instruction::Rpe if self.flags.parity => met,
+            Intel8080Instruction::Rpe => not_met,
+            Intel8080Instruction::Rpo if !self.flags.parity => met,
+            Intel8080Instruction::Rpo => not_met,
+            _ => panic!("This instruction ({}) isn't conditional!", instruction.to_string()),
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use intel8080cpu::{Intel8080Cpu, ROM_MEMORY_LIMIT, State};
+    use super::super::cpu::Cpu;
 
     #[test]
     fn it_should_execute_instruction_when_running() {

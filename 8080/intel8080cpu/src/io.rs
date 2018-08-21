@@ -27,7 +27,7 @@ mod tests {
     use intel8080cpu::{Intel8080Cpu, ROM_MEMORY_LIMIT};
     use instruction::Intel8080Instruction;
     use std::boxed::Box;
-    use super::super::cpu::{InputDevice, OutputDevice};
+    use super::super::cpu::{Cpu, InputDevice, OutputDevice};
 
     #[test]
     fn it_should_execute_in() {

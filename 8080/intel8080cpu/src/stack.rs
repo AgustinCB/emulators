@@ -73,6 +73,7 @@ impl<'a> Intel8080Cpu<'a> {
 mod tests {
     use intel8080cpu::{Intel8080Cpu, RegisterType, ROM_MEMORY_LIMIT};
     use instruction::Intel8080Instruction;
+    use super::super::cpu::Cpu;
 
     fn get_pop_ready_cpu<'a>() -> Intel8080Cpu<'a> {
         let mut memory = [0; ROM_MEMORY_LIMIT];

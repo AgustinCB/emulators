@@ -18,6 +18,7 @@ impl<'a> Intel8080Cpu<'a> {
 mod tests {
     use intel8080cpu::{Intel8080Cpu, State, ROM_MEMORY_LIMIT};
     use instruction::Intel8080Instruction;
+    use super::super::cpu::Cpu;
 
     #[test]
     fn it_should_execute_ei() {
