@@ -1,11 +1,13 @@
 use intel8080cpu::{Intel8080Cpu, Location, State};
 use instruction::Intel8080Instruction;
 use std::cmp::min;
+use super::cpu::Instruction;
 use super::CpuError;
 
 impl<'a> Intel8080Cpu<'a> {
     pub fn execute(&mut self) -> Result<u8, CpuError> {
-        let instruction = Intel8080Instruction::from_bytes(self.get_next_instruction_bytes());
+        let instruction = Intel8080Instruction::from(
+            self.get_next_instruction_bytes().to_vec());
         if !self.can_run(&instruction) {
             return Ok(0);
         }

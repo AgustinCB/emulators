@@ -1,5 +1,6 @@
 use intel8080cpu::Intel8080Cpu;
-use instruction::{Cycles, Intel8080Instruction};
+use instruction::Intel8080Instruction;
+use super::cpu::{Cycles, Instruction};
 
 impl<'a> Intel8080Cpu<'a> {
     pub(crate) fn get_cycles_for_instruction(&self, instruction: &Intel8080Instruction) -> u8 {

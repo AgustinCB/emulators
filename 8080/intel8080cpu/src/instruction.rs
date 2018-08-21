@@ -1,9 +1,5 @@
+use super::cpu::{Cycles, Instruction};
 use intel8080cpu::{RegisterType, Location, Address};
-
-pub(crate) enum Cycles {
-    Single(u8),
-    Conditional { not_met: u8, met: u8 },
-}
 
 #[derive(Clone)]
 pub enum Intel8080Instruction {
@@ -87,9 +83,213 @@ pub enum Intel8080Instruction {
     Cpi { byte: u8 },
 }
 
-impl Intel8080Instruction {
+impl Instruction<u8> for Intel8080Instruction {
+    fn size(&self) -> u8 {
+        match self {
+            Intel8080Instruction::Noop => 1,
+            Intel8080Instruction::Lxi { register: _, low_byte: _, high_byte: _ } => 3,
+            Intel8080Instruction::Stax { register: _ } => 1,
+            Intel8080Instruction::Inx { register: _ } => 1,
+            Intel8080Instruction::Inr { source: _ } => 1,
+            Intel8080Instruction::Dcr { source: _ } => 1,
+            Intel8080Instruction::Mvi { source: _, byte: _ } => 2,
+            Intel8080Instruction::Rlc => 1,
+            Intel8080Instruction::Dad { register: _ } => 1,
+            Intel8080Instruction::Ldax { register: _ } => 1,
+            Intel8080Instruction::Dcx { register: _ } => 1,
+            Intel8080Instruction::Rrc => 1,
+            Intel8080Instruction::Ral => 1,
+            Intel8080Instruction::Rar => 1,
+            Intel8080Instruction::Shld { address: _ } => 3,
+            Intel8080Instruction::Daa => 1,
+            Intel8080Instruction::Lhld { address: _ } => 3,
+            Intel8080Instruction::Cma => 1,
+            Intel8080Instruction::Sta { address: _ } => 3,
+            Intel8080Instruction::Lda { address: _ } => 3,
+            Intel8080Instruction::Stc => 1,
+            Intel8080Instruction::Cmc => 1,
+            Intel8080Instruction::Mov { destiny: _, source: _ } => 1,
+            Intel8080Instruction::Hlt => 1,
+            Intel8080Instruction::Add { source: _ } => 1,
+            Intel8080Instruction::Adc { source: _ } => 1,
+            Intel8080Instruction::Sub { source: _ } => 1,
+            Intel8080Instruction::Sbb { source: _ } => 1,
+            Intel8080Instruction::Ana { source: _ } => 1,
+            Intel8080Instruction::Xra { source: _ } => 1,
+            Intel8080Instruction::Ora { source: _ } => 1,
+            Intel8080Instruction::Cmp { source: _ } => 1,
+            Intel8080Instruction::Rnz => 1,
+            Intel8080Instruction::Pop { register: _ } => 1,
+            Intel8080Instruction::Jnz { address: _ } => 3,
+            Intel8080Instruction::Jmp { address: _ } => 3,
+            Intel8080Instruction::Cnz { address: _ } => 3,
+            Intel8080Instruction::Push { register: _ } => 1,
+            Intel8080Instruction::Adi { byte: _ } => 2,
+            Intel8080Instruction::Rst { value: _ } => 1,
+            Intel8080Instruction::Rz => 1,
+            Intel8080Instruction::Ret => 1,
+            Intel8080Instruction::Jz { address: _ } => 3,
+            Intel8080Instruction::Cz { address: _ } => 3,
+            Intel8080Instruction::Call { address: _ } => 3,
+            Intel8080Instruction::Aci { byte: _ } => 2,
+            Intel8080Instruction::Rnc => 1,
+            Intel8080Instruction::Jnc { address: _ } => 3,
+            Intel8080Instruction::Out { byte: _ } => 2,
+            Intel8080Instruction::Cnc { address: _ } => 3,
+            Intel8080Instruction::Sui { byte: _ } => 2,
+            Intel8080Instruction::Rc => 1,
+            Intel8080Instruction::Jc { address: _ } => 3,
+            Intel8080Instruction::In { byte: _ } => 2,
+            Intel8080Instruction::Cc { address: _ } => 3,
+            Intel8080Instruction::Sbi { byte: _ } => 2,
+            Intel8080Instruction::Rpo => 1,
+            Intel8080Instruction::Jpo { address: _ } => 3,
+            Intel8080Instruction::Xthl => 1,
+            Intel8080Instruction::Cpo { address: _ } => 3,
+            Intel8080Instruction::Ani { byte: _ } => 2,
+            Intel8080Instruction::Rpe => 1,
+            Intel8080Instruction::Pchl => 1,
+            Intel8080Instruction::Jpe { address: _ } => 3,
+            Intel8080Instruction::Xchg => 1,
+            Intel8080Instruction::Cpe { address: _ } => 3,
+            Intel8080Instruction::Xri { byte: _ } => 2,
+            Intel8080Instruction::Rp => 1,
+            Intel8080Instruction::Jp { address: _ } => 3,
+            Intel8080Instruction::Di => 1,
+            Intel8080Instruction::Cp { address: _ } => 3,
+            Intel8080Instruction::Ori { byte: _ } => 2,
+            Intel8080Instruction::Rm => 1,
+            Intel8080Instruction::Sphl => 1,
+            Intel8080Instruction::Jm { address: _ } => 3,
+            Intel8080Instruction::Ei => 1,
+            Intel8080Instruction::Cm { address: _ } => 3,
+            Intel8080Instruction::Cpi { byte: _ } => 2,
+        }
+    }
+
+    fn get_cycles(&self) -> Cycles {
+        match self {
+            Intel8080Instruction::Noop => Cycles::Single(4),
+            Intel8080Instruction::Lxi { register: _, low_byte: _, high_byte: _ } => Cycles::Single(10),
+            Intel8080Instruction::Stax { register: _ } => Cycles::Single(7),
+            Intel8080Instruction::Inx { register: _ } => Cycles::Single(5),
+            Intel8080Instruction::Inr {
+                source: Location::Register { register: _ }
+            } => Cycles::Single(5),
+            Intel8080Instruction::Inr { source: _ } => Cycles::Single(10),
+            Intel8080Instruction::Dcr {
+                source: Location::Register { register: _ }
+            } => Cycles::Single(5),
+            Intel8080Instruction::Dcr { source: _ } => Cycles::Single(10),
+            Intel8080Instruction::Mvi { source: Location::Register { register: _ }, byte: _ } =>
+                Cycles::Single(7),
+            Intel8080Instruction::Mvi { source: _, byte: _ } => Cycles::Single(10),
+            Intel8080Instruction::Rlc => Cycles::Single(4),
+            Intel8080Instruction::Dad { register: _ } => Cycles::Single(10),
+            Intel8080Instruction::Ldax { register: _ } => Cycles::Single(7),
+            Intel8080Instruction::Dcx { register: _ } => Cycles::Single(5),
+            Intel8080Instruction::Rrc => Cycles::Single(4),
+            Intel8080Instruction::Ral => Cycles::Single(4),
+            Intel8080Instruction::Rar => Cycles::Single(4),
+            Intel8080Instruction::Shld { address: _ } => Cycles::Single(16),
+            Intel8080Instruction::Daa => Cycles::Single(4),
+            Intel8080Instruction::Lhld { address: _ } => Cycles::Single(16),
+            Intel8080Instruction::Cma => Cycles::Single(4),
+            Intel8080Instruction::Sta { address: _ } => Cycles::Single(13),
+            Intel8080Instruction::Lda { address: _ } => Cycles::Single(13),
+            Intel8080Instruction::Stc => Cycles::Single(4),
+            Intel8080Instruction::Cmc => Cycles::Single(4),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: _ },
+                source: Location::Register { register: _ },
+            } => Cycles::Single(5),
+            Intel8080Instruction::Mov { destiny: _, source: _ } => Cycles::Single(7),
+            Intel8080Instruction::Hlt => Cycles::Single(7),
+            Intel8080Instruction::Add {
+                source: Location::Register { register: _ }
+            } => Cycles::Single(4),
+            Intel8080Instruction::Add { source: _ } => Cycles::Single(7),
+            Intel8080Instruction::Adc {
+                source: Location::Register { register: _ }
+            } => Cycles::Single(4),
+            Intel8080Instruction::Adc { source: _ } => Cycles::Single(7),
+            Intel8080Instruction::Sub {
+                source: Location::Register { register: _ }
+            } => Cycles::Single(4),
+            Intel8080Instruction::Sub { source: _ } => Cycles::Single(7),
+            Intel8080Instruction::Sbb {
+                source: Location::Register { register: _ }
+            } => Cycles::Single(4),
+            Intel8080Instruction::Sbb { source: _ } => Cycles::Single(7),
+            Intel8080Instruction::Ana {
+                source: Location::Register { register: _ }
+            } => Cycles::Single(4),
+            Intel8080Instruction::Ana { source: _ } => Cycles::Single(7),
+            Intel8080Instruction::Xra {
+                source: Location::Register { register: _ }
+            } => Cycles::Single(4),
+            Intel8080Instruction::Xra { source: _ } => Cycles::Single(7),
+            Intel8080Instruction::Ora {
+                source: Location::Register { register: _ }
+            } => Cycles::Single(4),
+            Intel8080Instruction::Ora { source: _ } => Cycles::Single(7),
+            Intel8080Instruction::Cmp {
+                source: Location::Register { register: _ }
+            } => Cycles::Single(4),
+            Intel8080Instruction::Cmp { source: _ } => Cycles::Single(7),
+            Intel8080Instruction::Rnz => Cycles::Conditional { not_met: 5, met: 11 },
+            Intel8080Instruction::Pop { register: _ } => Cycles::Single(10),
+            Intel8080Instruction::Jnz { address: _ } => Cycles::Single(10),
+            Intel8080Instruction::Jmp { address: _ } => Cycles::Single(10),
+            Intel8080Instruction::Cnz { address: _ } => Cycles::Conditional { not_met: 11, met: 17 },
+            Intel8080Instruction::Push { register: _ } => Cycles::Single(11),
+            Intel8080Instruction::Adi { byte: _ } => Cycles::Single(7),
+            Intel8080Instruction::Rst { value: _ } => Cycles::Single(11),
+            Intel8080Instruction::Rz => Cycles::Conditional { not_met: 5, met: 11 },
+            Intel8080Instruction::Ret => Cycles::Single(10),
+            Intel8080Instruction::Jz { address: _ } => Cycles::Single(10),
+            Intel8080Instruction::Cz { address: _ } => Cycles::Conditional { not_met: 11, met: 17 },
+            Intel8080Instruction::Call { address: _ } => Cycles::Single(17),
+            Intel8080Instruction::Aci { byte: _ } => Cycles::Single(7),
+            Intel8080Instruction::Rnc => Cycles::Conditional { not_met: 5, met: 11 },
+            Intel8080Instruction::Jnc { address: _ } => Cycles::Single(10),
+            Intel8080Instruction::Out { byte: _ } => Cycles::Single(10),
+            Intel8080Instruction::Cnc { address: _ } => Cycles::Conditional { not_met: 11, met: 17 },
+            Intel8080Instruction::Sui { byte: _ } => Cycles::Single(7),
+            Intel8080Instruction::Rc => Cycles::Conditional { not_met: 5, met: 11 },
+            Intel8080Instruction::Jc { address: _ } => Cycles::Single(10),
+            Intel8080Instruction::In { byte: _ } => Cycles::Single(10),
+            Intel8080Instruction::Cc { address: _ } => Cycles::Conditional { not_met: 11, met: 17 },
+            Intel8080Instruction::Sbi { byte: _ } => Cycles::Single(7),
+            Intel8080Instruction::Rpo => Cycles::Conditional { not_met: 5, met: 11 },
+            Intel8080Instruction::Jpo { address: _ } => Cycles::Single(10),
+            Intel8080Instruction::Xthl => Cycles::Single(18),
+            Intel8080Instruction::Cpo { address: _ } => Cycles::Conditional { not_met: 11, met: 17 },
+            Intel8080Instruction::Ani { byte: _ } => Cycles::Single(7),
+            Intel8080Instruction::Rpe => Cycles::Conditional { not_met: 5, met: 11 },
+            Intel8080Instruction::Pchl => Cycles::Single(5),
+            Intel8080Instruction::Jpe { address: _ } => Cycles::Single(10),
+            Intel8080Instruction::Xchg => Cycles::Single(4),
+            Intel8080Instruction::Cpe { address: _ } => Cycles::Conditional { not_met: 11, met: 17 },
+            Intel8080Instruction::Xri { byte: _ } => Cycles::Single(7),
+            Intel8080Instruction::Rp => Cycles::Conditional { not_met: 5, met: 11 },
+            Intel8080Instruction::Jp { address: _ } => Cycles::Single(10),
+            Intel8080Instruction::Di => Cycles::Single(4),
+            Intel8080Instruction::Cp { address: _ } => Cycles::Conditional { not_met: 11, met: 17 },
+            Intel8080Instruction::Ori { byte: _ } => Cycles::Single(7),
+            Intel8080Instruction::Rm => Cycles::Conditional { not_met: 5, met: 11 },
+            Intel8080Instruction::Sphl => Cycles::Single(5),
+            Intel8080Instruction::Jm { address: _ } => Cycles::Single(10),
+            Intel8080Instruction::Ei => Cycles::Single(4),
+            Intel8080Instruction::Cm { address: _ } => Cycles::Conditional { not_met: 11, met: 17 },
+            Intel8080Instruction::Cpi { byte: _ } => Cycles::Single(7),
+        }
+    }
+}
+
+impl From<Vec<u8>> for Intel8080Instruction {
     #[inline]
-    pub fn from_bytes(bytes: &[u8]) -> Intel8080Instruction {
+    fn from(bytes: Vec<u8>) -> Intel8080Instruction {
         match bytes[0] {
             0x00 => Intel8080Instruction::Noop,
             0x01 => Intel8080Instruction::Lxi { register: RegisterType::B, low_byte: bytes[1], high_byte: bytes[2] },
@@ -592,208 +792,6 @@ impl Intel8080Instruction {
                 eprintln!("Unrecognized byte {}.", c);
                 Intel8080Instruction::Noop
             },
-        }
-    }
-
-    pub fn size(&self) -> u8 {
-        match self {
-            Intel8080Instruction::Noop => 1,
-            Intel8080Instruction::Lxi { register: _, low_byte: _, high_byte: _ } => 3,
-            Intel8080Instruction::Stax { register: _ } => 1,
-            Intel8080Instruction::Inx { register: _ } => 1,
-            Intel8080Instruction::Inr { source: _ } => 1,
-            Intel8080Instruction::Dcr { source: _ } => 1,
-            Intel8080Instruction::Mvi { source: _, byte: _ } => 2,
-            Intel8080Instruction::Rlc => 1,
-            Intel8080Instruction::Dad { register: _ } => 1,
-            Intel8080Instruction::Ldax { register: _ } => 1,
-            Intel8080Instruction::Dcx { register: _ } => 1,
-            Intel8080Instruction::Rrc => 1,
-            Intel8080Instruction::Ral => 1,
-            Intel8080Instruction::Rar => 1,
-            Intel8080Instruction::Shld { address: _ } => 3,
-            Intel8080Instruction::Daa => 1,
-            Intel8080Instruction::Lhld { address: _ } => 3,
-            Intel8080Instruction::Cma => 1,
-            Intel8080Instruction::Sta { address: _ } => 3,
-            Intel8080Instruction::Lda { address: _ } => 3,
-            Intel8080Instruction::Stc => 1,
-            Intel8080Instruction::Cmc => 1,
-            Intel8080Instruction::Mov { destiny: _, source: _ } => 1,
-            Intel8080Instruction::Hlt => 1,
-            Intel8080Instruction::Add { source: _ } => 1,
-            Intel8080Instruction::Adc { source: _ } => 1,
-            Intel8080Instruction::Sub { source: _ } => 1,
-            Intel8080Instruction::Sbb { source: _ } => 1,
-            Intel8080Instruction::Ana { source: _ } => 1,
-            Intel8080Instruction::Xra { source: _ } => 1,
-            Intel8080Instruction::Ora { source: _ } => 1,
-            Intel8080Instruction::Cmp { source: _ } => 1,
-            Intel8080Instruction::Rnz => 1,
-            Intel8080Instruction::Pop { register: _ } => 1,
-            Intel8080Instruction::Jnz { address: _ } => 3,
-            Intel8080Instruction::Jmp { address: _ } => 3,
-            Intel8080Instruction::Cnz { address: _ } => 3,
-            Intel8080Instruction::Push { register: _ } => 1,
-            Intel8080Instruction::Adi { byte: _ } => 2,
-            Intel8080Instruction::Rst { value: _ } => 1,
-            Intel8080Instruction::Rz => 1,
-            Intel8080Instruction::Ret => 1,
-            Intel8080Instruction::Jz { address: _ } => 3,
-            Intel8080Instruction::Cz { address: _ } => 3,
-            Intel8080Instruction::Call { address: _ } => 3,
-            Intel8080Instruction::Aci { byte: _ } => 2,
-            Intel8080Instruction::Rnc => 1,
-            Intel8080Instruction::Jnc { address: _ } => 3,
-            Intel8080Instruction::Out { byte: _ } => 2,
-            Intel8080Instruction::Cnc { address: _ } => 3,
-            Intel8080Instruction::Sui { byte: _ } => 2,
-            Intel8080Instruction::Rc => 1,
-            Intel8080Instruction::Jc { address: _ } => 3,
-            Intel8080Instruction::In { byte: _ } => 2,
-            Intel8080Instruction::Cc { address: _ } => 3,
-            Intel8080Instruction::Sbi { byte: _ } => 2,
-            Intel8080Instruction::Rpo => 1,
-            Intel8080Instruction::Jpo { address: _ } => 3,
-            Intel8080Instruction::Xthl => 1,
-            Intel8080Instruction::Cpo { address: _ } => 3,
-            Intel8080Instruction::Ani { byte: _ } => 2,
-            Intel8080Instruction::Rpe => 1,
-            Intel8080Instruction::Pchl => 1,
-            Intel8080Instruction::Jpe { address: _ } => 3,
-            Intel8080Instruction::Xchg => 1,
-            Intel8080Instruction::Cpe { address: _ } => 3,
-            Intel8080Instruction::Xri { byte: _ } => 2,
-            Intel8080Instruction::Rp => 1,
-            Intel8080Instruction::Jp { address: _ } => 3,
-            Intel8080Instruction::Di => 1,
-            Intel8080Instruction::Cp { address: _ } => 3,
-            Intel8080Instruction::Ori { byte: _ } => 2,
-            Intel8080Instruction::Rm => 1,
-            Intel8080Instruction::Sphl => 1,
-            Intel8080Instruction::Jm { address: _ } => 3,
-            Intel8080Instruction::Ei => 1,
-            Intel8080Instruction::Cm { address: _ } => 3,
-            Intel8080Instruction::Cpi { byte: _ } => 2,
-        }
-    }
-
-    pub(crate) fn get_cycles(&self) -> Cycles {
-        match self {
-            Intel8080Instruction::Noop => Cycles::Single(4),
-            Intel8080Instruction::Lxi { register: _, low_byte: _, high_byte: _ } => Cycles::Single(10),
-            Intel8080Instruction::Stax { register: _ } => Cycles::Single(7),
-            Intel8080Instruction::Inx { register: _ } => Cycles::Single(5),
-            Intel8080Instruction::Inr {
-                source: Location::Register { register: _ }
-            } => Cycles::Single(5),
-            Intel8080Instruction::Inr { source: _ } => Cycles::Single(10),
-            Intel8080Instruction::Dcr {
-                source: Location::Register { register: _ }
-            } => Cycles::Single(5),
-            Intel8080Instruction::Dcr { source: _ } => Cycles::Single(10),
-            Intel8080Instruction::Mvi { source: Location::Register { register: _ }, byte: _ } =>
-                Cycles::Single(7),
-            Intel8080Instruction::Mvi { source: _, byte: _ } => Cycles::Single(10),
-            Intel8080Instruction::Rlc => Cycles::Single(4),
-            Intel8080Instruction::Dad { register: _ } => Cycles::Single(10),
-            Intel8080Instruction::Ldax { register: _ } => Cycles::Single(7),
-            Intel8080Instruction::Dcx { register: _ } => Cycles::Single(5),
-            Intel8080Instruction::Rrc => Cycles::Single(4),
-            Intel8080Instruction::Ral => Cycles::Single(4),
-            Intel8080Instruction::Rar => Cycles::Single(4),
-            Intel8080Instruction::Shld { address: _ } => Cycles::Single(16),
-            Intel8080Instruction::Daa => Cycles::Single(4),
-            Intel8080Instruction::Lhld { address: _ } => Cycles::Single(16),
-            Intel8080Instruction::Cma => Cycles::Single(4),
-            Intel8080Instruction::Sta { address: _ } => Cycles::Single(13),
-            Intel8080Instruction::Lda { address: _ } => Cycles::Single(13),
-            Intel8080Instruction::Stc => Cycles::Single(4),
-            Intel8080Instruction::Cmc => Cycles::Single(4),
-            Intel8080Instruction::Mov {
-                destiny: Location::Register { register: _ },
-                source: Location::Register { register: _ },
-            } => Cycles::Single(5),
-            Intel8080Instruction::Mov { destiny: _, source: _ } => Cycles::Single(7),
-            Intel8080Instruction::Hlt => Cycles::Single(7),
-            Intel8080Instruction::Add {
-                source: Location::Register { register: _ }
-            } => Cycles::Single(4),
-            Intel8080Instruction::Add { source: _ } => Cycles::Single(7),
-            Intel8080Instruction::Adc {
-                source: Location::Register { register: _ }
-            } => Cycles::Single(4),
-            Intel8080Instruction::Adc { source: _ } => Cycles::Single(7),
-            Intel8080Instruction::Sub {
-                source: Location::Register { register: _ }
-            } => Cycles::Single(4),
-            Intel8080Instruction::Sub { source: _ } => Cycles::Single(7),
-            Intel8080Instruction::Sbb {
-                source: Location::Register { register: _ }
-            } => Cycles::Single(4),
-            Intel8080Instruction::Sbb { source: _ } => Cycles::Single(7),
-            Intel8080Instruction::Ana {
-                source: Location::Register { register: _ }
-            } => Cycles::Single(4),
-            Intel8080Instruction::Ana { source: _ } => Cycles::Single(7),
-            Intel8080Instruction::Xra {
-                source: Location::Register { register: _ }
-            } => Cycles::Single(4),
-            Intel8080Instruction::Xra { source: _ } => Cycles::Single(7),
-            Intel8080Instruction::Ora {
-                source: Location::Register { register: _ }
-            } => Cycles::Single(4),
-            Intel8080Instruction::Ora { source: _ } => Cycles::Single(7),
-            Intel8080Instruction::Cmp {
-                source: Location::Register { register: _ }
-            } => Cycles::Single(4),
-            Intel8080Instruction::Cmp { source: _ } => Cycles::Single(7),
-            Intel8080Instruction::Rnz => Cycles::Conditional { not_met: 5, met: 11 },
-            Intel8080Instruction::Pop { register: _ } => Cycles::Single(10),
-            Intel8080Instruction::Jnz { address: _ } => Cycles::Single(10),
-            Intel8080Instruction::Jmp { address: _ } => Cycles::Single(10),
-            Intel8080Instruction::Cnz { address: _ } => Cycles::Conditional { not_met: 11, met: 17 },
-            Intel8080Instruction::Push { register: _ } => Cycles::Single(11),
-            Intel8080Instruction::Adi { byte: _ } => Cycles::Single(7),
-            Intel8080Instruction::Rst { value: _ } => Cycles::Single(11),
-            Intel8080Instruction::Rz => Cycles::Conditional { not_met: 5, met: 11 },
-            Intel8080Instruction::Ret => Cycles::Single(10),
-            Intel8080Instruction::Jz { address: _ } => Cycles::Single(10),
-            Intel8080Instruction::Cz { address: _ } => Cycles::Conditional { not_met: 11, met: 17 },
-            Intel8080Instruction::Call { address: _ } => Cycles::Single(17),
-            Intel8080Instruction::Aci { byte: _ } => Cycles::Single(7),
-            Intel8080Instruction::Rnc => Cycles::Conditional { not_met: 5, met: 11 },
-            Intel8080Instruction::Jnc { address: _ } => Cycles::Single(10),
-            Intel8080Instruction::Out { byte: _ } => Cycles::Single(10),
-            Intel8080Instruction::Cnc { address: _ } => Cycles::Conditional { not_met: 11, met: 17 },
-            Intel8080Instruction::Sui { byte: _ } => Cycles::Single(7),
-            Intel8080Instruction::Rc => Cycles::Conditional { not_met: 5, met: 11 },
-            Intel8080Instruction::Jc { address: _ } => Cycles::Single(10),
-            Intel8080Instruction::In { byte: _ } => Cycles::Single(10),
-            Intel8080Instruction::Cc { address: _ } => Cycles::Conditional { not_met: 11, met: 17 },
-            Intel8080Instruction::Sbi { byte: _ } => Cycles::Single(7),
-            Intel8080Instruction::Rpo => Cycles::Conditional { not_met: 5, met: 11 },
-            Intel8080Instruction::Jpo { address: _ } => Cycles::Single(10),
-            Intel8080Instruction::Xthl => Cycles::Single(18),
-            Intel8080Instruction::Cpo { address: _ } => Cycles::Conditional { not_met: 11, met: 17 },
-            Intel8080Instruction::Ani { byte: _ } => Cycles::Single(7),
-            Intel8080Instruction::Rpe => Cycles::Conditional { not_met: 5, met: 11 },
-            Intel8080Instruction::Pchl => Cycles::Single(5),
-            Intel8080Instruction::Jpe { address: _ } => Cycles::Single(10),
-            Intel8080Instruction::Xchg => Cycles::Single(4),
-            Intel8080Instruction::Cpe { address: _ } => Cycles::Conditional { not_met: 11, met: 17 },
-            Intel8080Instruction::Xri { byte: _ } => Cycles::Single(7),
-            Intel8080Instruction::Rp => Cycles::Conditional { not_met: 5, met: 11 },
-            Intel8080Instruction::Jp { address: _ } => Cycles::Single(10),
-            Intel8080Instruction::Di => Cycles::Single(4),
-            Intel8080Instruction::Cp { address: _ } => Cycles::Conditional { not_met: 11, met: 17 },
-            Intel8080Instruction::Ori { byte: _ } => Cycles::Single(7),
-            Intel8080Instruction::Rm => Cycles::Conditional { not_met: 5, met: 11 },
-            Intel8080Instruction::Sphl => Cycles::Single(5),
-            Intel8080Instruction::Jm { address: _ } => Cycles::Single(10),
-            Intel8080Instruction::Ei => Cycles::Single(4),
-            Intel8080Instruction::Cm { address: _ } => Cycles::Conditional { not_met: 11, met: 17 },
-            Intel8080Instruction::Cpi { byte: _ } => Cycles::Single(7),
         }
     }
 }
