@@ -2,7 +2,7 @@ extern crate intel8080cpu;
 extern crate emulator_space_invaders;
 extern crate failure;
 
-use intel8080cpu::{Intel8080Cpu, Intel8080Instruction, ROM_MEMORY_LIMIT, Printer};
+use intel8080cpu::*;
 use emulator_space_invaders::console::Console;
 use failure::Error;
 use std::env::args;
@@ -34,7 +34,8 @@ fn get_instructions(bytes: [u8; ROM_MEMORY_LIMIT]) -> Vec<(u16, Intel8080Instruc
     for index in 0..bytes.len() {
         if pass == 0 {
             let i =
-                Intel8080Instruction::from_bytes(&bytes[index..min(index+3, bytes.len())]);
+                Intel8080Instruction::from(
+                    bytes[index..min(index+3, bytes.len())].to_vec());
             let instruction_size = i.size();
             pass = instruction_size - 1;
             result.push((pc, i));

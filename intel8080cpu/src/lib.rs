@@ -42,4 +42,4 @@ pub enum CpuError {
 
 pub use instruction::Intel8080Instruction;
 pub use intel8080cpu::*;
-pub use cpu::{InputDevice, OutputDevice};
+pub use cpu::{Cpu, InputDevice, Instruction, OutputDevice};

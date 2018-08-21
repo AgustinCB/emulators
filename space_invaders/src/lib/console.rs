@@ -4,7 +4,7 @@ extern crate graphics;
 extern crate opengl_graphics;
 extern crate piston;
 
-use self::intel8080cpu::{Intel8080Cpu, CpuError, HERTZ, Intel8080Instruction, ROM_MEMORY_LIMIT};
+use self::intel8080cpu::*;
 use self::glutin_window::GlutinWindow as Window;
 use self::opengl_graphics::{ GlGraphics, OpenGL };
 use self::piston::window::WindowSettings;
