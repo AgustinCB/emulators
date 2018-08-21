@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "cpu",
+    "intel8080cpu",
+    "space_invaders",
+]
