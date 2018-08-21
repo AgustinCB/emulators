@@ -1,0 +1,7 @@
+[package]
+name = "cpu"
+version = "0.1.0"
+authors = ["AgustinCB <jnieve@gmail.com>"]
+
+[dependencies]
+failure = "0.1.2"
