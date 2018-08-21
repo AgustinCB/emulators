@@ -1,4 +1,4 @@
-use cpu::{Intel8080Cpu, State};
+use intel8080cpu::{Intel8080Cpu, State};
 
 impl<'a> Intel8080Cpu<'a> {
     pub(crate) fn execute_ei(&mut self) {
@@ -16,7 +16,7 @@ impl<'a> Intel8080Cpu<'a> {
 
 #[cfg(test)]
 mod tests {
-    use cpu::{Intel8080Cpu, State, ROM_MEMORY_LIMIT};
+    use intel8080cpu::{Intel8080Cpu, State, ROM_MEMORY_LIMIT};
     use instruction::Intel8080Instruction;
 
     #[test]

@@ -1,4 +1,4 @@
-use cpu::Intel8080Cpu;
+use intel8080cpu::Intel8080Cpu;
 use helpers::two_bytes_to_word;
 use std::process::exit;
 
@@ -68,7 +68,7 @@ impl<'a> Intel8080Cpu<'a> {
 
 #[cfg(test)]
 mod tests {
-    use cpu::{Intel8080Cpu, ROM_MEMORY_LIMIT};
+    use intel8080cpu::{Intel8080Cpu, ROM_MEMORY_LIMIT};
     use instruction::Intel8080Instruction;
 
     #[test]

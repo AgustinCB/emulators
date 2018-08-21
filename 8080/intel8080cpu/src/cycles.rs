@@ -1,4 +1,4 @@
-use cpu::Intel8080Cpu;
+use intel8080cpu::Intel8080Cpu;
 use instruction::{Cycles, Intel8080Instruction};
 
 impl<'a> Intel8080Cpu<'a> {

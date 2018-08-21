@@ -1,5 +1,5 @@
 use helpers::two_bytes_to_word;
-use cpu::{Intel8080Cpu, Location, RegisterType};
+use intel8080cpu::{Intel8080Cpu, Location, RegisterType};
 use super::CpuError;
 
 impl<'a> Intel8080Cpu<'a> {
@@ -147,7 +147,7 @@ impl<'a> Intel8080Cpu<'a> {
 
 #[cfg(test)]
 mod tests {
-    use cpu::{Intel8080Cpu, Location, RegisterType, ROM_MEMORY_LIMIT};
+    use intel8080cpu::{Intel8080Cpu, Location, RegisterType, ROM_MEMORY_LIMIT};
     use instruction::Intel8080Instruction;
 
     fn get_ldax_ready_cpu(register: &RegisterType) -> Intel8080Cpu {

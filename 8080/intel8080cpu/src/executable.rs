@@ -1,4 +1,4 @@
-use cpu::{Intel8080Cpu, Location, State};
+use intel8080cpu::{Intel8080Cpu, Location, State};
 use instruction::Intel8080Instruction;
 use std::cmp::min;
 use super::CpuError;
@@ -169,7 +169,7 @@ impl<'a> Intel8080Cpu<'a> {
 
 #[cfg(test)]
 mod tests {
-    use cpu::{Intel8080Cpu, ROM_MEMORY_LIMIT, State};
+    use intel8080cpu::{Intel8080Cpu, ROM_MEMORY_LIMIT, State};
 
     #[test]
     fn it_should_execute_instruction_when_running() {

@@ -125,6 +125,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "cpu"
+version = "0.1.0"
+dependencies = [
+ "failure 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "crossbeam-deque"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -338,6 +345,7 @@ dependencies = [
 name = "intel8080cpu"
 version = "0.1.0"
 dependencies = [
+ "cpu 0.1.0",
  "failure 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 

@@ -1,4 +1,4 @@
-use cpu::{RegisterType, Location, Address};
+use intel8080cpu::{RegisterType, Location, Address};
 
 pub(crate) enum Cycles {
     Single(u8),

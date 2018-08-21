@@ -1,4 +1,4 @@
-use cpu::Intel8080Cpu;
+use intel8080cpu::Intel8080Cpu;
 
 impl<'a> Intel8080Cpu<'a> {
     pub(crate) fn execute_rc(&mut self) {
@@ -65,7 +65,7 @@ impl<'a> Intel8080Cpu<'a> {
 
 #[cfg(test)]
 mod tests {
-    use cpu::{Intel8080Cpu, ROM_MEMORY_LIMIT};
+    use intel8080cpu::{Intel8080Cpu, ROM_MEMORY_LIMIT};
     use instruction::Intel8080Instruction;
 
     #[test]

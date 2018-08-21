@@ -1,4 +1,4 @@
-use cpu::{Intel8080Cpu, RegisterType, State};
+use intel8080cpu::{Intel8080Cpu, RegisterType, State};
 use helpers::{two_bytes_to_word, word_to_address};
 use std::process::exit;
 use super::CpuError;
@@ -128,7 +128,7 @@ impl<'a> Intel8080Cpu<'a> {
 
 #[cfg(test)]
 mod tests {
-    use cpu::{Intel8080Cpu, RegisterType, ROM_MEMORY_LIMIT, Printer, State};
+    use intel8080cpu::{Intel8080Cpu, RegisterType, ROM_MEMORY_LIMIT, Printer, State};
     use instruction::Intel8080Instruction;
 
     #[test]

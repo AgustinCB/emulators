@@ -1,4 +1,4 @@
-use cpu::Intel8080Cpu;
+use intel8080cpu::Intel8080Cpu;
 use super::CpuError;
 
 impl<'a> Intel8080Cpu<'a> {
@@ -24,7 +24,7 @@ impl<'a> Intel8080Cpu<'a> {
 
 #[cfg(test)]
 mod tests {
-    use cpu::{Intel8080Cpu, InputDevice, OutputDevice, ROM_MEMORY_LIMIT};
+    use intel8080cpu::{Intel8080Cpu, InputDevice, OutputDevice, ROM_MEMORY_LIMIT};
     use instruction::Intel8080Instruction;
     use std::boxed::Box;
 

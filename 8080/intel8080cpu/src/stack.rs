@@ -1,4 +1,4 @@
-use cpu::{Intel8080Cpu, RegisterType};
+use intel8080cpu::{Intel8080Cpu, RegisterType};
 use super::CpuError;
 
 impl<'a> Intel8080Cpu<'a> {
@@ -71,7 +71,7 @@ impl<'a> Intel8080Cpu<'a> {
 
 #[cfg(test)]
 mod tests {
-    use cpu::{Intel8080Cpu, RegisterType, ROM_MEMORY_LIMIT};
+    use intel8080cpu::{Intel8080Cpu, RegisterType, ROM_MEMORY_LIMIT};
     use instruction::Intel8080Instruction;
 
     fn get_pop_ready_cpu<'a>() -> Intel8080Cpu<'a> {

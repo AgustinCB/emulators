@@ -1,3 +1,4 @@
+extern crate cpu;
 #[macro_use] extern crate failure;
 
 use failure::Fail;
@@ -5,7 +6,7 @@ use failure::Fail;
 mod branch_call;
 mod branch_jmp;
 mod branch_ret;
-mod cpu;
+mod intel8080cpu;
 mod cycles;
 mod executable;
 mod helpers;
@@ -41,4 +42,4 @@ pub enum CpuError {
 }
 
 pub use instruction::Intel8080Instruction;
-pub use cpu::*;
+pub use intel8080cpu::*;
