@@ -2,5 +2,6 @@
 members = [
     "cpu",
     "intel8080cpu",
+    "mos6502cpu",
     "space_invaders",
 ]

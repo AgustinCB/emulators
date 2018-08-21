@@ -1,0 +1,8 @@
+[package]
+name = "mos6502cpu"
+version = "0.1.0"
+authors = ["AgustinCB <jnieve@gmail.com>"]
+
+[dependencies]
+failure = "0.1.2"
+cpu = { path = "../cpu" }
