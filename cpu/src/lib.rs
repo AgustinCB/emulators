@@ -23,14 +23,13 @@ pub trait OutputDevice {
 }
 
 pub trait Instruction<W: MemoryAddressWidth> {
-    fn from_bytes(bytes: &[W]) -> Self;
     fn size(&self) -> u8;
     fn get_cycles(&self) -> Cycles;
 }
 
-pub trait Cpu<W: MemoryAddressWidth, I: Instruction<W> + ToString, E: Fail> {
+pub trait Cpu<W: MemoryAddressWidth + Clone, I: Instruction<W> + ToString + From<Vec<W>>, E: Fail> {
     fn execute(&mut self) -> Result<u8, E> {
-        let instruction = I::from_bytes(self.get_next_instruction_bytes());
+        let instruction = I::from(self.get_next_instruction_bytes().to_vec());
         if !self.can_run(&instruction) {
             return Ok(0);
         }
