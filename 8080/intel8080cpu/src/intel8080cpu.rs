@@ -1,6 +1,7 @@
 use helpers::{bit_count, two_bytes_to_word};
 use std::boxed::Box;
 use std::fmt;
+use super::cpu::{InputDevice, OutputDevice};
 use super::CpuError;
 
 pub const ROM_MEMORY_LIMIT: usize = 8192;
@@ -75,14 +76,6 @@ impl RegisterSet {
 pub(crate) enum State {
     Running,
     Stopped,
-}
-
-pub trait InputDevice {
-    fn read(&mut self) -> u8;
-}
-
-pub trait OutputDevice {
-    fn write(&mut self, byte: u8);
 }
 
 pub trait Printer {

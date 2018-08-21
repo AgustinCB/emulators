@@ -24,9 +24,10 @@ impl<'a> Intel8080Cpu<'a> {
 
 #[cfg(test)]
 mod tests {
-    use intel8080cpu::{Intel8080Cpu, InputDevice, OutputDevice, ROM_MEMORY_LIMIT};
+    use intel8080cpu::{Intel8080Cpu, ROM_MEMORY_LIMIT};
     use instruction::Intel8080Instruction;
     use std::boxed::Box;
+    use super::super::cpu::{InputDevice, OutputDevice};
 
     #[test]
     fn it_should_execute_in() {
