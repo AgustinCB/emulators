@@ -1,4 +1,4 @@
-use super::cpu::{InputDevice, OutputDevice};
+use super::intel8080cpu::{InputDevice, OutputDevice};
 use std::cell::RefCell;
 use std::rc::Rc;
 

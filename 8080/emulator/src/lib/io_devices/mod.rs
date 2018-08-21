@@ -1,5 +1,5 @@
-extern crate cpu;
-use self::cpu::{InputDevice, OutputDevice};
+extern crate intel8080cpu;
+use self::intel8080cpu::{InputDevice, OutputDevice};
 
 mod buttons;
 mod external_shift;

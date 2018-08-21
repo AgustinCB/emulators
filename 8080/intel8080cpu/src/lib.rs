@@ -40,5 +40,5 @@ pub enum CpuError {
     },
 }
 
-pub use instruction::Instruction;
+pub use instruction::Intel8080Instruction;
 pub use cpu::*;

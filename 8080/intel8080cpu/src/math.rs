@@ -1,7 +1,7 @@
-use cpu::{Cpu, RegisterType};
+use cpu::{Intel8080Cpu, RegisterType};
 use super::CpuError;
 
-impl<'a> Cpu<'a> {
+impl<'a> Intel8080Cpu<'a> {
     pub(crate) fn execute_aci(&mut self, byte: u8) -> Result<(), CpuError> {
         let carry_as_u16 = self.flags.carry as u16;
         let destiny_value = (self.get_current_a_value()? as u16 + carry_as_u16) & 0xff;
@@ -273,15 +273,15 @@ impl<'a> Cpu<'a> {
 
 #[cfg(test)]
 mod tests {
-    use cpu::{Cpu, Location, RegisterType, ROM_MEMORY_LIMIT};
-    use instruction::Instruction;
+    use cpu::{Intel8080Cpu, Location, RegisterType, ROM_MEMORY_LIMIT};
+    use instruction::Intel8080Instruction;
 
     #[test]
     fn it_should_execute_aci_without_carry() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.flags.carry = false;
         cpu.save_to_a(0x56).unwrap();
-        cpu.execute_instruction(Instruction::Aci { byte: 0xbe }).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Aci { byte: 0xbe }).unwrap();
         assert_eq!(cpu.get_current_a_value().unwrap(), 0x14);
         assert!(cpu.flags.carry);
         assert!(!cpu.flags.sign);
@@ -292,10 +292,10 @@ mod tests {
 
     #[test]
     fn it_should_execute_aci_with_carry() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.flags.carry = true;
         cpu.save_to_a(0x14).unwrap();
-        cpu.execute_instruction(Instruction::Aci { byte: 0x42 }).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Aci { byte: 0x42 }).unwrap();
         assert_eq!(cpu.get_current_a_value().unwrap(), 0x57);
         assert!(!cpu.flags.carry);
         assert!(!cpu.flags.sign);
@@ -306,9 +306,9 @@ mod tests {
 
     #[test]
     fn it_should_execute_adi() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x56).unwrap();
-        cpu.execute_instruction(Instruction::Adi { byte: 0xbe }).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Adi { byte: 0xbe }).unwrap();
         assert_eq!(cpu.get_current_a_value().unwrap(), 0x14);
         assert!(cpu.flags.carry);
         assert!(!cpu.flags.sign);
@@ -319,11 +319,11 @@ mod tests {
 
     #[test]
     fn it_should_execute_adc_by_register() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x42).unwrap();
         cpu.save_to_single_register(0x3d, &RegisterType::C).unwrap();
         cpu.flags.carry = false;
-        cpu.execute_instruction(Instruction::Adc {
+        cpu.execute_instruction(Intel8080Instruction::Adc {
             source: Location::Register { register: RegisterType::C },
         }).unwrap();
         assert_eq!(cpu.get_current_a_value().unwrap(), 0x7f);
@@ -336,13 +336,13 @@ mod tests {
 
     #[test]
     fn it_should_execute_adc_by_memory() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x42).unwrap();
         cpu.save_to_single_register(0x0, &RegisterType::H).unwrap();
         cpu.save_to_single_register(0x0, &RegisterType::L).unwrap();
         cpu.memory[0] = 0x3d;
         cpu.flags.carry = true;
-        cpu.execute_instruction(Instruction::Adc { source: Location::Memory }).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Adc { source: Location::Memory }).unwrap();
         assert_eq!(cpu.get_current_a_value().unwrap(), 0x80);
         assert!(!cpu.flags.carry);
         assert!(cpu.flags.sign);
@@ -353,9 +353,9 @@ mod tests {
 
     #[test]
     fn it_should_execute_add_by_register() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x21).unwrap();
-        cpu.execute_instruction(Instruction::Add {
+        cpu.execute_instruction(Intel8080Instruction::Add {
             source: Location::Register { register: RegisterType::A },
         }).unwrap();
         assert_eq!(cpu.get_current_a_value().unwrap(), 0x42);
@@ -368,12 +368,12 @@ mod tests {
 
     #[test]
     fn it_should_execute_add_by_memory() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x6c).unwrap();
         cpu.save_to_single_register(0x0, &RegisterType::H).unwrap();
         cpu.save_to_single_register(0x0, &RegisterType::L).unwrap();
         cpu.memory[0] = 0x2e;
-        cpu.execute_instruction(Instruction::Add { source: Location::Memory }).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Add { source: Location::Memory }).unwrap();
         assert_eq!(cpu.get_current_a_value().unwrap(), 0x9a);
         assert!(!cpu.flags.carry);
         assert!(cpu.flags.sign);
@@ -384,10 +384,10 @@ mod tests {
 
     #[test]
     fn it_should_execute_cmp_by_register() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x0a).unwrap();
         cpu.save_to_single_register(0x05, &RegisterType::E).unwrap();
-        cpu.execute_instruction(Instruction::Cmp {
+        cpu.execute_instruction(Intel8080Instruction::Cmp {
             source: Location::Register { register: RegisterType::E}
         }).unwrap();
         assert_eq!(cpu.get_current_a_value().unwrap(), 0x0a);
@@ -401,12 +401,12 @@ mod tests {
 
     #[test]
     fn it_should_execute_cmp_by_memory() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x02).unwrap();
         cpu.save_to_single_register(0x0, &RegisterType::H).unwrap();
         cpu.save_to_single_register(0x0, &RegisterType::L).unwrap();
         cpu.memory[0] = 0x05;
-        cpu.execute_instruction(Instruction::Cmp { source: Location::Memory }).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Cmp { source: Location::Memory }).unwrap();
         assert_eq!(cpu.get_current_a_value().unwrap(), 0x02);
         assert!(cpu.flags.carry);
         assert!(cpu.flags.sign);
@@ -417,9 +417,9 @@ mod tests {
 
     #[test]
     fn it_should_execute_cpi() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x4a).unwrap();
-        cpu.execute_instruction(Instruction::Cpi { byte: 0x40 }).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Cpi { byte: 0x40 }).unwrap();
         assert_eq!(cpu.get_current_a_value().unwrap(), 0x4a);
         assert!(!cpu.flags.carry);
         assert!(!cpu.flags.sign);
@@ -430,11 +430,11 @@ mod tests {
 
     #[test]
     fn it_should_execute_daa_without_carries_nor_change() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x55).unwrap();
         cpu.flags.auxiliary_carry = false;
         cpu.flags.carry = false;
-        cpu.execute_instruction(Instruction::Daa).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Daa).unwrap();
         assert_eq!(cpu.get_current_a_value().unwrap(), 0x55);
         assert!(!cpu.flags.carry);
         assert!(!cpu.flags.sign);
@@ -445,11 +445,11 @@ mod tests {
 
     #[test]
     fn it_should_execute_daa_with_carries() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x10).unwrap();
         cpu.flags.auxiliary_carry = true;
         cpu.flags.carry = true;
-        cpu.execute_instruction(Instruction::Daa).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Daa).unwrap();
         assert_eq!(cpu.get_current_a_value().unwrap(), 0x76);
         assert!(!cpu.flags.carry);
         assert!(!cpu.flags.sign);
@@ -460,11 +460,11 @@ mod tests {
 
     #[test]
     fn it_should_execute_daa_without_carries_but_with_change_without_carry() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0xaa).unwrap();
         cpu.flags.auxiliary_carry = false;
         cpu.flags.carry = false;
-        cpu.execute_instruction(Instruction::Daa).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Daa).unwrap();
         assert_eq!(cpu.get_current_a_value().unwrap(), 0x10);
         assert!(cpu.flags.carry);
         assert!(!cpu.flags.sign);
@@ -475,12 +475,12 @@ mod tests {
 
     #[test]
     fn it_should_execute_dad() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_single_register(0x33, &RegisterType::B).unwrap();
         cpu.save_to_single_register(0x9f, &RegisterType::C).unwrap();
         cpu.save_to_single_register(0xa1, &RegisterType::H).unwrap();
         cpu.save_to_single_register(0x7b, &RegisterType::L).unwrap();
-        cpu.execute_instruction(Instruction::Dad { register: RegisterType::B }).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Dad { register: RegisterType::B }).unwrap();
         assert_eq!(cpu.get_current_hl_value(), 0xd51a);
         assert!(!cpu.flags.carry);
         assert!(cpu.flags.sign);
@@ -491,9 +491,9 @@ mod tests {
 
     #[test]
     fn it_should_execute_dcr_by_register() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x40).unwrap();
-        cpu.execute_instruction(Instruction::Dcr {
+        cpu.execute_instruction(Intel8080Instruction::Dcr {
             source: Location::Register { register: RegisterType::A },
         }).unwrap();
         assert_eq!(cpu.get_current_a_value().unwrap(), 0x3f);
@@ -506,11 +506,11 @@ mod tests {
 
     #[test]
     fn it_should_execute_dcr_by_memory() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_single_register(0x3a, &RegisterType::H).unwrap();
         cpu.save_to_single_register(0x7c, &RegisterType::L).unwrap();
         cpu.memory[0x3a7c] = 0x40;
-        cpu.execute_instruction(Instruction::Dcr { source: Location::Memory }).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Dcr { source: Location::Memory }).unwrap();
         assert_eq!(cpu.memory[0x3a7c], 0x3f);
         assert!(cpu.flags.carry);
         assert!(!cpu.flags.sign);
@@ -521,10 +521,10 @@ mod tests {
 
     #[test]
     fn it_should_execute_dcx() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_single_register(0x98, &RegisterType::H).unwrap();
         cpu.save_to_single_register(0x00, &RegisterType::L).unwrap();
-        cpu.execute_instruction(Instruction::Dcx { register: RegisterType::H }).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Dcx { register: RegisterType::H }).unwrap();
         assert_eq!(cpu.get_current_hl_value(), 0x97ff);
         assert!(cpu.flags.carry);
         assert!(cpu.flags.sign);
@@ -535,10 +535,10 @@ mod tests {
 
     #[test]
     fn it_should_execute_dcx_when_zero() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_single_register(0x00, &RegisterType::H).unwrap();
         cpu.save_to_single_register(0x00, &RegisterType::L).unwrap();
-        cpu.execute_instruction(Instruction::Dcx { register: RegisterType::H }).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Dcx { register: RegisterType::H }).unwrap();
         assert_eq!(cpu.get_current_hl_value(), 0xffff);
         assert!(cpu.flags.carry);
         assert!(cpu.flags.sign);
@@ -549,9 +549,9 @@ mod tests {
 
     #[test]
     fn it_should_execute_inr_by_register() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_single_register(0x99, &RegisterType::C).unwrap();
-        cpu.execute_instruction(Instruction::Inr {
+        cpu.execute_instruction(Intel8080Instruction::Inr {
             source: Location::Register { register: RegisterType::C },
         }).unwrap();
         assert_eq!(cpu.get_current_single_register_value(&RegisterType::C).unwrap(), 0x9a);
@@ -564,11 +564,11 @@ mod tests {
 
     #[test]
     fn it_should_execute_inr_by_memory() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_single_register(0x3a, &RegisterType::H).unwrap();
         cpu.save_to_single_register(0x7c, &RegisterType::L).unwrap();
         cpu.memory[0x3a7c] = 0x99;
-        cpu.execute_instruction(Instruction::Inr { source: Location::Memory }).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Inr { source: Location::Memory }).unwrap();
         assert_eq!(cpu.memory[0x3a7c], 0x9a);
         assert!(cpu.flags.carry);
         assert!(cpu.flags.sign);
@@ -579,10 +579,10 @@ mod tests {
 
     #[test]
     fn it_should_execute_inx() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_single_register(0x38, &RegisterType::D).unwrap();
         cpu.save_to_single_register(0xff, &RegisterType::E).unwrap();
-        cpu.execute_instruction(Instruction::Inx { register: RegisterType::D }).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Inx { register: RegisterType::D }).unwrap();
         assert_eq!(cpu.get_current_de_value(), 0x3900);
         assert!(cpu.flags.carry);
         assert!(cpu.flags.sign);
@@ -593,11 +593,11 @@ mod tests {
 
     #[test]
     fn it_should_execute_sbb_by_register() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x04).unwrap();
         cpu.save_to_single_register(0x02, &RegisterType::L).unwrap();
         cpu.flags.carry = true;
-        cpu.execute_instruction(Instruction::Sbb {
+        cpu.execute_instruction(Intel8080Instruction::Sbb {
             source: Location::Register { register: RegisterType::L },
         }).unwrap();
         assert_eq!(cpu.get_current_a_value().unwrap(), 0x01);
@@ -610,13 +610,13 @@ mod tests {
 
     #[test]
     fn it_should_execute_sbb_by_memory() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x04).unwrap();
         cpu.save_to_single_register(0x0, &RegisterType::H).unwrap();
         cpu.save_to_single_register(0x0, &RegisterType::L).unwrap();
         cpu.memory[0] = 0x02;
         cpu.flags.carry = false;
-        cpu.execute_instruction(Instruction::Sbb { source: Location::Memory }).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Sbb { source: Location::Memory }).unwrap();
         assert_eq!(cpu.get_current_a_value().unwrap(), 0x02);
         assert!(!cpu.flags.carry);
         assert!(!cpu.flags.sign);
@@ -627,10 +627,10 @@ mod tests {
 
     #[test]
     fn it_should_execute_sbi_without_carry() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0).unwrap();
         cpu.flags.carry = false;
-        cpu.execute_instruction(Instruction::Sbi { byte: 0x01 }).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Sbi { byte: 0x01 }).unwrap();
         assert_eq!(cpu.get_current_a_value().unwrap(), 0xff);
         assert!(cpu.flags.carry);
         assert!(cpu.flags.sign);
@@ -641,10 +641,10 @@ mod tests {
 
     #[test]
     fn it_should_execute_sbi_with_carry() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0).unwrap();
         cpu.flags.carry = true;
-        cpu.execute_instruction(Instruction::Sbi { byte: 0x01 }).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Sbi { byte: 0x01 }).unwrap();
         assert_eq!(cpu.get_current_a_value().unwrap(), 0xfe);
         assert!(cpu.flags.carry);
         assert!(cpu.flags.sign);
@@ -655,9 +655,9 @@ mod tests {
 
     #[test]
     fn it_should_execute_sub_by_register() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x3e).unwrap();
-        cpu.execute_instruction(Instruction::Sub {
+        cpu.execute_instruction(Intel8080Instruction::Sub {
             source: Location::Register { register: RegisterType::A },
         }).unwrap();
         assert_eq!(cpu.get_current_a_value().unwrap(), 0);
@@ -670,12 +670,12 @@ mod tests {
 
     #[test]
     fn it_should_execute_sub_by_memory() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x3e).unwrap();
         cpu.save_to_single_register(0x0, &RegisterType::H).unwrap();
         cpu.save_to_single_register(0x0, &RegisterType::L).unwrap();
         cpu.memory[0] = 0x3d;
-        cpu.execute_instruction(Instruction::Sub { source: Location::Memory }).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Sub { source: Location::Memory }).unwrap();
         assert_eq!(cpu.get_current_a_value().unwrap(), 0x01);
         assert!(!cpu.flags.carry);
         assert!(!cpu.flags.sign);
@@ -686,10 +686,10 @@ mod tests {
 
     #[test]
     fn it_should_execute_sui() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0).unwrap();
         cpu.flags.carry = false;
-        cpu.execute_instruction(Instruction::Sui { byte: 0x01 }).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Sui { byte: 0x01 }).unwrap();
         assert_eq!(cpu.get_current_a_value().unwrap(), 0xff);
         assert!(cpu.flags.carry);
         assert!(cpu.flags.sign);

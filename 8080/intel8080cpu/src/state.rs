@@ -1,7 +1,7 @@
-use cpu::Cpu;
+use cpu::Intel8080Cpu;
 use super::CpuError;
 
-impl<'a> Cpu<'a> {
+impl<'a> Intel8080Cpu<'a> {
     #[inline]
     pub(crate) fn execute_cma(&mut self) -> Result<(), CpuError> {
         let destiny_value = self.get_current_a_value()?;
@@ -21,32 +21,32 @@ impl<'a> Cpu<'a> {
 
 #[cfg(test)]
 mod tests {
-    use cpu::{Cpu, ROM_MEMORY_LIMIT};
-    use instruction::Instruction;
+    use cpu::{Intel8080Cpu, ROM_MEMORY_LIMIT};
+    use instruction::Intel8080Instruction;
 
     #[test]
     fn it_should_set_carry() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.flags.carry = false;
-        cpu.execute_instruction(Instruction::Stc).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Stc).unwrap();
         assert!(cpu.flags.carry);
     }
 
     #[test]
     fn it_should_invert_carry() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.flags.carry = false;
-        cpu.execute_instruction(Instruction::Cmc).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Cmc).unwrap();
         assert!(cpu.flags.carry);
-        cpu.execute_instruction(Instruction::Cmc).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Cmc).unwrap();
         assert!(!cpu.flags.carry);
     }
 
     #[test]
     fn it_should_complement_the_accumulator() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(42).unwrap();
-        cpu.execute_instruction(Instruction::Cma).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Cma).unwrap();
         assert_eq!(213, cpu.get_current_a_value().unwrap());
     }
 }

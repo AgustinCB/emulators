@@ -1,6 +1,6 @@
-use cpu::Cpu;
+use cpu::Intel8080Cpu;
 
-impl<'a> Cpu<'a> {
+impl<'a> Intel8080Cpu<'a> {
     pub(crate) fn execute_rc(&mut self) {
         if self.flags.carry {
             self.perform_ret();
@@ -65,225 +65,225 @@ impl<'a> Cpu<'a> {
 
 #[cfg(test)]
 mod tests {
-    use cpu::{Cpu, ROM_MEMORY_LIMIT};
-    use instruction::Instruction;
+    use cpu::{Intel8080Cpu, ROM_MEMORY_LIMIT};
+    use instruction::Intel8080Instruction;
 
     #[test]
     fn it_should_execute_rc_if_carry_is_set() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_sp(0);
         cpu.memory[0] = 0x03;
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.carry = true;
-        cpu.execute_instruction(Instruction::Rc).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Rc).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
     }
 
     #[test]
     fn it_shouldnt_execute_rc_if_carry_is_reset() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_sp(0);
         cpu.memory[0] = 0x03;
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.carry = false;
-        cpu.execute_instruction(Instruction::Rc).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Rc).unwrap();
         assert_eq!(cpu.pc, 0x2442);
         assert_eq!(cpu.get_current_sp_value(), 0);
     }
 
     #[test]
     fn it_should_execute_ret() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_sp(0);
         cpu.memory[0] = 0x03;
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
-        cpu.execute_instruction(Instruction::Ret).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Ret).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
     }
 
     #[test]
     fn it_should_execute_rm_if_sign_is_set() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_sp(0);
         cpu.memory[0] = 0x03;
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.sign = true;
-        cpu.execute_instruction(Instruction::Rm).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Rm).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
     }
 
     #[test]
     fn it_shouldnt_execute_rm_if_sign_is_reset() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_sp(0);
         cpu.memory[0] = 0x03;
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.sign = false;
-        cpu.execute_instruction(Instruction::Rm).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Rm).unwrap();
         assert_eq!(cpu.pc, 0x2442);
         assert_eq!(cpu.get_current_sp_value(), 0);
     }
 
     #[test]
     fn it_should_execute_rnc_if_carry_is_reset() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_sp(0);
         cpu.memory[0] = 0x03;
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.carry = false;
-        cpu.execute_instruction(Instruction::Rnc).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Rnc).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
     }
 
     #[test]
     fn it_shouldnt_execute_rnc_if_carry_is_set() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_sp(0);
         cpu.memory[0] = 0x03;
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.carry = true;
-        cpu.execute_instruction(Instruction::Rnc).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Rnc).unwrap();
         assert_eq!(cpu.pc, 0x2442);
         assert_eq!(cpu.get_current_sp_value(), 0);
     }
 
     #[test]
     fn it_should_execute_rnz_if_zero_is_reset() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_sp(0);
         cpu.memory[0] = 0x03;
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.zero = false;
-        cpu.execute_instruction(Instruction::Rnz).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Rnz).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
     }
 
     #[test]
     fn it_shouldnt_execute_rnz_if_zero_is_set() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_sp(0);
         cpu.memory[0] = 0x03;
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.zero = true;
-        cpu.execute_instruction(Instruction::Rnz).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Rnz).unwrap();
         assert_eq!(cpu.pc, 0x2442);
         assert_eq!(cpu.get_current_sp_value(), 0);
     }
 
     #[test]
     fn it_should_execute_rp_if_sign_is_reset() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_sp(0);
         cpu.memory[0] = 0x03;
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.sign = false;
-        cpu.execute_instruction(Instruction::Rp).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Rp).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
     }
 
     #[test]
     fn it_shouldnt_execute_rp_if_sign_is_set() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_sp(0);
         cpu.memory[0] = 0x03;
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.sign = true;
-        cpu.execute_instruction(Instruction::Rp).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Rp).unwrap();
         assert_eq!(cpu.pc, 0x2442);
         assert_eq!(cpu.get_current_sp_value(), 0);
     }
 
     #[test]
     fn it_should_execute_rpe_if_parity_is_set() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_sp(0);
         cpu.memory[0] = 0x03;
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.parity = true;
-        cpu.execute_instruction(Instruction::Rpe).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Rpe).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
     }
 
     #[test]
     fn it_shouldnt_execute_rpe_if_parity_is_reset() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_sp(0);
         cpu.memory[0] = 0x03;
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.parity = false;
-        cpu.execute_instruction(Instruction::Rpe).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Rpe).unwrap();
         assert_eq!(cpu.pc, 0x2442);
         assert_eq!(cpu.get_current_sp_value(), 0);
     }
 
     #[test]
     fn it_should_execute_rpo_if_parity_is_reset() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_sp(0);
         cpu.memory[0] = 0x03;
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.parity = false;
-        cpu.execute_instruction(Instruction::Rpo).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Rpo).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
     }
 
     #[test]
     fn it_shouldnt_execute_rpo_if_parity_is_set() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_sp(0);
         cpu.memory[0] = 0x03;
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.parity = true;
-        cpu.execute_instruction(Instruction::Rpo).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Rpo).unwrap();
         assert_eq!(cpu.pc, 0x2442);
         assert_eq!(cpu.get_current_sp_value(), 0);
     }
 
     #[test]
     fn it_should_execute_rz_if_zero_is_set() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_sp(0);
         cpu.memory[0] = 0x03;
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.zero = true;
-        cpu.execute_instruction(Instruction::Rz).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Rz).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
     }
 
     #[test]
     fn it_shouldnt_execute_rz_if_zero_is_reset() {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_sp(0);
         cpu.memory[0] = 0x03;
         cpu.memory[1] = 0x2c;
         cpu.pc = 0x2442;
         cpu.flags.zero = false;
-        cpu.execute_instruction(Instruction::Rz).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Rz).unwrap();
         assert_eq!(cpu.pc, 0x2442);
         assert_eq!(cpu.get_current_sp_value(), 0);
     }

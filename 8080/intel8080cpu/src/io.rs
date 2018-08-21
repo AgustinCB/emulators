@@ -1,7 +1,7 @@
-use cpu::Cpu;
+use cpu::Intel8080Cpu;
 use super::CpuError;
 
-impl<'a> Cpu<'a> {
+impl<'a> Intel8080Cpu<'a> {
     pub(crate) fn execute_in(&mut self, id: u8) -> Result<(), CpuError> {
         let val = match self.inputs.get_mut(id as usize) {
             Some(Some(device)) => Ok(device.read()),
@@ -24,8 +24,8 @@ impl<'a> Cpu<'a> {
 
 #[cfg(test)]
 mod tests {
-    use cpu::{Cpu, InputDevice, OutputDevice, ROM_MEMORY_LIMIT};
-    use instruction::Instruction;
+    use cpu::{Intel8080Cpu, InputDevice, OutputDevice, ROM_MEMORY_LIMIT};
+    use instruction::Intel8080Instruction;
     use std::boxed::Box;
 
     #[test]
@@ -38,9 +38,9 @@ mod tests {
         }
 
         let input_device = TestInputDevice {};
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.add_input_device(0, Box::new(input_device));
-        cpu.execute_instruction(Instruction::In { byte: 0 }).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::In { byte: 0 }).unwrap();
         assert_eq!(cpu.get_current_a_value().unwrap(), 42);
     }
 
@@ -53,9 +53,9 @@ mod tests {
             }
         }
         let output_device = TestOutputDevice { };
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.add_output_device(0, Box::new(output_device));
         cpu.save_to_a(42).unwrap();
-        cpu.execute_instruction(Instruction::Out { byte: 0 }).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Out { byte: 0 }).unwrap();
     }
 }

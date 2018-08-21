@@ -1,10 +1,10 @@
-extern crate cpu;
+extern crate intel8080cpu;
 extern crate glutin_window;
 extern crate graphics;
 extern crate opengl_graphics;
 extern crate piston;
 
-use self::cpu::{Cpu, CpuError, HERTZ, Instruction, ROM_MEMORY_LIMIT};
+use self::intel8080cpu::{Intel8080Cpu, CpuError, HERTZ, Intel8080Instruction, ROM_MEMORY_LIMIT};
 use self::glutin_window::GlutinWindow as Window;
 use self::opengl_graphics::{ GlGraphics, OpenGL };
 use self::piston::window::WindowSettings;
@@ -24,7 +24,7 @@ pub(crate) const FRAME_BUFFER_ADDRESS: usize = 0x2400;
 pub(crate) const FRAME_BUFFER_SIZE: usize = 0x1C00;
 
 pub struct Console<'a> {
-    cpu: Cpu<'a>,
+    cpu: Intel8080Cpu<'a>,
     cycles_left: i64,
     gl: GlGraphics,
     keypad_controller: KeypadController,
@@ -61,8 +61,8 @@ impl<'a> Console<'a> {
     fn create_cpu<'b>(
         memory: [u8; ROM_MEMORY_LIMIT],
         keypad_controller: &KeypadController,
-        folder: &str) -> Result<Cpu<'b>, Error> {
-        let mut cpu = Cpu::new(memory);
+        folder: &str) -> Result<Intel8080Cpu<'b>, Error> {
+        let mut cpu = Intel8080Cpu::new(memory);
         let shift_writer = ExternalShiftWriter::new();
         let offset_writer = ExternalShiftOffsetWriter::new();
         let shift_reader = ExternalShiftReader::new(&shift_writer, &offset_writer);
@@ -133,7 +133,7 @@ impl<'a> Console<'a> {
                 1
             };
             self.view.update_image(self.screen.get_pixels());
-            self.cpu.execute_instruction(Instruction::Rst {
+            self.cpu.execute_instruction(Intel8080Instruction::Rst {
                 value: self.prev_interruption
             })?;
         }

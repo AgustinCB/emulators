@@ -109,7 +109,7 @@ impl Flags {
     }
 }
 
-pub struct Cpu<'a> {
+pub struct Intel8080Cpu<'a> {
     pub(crate) registers: RegisterSet,
     pub(crate) pc: u16,
     pub memory: [u8; ROM_MEMORY_LIMIT * 8],
@@ -122,15 +122,15 @@ pub struct Cpu<'a> {
     pub(crate) printer: Option<&'a mut Printer>,
 }
 
-impl<'a> Cpu<'a> {
-    pub fn new_cp_m_compatible(rom_memory: [u8; ROM_MEMORY_LIMIT], screen: &mut Printer) -> Cpu {
-        let mut cpu = Cpu::new(rom_memory);
+impl<'a> Intel8080Cpu<'a> {
+    pub fn new_cp_m_compatible(rom_memory: [u8; ROM_MEMORY_LIMIT], screen: &mut Printer) -> Intel8080Cpu {
+        let mut cpu = Intel8080Cpu::new(rom_memory);
         cpu.cp_m_compatibility = true;
         cpu.printer = Some(screen);
         cpu
     }
 
-    pub fn new<'b>(rom_memory: [u8; ROM_MEMORY_LIMIT]) -> Cpu<'b> {
+    pub fn new<'b>(rom_memory: [u8; ROM_MEMORY_LIMIT]) -> Intel8080Cpu<'b> {
         let registers = RegisterSet::new();
         let mut memory = [0; ROM_MEMORY_LIMIT * 8];
         for i in 0..(ROM_MEMORY_LIMIT * 8) {
@@ -142,15 +142,15 @@ impl<'a> Cpu<'a> {
             memory[i] = value;
         }
 
-        Cpu {
+        Intel8080Cpu {
             registers,
             pc: 0,
             memory,
             flags: Flags::new(),
             interruptions_enabled: true,
             state: State::Running,
-            inputs: Cpu::make_inputs_vector(),
-            outputs: Cpu::make_outputs_vector(),
+            inputs: Intel8080Cpu::make_inputs_vector(),
+            outputs: Intel8080Cpu::make_outputs_vector(),
             cp_m_compatibility: false,
             printer: None,
         }

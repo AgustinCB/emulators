@@ -1,8 +1,8 @@
-extern crate cpu;
+extern crate intel8080cpu;
 extern crate emulator_space_invaders;
 extern crate failure;
 
-use cpu::{Cpu, Instruction, ROM_MEMORY_LIMIT, Printer};
+use intel8080cpu::{Intel8080Cpu, Intel8080Instruction, ROM_MEMORY_LIMIT, Printer};
 use emulator_space_invaders::console::Console;
 use failure::Error;
 use std::env::args;
@@ -27,14 +27,14 @@ impl Printer for PrintScreen {
     }
 }
 
-fn get_instructions(bytes: [u8; ROM_MEMORY_LIMIT]) -> Vec<(u16, Instruction)> {
+fn get_instructions(bytes: [u8; ROM_MEMORY_LIMIT]) -> Vec<(u16, Intel8080Instruction)> {
     let mut result = Vec::with_capacity(bytes.len());
     let mut pass = 0;
     let mut pc: u16 = 0;
     for index in 0..bytes.len() {
         if pass == 0 {
             let i =
-                Instruction::from_bytes(&bytes[index..min(index+3, bytes.len())]);
+                Intel8080Instruction::from_bytes(&bytes[index..min(index+3, bytes.len())]);
             let instruction_size = i.size();
             pass = instruction_size - 1;
             result.push((pc, i));
@@ -71,7 +71,7 @@ fn disassemble(memory: [u8; ROM_MEMORY_LIMIT]) {
 
 fn test(memory: [u8; ROM_MEMORY_LIMIT]) -> Result<(), Error> {
     let screen = &mut (PrintScreen {});
-    let mut cpu = Cpu::new_cp_m_compatible(memory, screen);
+    let mut cpu = Intel8080Cpu::new_cp_m_compatible(memory, screen);
 
     while !cpu.is_done() {
         cpu.execute()?;

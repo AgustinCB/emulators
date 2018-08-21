@@ -1,7 +1,7 @@
-use cpu::{Cpu, RegisterType};
+use cpu::{Intel8080Cpu, RegisterType};
 use super::CpuError;
 
-impl<'a> Cpu<'a> {
+impl<'a> Intel8080Cpu<'a> {
     pub(crate) fn execute_push(&mut self, register: &RegisterType) -> Result<(), CpuError> {
         let sp = self.get_current_sp_value() as usize;
         let (first_byte, second_byte) = match register {
@@ -71,20 +71,20 @@ impl<'a> Cpu<'a> {
 
 #[cfg(test)]
 mod tests {
-    use cpu::{Cpu, RegisterType, ROM_MEMORY_LIMIT};
-    use instruction::Instruction;
+    use cpu::{Intel8080Cpu, RegisterType, ROM_MEMORY_LIMIT};
+    use instruction::Intel8080Instruction;
 
-    fn get_pop_ready_cpu<'a>() -> Cpu<'a> {
+    fn get_pop_ready_cpu<'a>() -> Intel8080Cpu<'a> {
         let mut memory = [0; ROM_MEMORY_LIMIT];
         memory[0x1239] = 0x3d;
         memory[0x123A] = 0x93;
-        let mut cpu = Cpu::new(memory);
+        let mut cpu = Intel8080Cpu::new(memory);
         cpu.save_to_sp(0x1239);
         cpu
     }
 
-    fn get_push_ready_cpu(register: &RegisterType) -> Cpu {
-        let mut cpu = Cpu::new([0; ROM_MEMORY_LIMIT]);
+    fn get_push_ready_cpu(register: &RegisterType) -> Intel8080Cpu {
+        let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         match register {
             RegisterType::B => {
                 cpu.save_to_single_register(0x8f, &RegisterType::B).unwrap();
@@ -115,7 +115,7 @@ mod tests {
     #[test]
     fn it_should_pop_from_stack_to_b() {
         let mut cpu = get_pop_ready_cpu();
-        cpu.execute_instruction(Instruction::Pop { register: RegisterType::B }).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Pop { register: RegisterType::B }).unwrap();
         assert_eq!(cpu.get_current_bc_value(), 0x933d);
         assert_eq!(cpu.get_current_sp_value(), 0x123b);
     }
@@ -123,7 +123,7 @@ mod tests {
     #[test]
     fn it_should_pop_from_stack_to_d() {
         let mut cpu = get_pop_ready_cpu();
-        cpu.execute_instruction(Instruction::Pop { register: RegisterType::D }).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Pop { register: RegisterType::D }).unwrap();
         assert_eq!(cpu.get_current_de_value(), 0x933d);
         assert_eq!(cpu.get_current_sp_value(), 0x123b);
     }
@@ -131,7 +131,7 @@ mod tests {
     #[test]
     fn it_should_pop_from_stack_to_h() {
         let mut cpu = get_pop_ready_cpu();
-        cpu.execute_instruction(Instruction::Pop { register: RegisterType::H }).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Pop { register: RegisterType::H }).unwrap();
         assert_eq!(cpu.get_current_hl_value(), 0x933d);
         assert_eq!(cpu.get_current_sp_value(), 0x123b);
     }
@@ -139,7 +139,7 @@ mod tests {
     #[test]
     fn it_should_pop_from_stack_to_a_and_flags() {
         let mut cpu = get_pop_ready_cpu();
-        cpu.execute_instruction(Instruction::Pop { register: RegisterType::Psw }).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Pop { register: RegisterType::Psw }).unwrap();
         assert_eq!(cpu.get_current_a_value().unwrap(), 0x93);
         assert_eq!(cpu.get_current_sp_value(), 0x123b);
         assert!(cpu.flags.zero);
@@ -152,7 +152,7 @@ mod tests {
     #[test]
     fn it_should_push_from_stack_to_b() {
         let mut cpu = get_push_ready_cpu(&RegisterType::B);
-        cpu.execute_instruction(Instruction::Push { register: RegisterType::B }).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Push { register: RegisterType::B }).unwrap();
         assert_eq!(cpu.memory[0x3a2b], 0x8f);
         assert_eq!(cpu.memory[0x3a2a], 0x9d);
         assert_eq!(cpu.get_current_sp_value(), 0x3A2A);
@@ -161,7 +161,7 @@ mod tests {
     #[test]
     fn it_should_push_from_stack_to_d() {
         let mut cpu = get_push_ready_cpu(&RegisterType::D);
-        cpu.execute_instruction(Instruction::Push { register: RegisterType::D }).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Push { register: RegisterType::D }).unwrap();
         assert_eq!(cpu.memory[0x3a2b], 0x8f);
         assert_eq!(cpu.memory[0x3a2a], 0x9d);
         assert_eq!(cpu.get_current_sp_value(), 0x3A2A);
@@ -170,7 +170,7 @@ mod tests {
     #[test]
     fn it_should_push_from_stack_to_h() {
         let mut cpu = get_push_ready_cpu(&RegisterType::H);
-        cpu.execute_instruction(Instruction::Push { register: RegisterType::H }).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Push { register: RegisterType::H }).unwrap();
         assert_eq!(cpu.memory[0x3a2b], 0x8f);
         assert_eq!(cpu.memory[0x3a2a], 0x9d);
         assert_eq!(cpu.get_current_sp_value(), 0x3A2A);
@@ -179,7 +179,7 @@ mod tests {
     #[test]
     fn it_should_push_from_stack_to_a_and_flags() {
         let mut cpu = get_push_ready_cpu(&RegisterType::Psw);
-        cpu.execute_instruction(Instruction::Push { register: RegisterType::Psw }).unwrap();
+        cpu.execute_instruction(Intel8080Instruction::Push { register: RegisterType::Psw }).unwrap();
         assert_eq!(cpu.memory[0x3a2b], 0x8f);
         assert_eq!(cpu.memory[0x3a2a], 0x1d);
         assert_eq!(cpu.get_current_sp_value(), 0x3A2A);
