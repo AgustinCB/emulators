@@ -18,7 +18,7 @@ pub enum AddressingMode {
     Immediate { byte: u8 },
     ZeroPage { byte: u8 },
     Absolute { high_byte: u8, low_byte: u8 },
-    Relative,
+    Relative { byte: u8 },
     Indirect,
     ZeroPageIndexedX { byte: u8 },
     ZeroPageIndexedY,
@@ -37,7 +37,7 @@ impl fmt::Display for AddressingMode {
             AddressingMode::ZeroPage { byte } => format!("{:x}", byte),
             AddressingMode::Absolute { high_byte, low_byte } =>
                 format!("{:x}{:x}", high_byte, low_byte),
-            AddressingMode::Relative => String::from("label"),
+            AddressingMode::Relative { byte } => format!("PC+{:x}", byte),
             AddressingMode::Indirect => String::from("(a)"),
             AddressingMode::ZeroPageIndexedX { byte } => format!("{:x},x", byte),
             AddressingMode::ZeroPageIndexedY => String::from("d,y"),
@@ -57,6 +57,9 @@ pub enum Mos6502InstructionCode {
     Adc,
     And,
     Asl,
+    Bcc,
+    Bcs,
+    Beq,
     Brk,
     Nop,
 }
@@ -67,6 +70,9 @@ impl fmt::Display for Mos6502InstructionCode {
             Mos6502InstructionCode::Adc => String::from("ADC"),
             Mos6502InstructionCode::And => String::from("AND"),
             Mos6502InstructionCode::Asl => String::from("ASL"),
+            Mos6502InstructionCode::Bcc => String::from("BCC"),
+            Mos6502InstructionCode::Bcs => String::from("BCS"),
+            Mos6502InstructionCode::Beq => String::from("BEQ"),
             Mos6502InstructionCode::Brk => String::from("BRK"),
             Mos6502InstructionCode::Nop => String::from("NOP"),
         };
@@ -147,6 +153,9 @@ impl Instruction<u8, Mos6502InstructionError> for Mos6502Instruction {
             Mos6502InstructionCode::Adc => self.alu_size(),
             Mos6502InstructionCode::And => self.alu_size(),
             Mos6502InstructionCode::Asl => self.data_movement_size(),
+            Mos6502InstructionCode::Bcc => Ok(2),
+            Mos6502InstructionCode::Bcs => Ok(2),
+            Mos6502InstructionCode::Beq => Ok(2),
             Mos6502InstructionCode::Brk => Ok(1),
             Mos6502InstructionCode::Nop => Ok(1),
         }
@@ -157,6 +166,9 @@ impl Instruction<u8, Mos6502InstructionError> for Mos6502Instruction {
             Mos6502InstructionCode::Adc => self.alu_cycles(),
             Mos6502InstructionCode::And => self.alu_cycles(),
             Mos6502InstructionCode::Asl => self.data_movement_cycles(),
+            Mos6502InstructionCode::Bcc => Ok(bi_conditional!(2, 3, 5)),
+            Mos6502InstructionCode::Bcs => Ok(bi_conditional!(2, 3, 5)),
+            Mos6502InstructionCode::Beq => Ok(bi_conditional!(2, 3, 5)),
             Mos6502InstructionCode::Brk => Ok(single!(7)),
             Mos6502InstructionCode::Nop => Ok(single!(2)),
         }
@@ -279,6 +291,18 @@ impl From<Vec<u8>> for Mos6502Instruction {
                     low_byte: bytes[1],
                     high_byte: bytes[2]
                 },
+            },
+            0x90 => Mos6502Instruction {
+                instruction: Mos6502InstructionCode::Bcc,
+                addressing_mode: AddressingMode::Relative { byte: bytes[1] },
+            },
+            0xB0 => Mos6502Instruction {
+                instruction: Mos6502InstructionCode::Bcs,
+                addressing_mode: AddressingMode::Relative { byte: bytes[1] },
+            },
+            0xF0 => Mos6502Instruction {
+                instruction: Mos6502InstructionCode::Beq,
+                addressing_mode: AddressingMode::Relative { byte: bytes[1] },
             },
             _ => Mos6502Instruction {
                 instruction: Mos6502InstructionCode::Nop,
