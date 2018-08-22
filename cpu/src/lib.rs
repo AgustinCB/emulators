@@ -23,7 +23,7 @@ pub trait OutputDevice {
 }
 
 pub trait Instruction<W: MemoryAddressWidth, E: Fail> {
-    fn size(&self) -> u8;
+    fn size(&self) -> Result<u8, E>;
     fn get_cycles(&self) -> Result<Cycles, E>;
 }
 
@@ -38,7 +38,7 @@ pub trait Cpu<W, I, E, F>
             return Ok(0);
         }
         println!("{}", instruction.to_string());
-        self.increase_pc(instruction.size());
+        self.increase_pc(instruction.size()?);
         let cycles = self.get_cycles_for_instruction(&instruction)?;
         self.execute_instruction(instruction)?;
         Ok(cycles)

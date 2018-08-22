@@ -27,7 +27,7 @@ impl Printer for PrintScreen {
     }
 }
 
-fn get_instructions(bytes: [u8; ROM_MEMORY_LIMIT]) -> Vec<(u16, Intel8080Instruction)> {
+fn get_instructions(bytes: [u8; ROM_MEMORY_LIMIT]) -> Result<Vec<(u16, Intel8080Instruction)>, Error> {
     let mut result = Vec::with_capacity(bytes.len());
     let mut pass = 0;
     let mut pc: u16 = 0;
@@ -36,7 +36,7 @@ fn get_instructions(bytes: [u8; ROM_MEMORY_LIMIT]) -> Vec<(u16, Intel8080Instruc
             let i =
                 Intel8080Instruction::from(
                     bytes[index..min(index+3, bytes.len())].to_vec());
-            let instruction_size = i.size();
+            let instruction_size = i.size()?;
             pass = instruction_size - 1;
             result.push((pc, i));
             pc += instruction_size as u16;
@@ -44,7 +44,7 @@ fn get_instructions(bytes: [u8; ROM_MEMORY_LIMIT]) -> Vec<(u16, Intel8080Instruc
             pass -= 1;
         }
     }
-    result
+    Ok(result)
 }
 
 fn read_file(file_name: &str) -> std::io::Result<[u8; ROM_MEMORY_LIMIT]> {
@@ -63,11 +63,12 @@ fn start_game(folder: &str) -> Result<(), Error> {
     console.start().map_err(|e| Error::from(e))
 }
 
-fn disassemble(memory: [u8; ROM_MEMORY_LIMIT]) {
-    let instructions = get_instructions(memory);
+fn disassemble(memory: [u8; ROM_MEMORY_LIMIT]) -> Result<(), Error> {
+    let instructions = get_instructions(memory)?;
     for (pc,instruction) in &instructions {
         println!("{:04x} {}", pc, instruction.to_string());
-    }
+    };
+    Ok(())
 }
 
 fn test(memory: [u8; ROM_MEMORY_LIMIT]) -> Result<(), Error> {
@@ -97,7 +98,7 @@ fn main() {
         handle_result(start_game(&args[2]));
     } else if args[1] == "disassemble" {
         let memory = read_file(&args[2]).unwrap();
-        disassemble(memory);
+        handle_result(disassemble(memory));
     } else if args[1] == "test" {
         let memory = read_file(&args[2]).unwrap();
         handle_result(test(memory));

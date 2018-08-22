@@ -89,8 +89,8 @@ pub enum Intel8080Instruction {
 }
 
 impl Instruction<u8, Intel8080InstructionError> for Intel8080Instruction {
-    fn size(&self) -> u8 {
-        match self {
+    fn size(&self) -> Result<u8, Intel8080InstructionError> {
+        Ok(match self {
             Intel8080Instruction::Noop => 1,
             Intel8080Instruction::Lxi { register: _, low_byte: _, high_byte: _ } => 3,
             Intel8080Instruction::Stax { register: _ } => 1,
@@ -169,7 +169,7 @@ impl Instruction<u8, Intel8080InstructionError> for Intel8080Instruction {
             Intel8080Instruction::Ei => 1,
             Intel8080Instruction::Cm { address: _ } => 3,
             Intel8080Instruction::Cpi { byte: _ } => 2,
-        }
+        })
     }
 
     fn get_cycles(&self) -> Result<Cycles, Intel8080InstructionError> {
