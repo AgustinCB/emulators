@@ -1,4 +1,11 @@
+use super::failure::Fail;
 use super::cpu::{Cycles, Instruction};
+
+#[derive(Debug, Fail)]
+enum Mos6502InstructionError {
+    #[fail(display = "Invalid Addressing Mode")]
+    InvalidAddressingMode,
+}
 
 pub enum AddressingMode {
     Implicit,
@@ -47,7 +54,7 @@ struct Mos6502Instruction {
     addressing_mode: AddressingMode,
 }
 
-impl Instruction<u8> for Mos6502Instruction {
+impl Instruction<u8, Mos6502InstructionError> for Mos6502Instruction {
     fn size(&self) -> u8 {
         match self.instruction {
             Mos6502InstructionCode::Nop => 1,
@@ -55,10 +62,10 @@ impl Instruction<u8> for Mos6502Instruction {
         }
     }
 
-    fn get_cycles(&self) -> Cycles {
+    fn get_cycles(&self) -> Result<Cycles, Mos6502InstructionError> {
         match self.instruction {
-            Mos6502InstructionCode::Nop => Cycles::Single(2),
-            Mos6502InstructionCode::Brk => Cycles::Single(7),
+            Mos6502InstructionCode::Nop => Ok(Cycles::Single(2)),
+            Mos6502InstructionCode::Brk => Ok(Cycles::Single(7)),
         }
     }
 }
@@ -72,12 +79,9 @@ impl From<Vec<u8>> for Mos6502Instruction {
                 instruction: Mos6502InstructionCode::Brk,
                 addressing_mode: AddressingMode::Implicit,
             },
-            c => {
-                eprintln!("Unrecognized byte {}.", c);
-                Mos6502Instruction {
-                    instruction: Mos6502InstructionCode::Nop,
-                    addressing_mode: AddressingMode::Implicit,
-                }
+            _ => Mos6502Instruction {
+                instruction: Mos6502InstructionCode::Nop,
+                addressing_mode: AddressingMode::Implicit,
             },
         }
     }

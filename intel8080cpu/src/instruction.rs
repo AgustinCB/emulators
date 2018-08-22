@@ -1,5 +1,10 @@
 use super::cpu::{Cycles, Instruction};
+use super::failure::Fail;
 use intel8080cpu::{RegisterType, Location, Address};
+
+#[derive(Debug, Fail)]
+#[fail(display = "Instruction parsing error")]
+pub struct Intel8080InstructionError {}
 
 #[derive(Clone)]
 pub enum Intel8080Instruction {
@@ -83,7 +88,7 @@ pub enum Intel8080Instruction {
     Cpi { byte: u8 },
 }
 
-impl Instruction<u8> for Intel8080Instruction {
+impl Instruction<u8, Intel8080InstructionError> for Intel8080Instruction {
     fn size(&self) -> u8 {
         match self {
             Intel8080Instruction::Noop => 1,
@@ -167,8 +172,8 @@ impl Instruction<u8> for Intel8080Instruction {
         }
     }
 
-    fn get_cycles(&self) -> Cycles {
-        match self {
+    fn get_cycles(&self) -> Result<Cycles, Intel8080InstructionError> {
+        Ok(match self {
             Intel8080Instruction::Noop => Cycles::Single(4),
             Intel8080Instruction::Lxi { register: _, low_byte: _, high_byte: _ } => Cycles::Single(10),
             Intel8080Instruction::Stax { register: _ } => Cycles::Single(7),
@@ -283,7 +288,7 @@ impl Instruction<u8> for Intel8080Instruction {
             Intel8080Instruction::Ei => Cycles::Single(4),
             Intel8080Instruction::Cm { address: _ } => Cycles::Conditional { not_met: 11, met: 17 },
             Intel8080Instruction::Cpi { byte: _ } => Cycles::Single(7),
-        }
+        })
     }
 }
 

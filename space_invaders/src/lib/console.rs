@@ -91,7 +91,7 @@ impl<'a> Console<'a> {
             .map_err(|e| Error::from(ConsoleError::CantCreateWindow { msg: e }))
     }
 
-    pub fn start(&mut self) -> Result<(), CpuError> {
+    pub fn start(&mut self) -> Result<(), Error> {
         self.timer.reset();
         let mut events = Events::new(
             EventSettings::new().ups(1000).max_fps(60));
@@ -118,7 +118,7 @@ impl<'a> Console<'a> {
         Ok(())
     }
 
-    fn update(&mut self, args: &UpdateArgs) -> Result<(), CpuError> {
+    fn update(&mut self, args: &UpdateArgs) -> Result<(), Error> {
         self.timer.update_last_check();
         if self.timer.should_trigger() && self.cpu.interruptions_enabled {
             self.prev_interruption = if self.prev_interruption == 1 {

@@ -1,10 +1,10 @@
 use intel8080cpu::{Intel8080Cpu, Location, State, ROM_MEMORY_LIMIT};
-use instruction::Intel8080Instruction;
+use instruction::{Intel8080Instruction, Intel8080InstructionError};
 use std::cmp::min;
 use super::cpu::{Cpu, InputDevice, OutputDevice};
 use super::CpuError;
 
-impl<'a> Cpu<u8, Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
+impl<'a> Cpu<u8, Intel8080Instruction, CpuError, Intel8080InstructionError> for Intel8080Cpu<'a> {
     fn execute_instruction(&mut self, instruction: Intel8080Instruction) -> Result<(), CpuError> {
         if !self.can_run(&instruction) {
             return Ok(());
