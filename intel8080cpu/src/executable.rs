@@ -169,7 +169,7 @@ impl<'a> Cpu<u8, Intel8080Instruction, CpuError, Intel8080InstructionError> for 
         self.pc += steps as u16;
     }
 
-    fn get_cycles_from_condition(&self, instruction: &Intel8080Instruction, not_met: u8, met: u8) -> u8 {
+    fn get_cycles_from_one_condition(&self, instruction: &Intel8080Instruction, not_met: u8, met: u8) -> u8 {
         match instruction {
             Intel8080Instruction::Cc { address: _} if self.flags.carry => met,
             Intel8080Instruction::Cc { address: _} => not_met,
@@ -205,6 +205,10 @@ impl<'a> Cpu<u8, Intel8080Instruction, CpuError, Intel8080InstructionError> for 
             Intel8080Instruction::Rpo => not_met,
             _ => panic!("This instruction ({}) isn't conditional!", instruction.to_string()),
         }
+    }
+
+    fn get_cycles_from_two_conditions(&self, _: &Intel8080Instruction, _: u8, _: u8, _: u8) -> u8 {
+        panic!("This CPU doesn't have instructions with two conditions")
     }
 }
 

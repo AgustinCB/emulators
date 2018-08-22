@@ -79,17 +79,6 @@ struct Mos6502Instruction {
     addressing_mode: AddressingMode,
 }
 
-macro_rules! single {
-    ($num:expr) => {
-        Cycles::Single($num);
-    }
-}
-macro_rules! conditional {
-    ($not_met:expr, $met:expr) => {
-        Cycles::Conditional { not_met: $not_met, met: $met }
-    }
-}
-
 impl Mos6502Instruction {
     fn alu_size(&self) -> Result<u8, Mos6502InstructionError> {
         match self.addressing_mode {

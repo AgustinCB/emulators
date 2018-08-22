@@ -1,6 +1,33 @@
+#![macro_use]
+
 extern crate failure;
 
 use failure::{Error, Fail};
+
+#[macro_export]
+macro_rules! single {
+    ($num:expr) => {
+        Cycles::Single($num)
+    }
+}
+
+#[macro_export]
+macro_rules! conditional {
+    ($not_met:expr, $met:expr) => {
+        Cycles::OneCondition { not_met: $not_met, met: $met }
+    }
+}
+
+#[macro_export]
+macro_rules! bi_conditional {
+    ($not_met:expr, $first_met:expr, $second_met:expr) => {
+        Cycles::TwoConditions {
+            not_met: $not_met,
+            first_met: $first_met,
+            second_met: $second_met,
+        }
+    }
+}
 
 pub trait MemoryAddressWidth {}
 
@@ -11,7 +38,8 @@ impl MemoryAddressWidth for u64 {}
 
 pub enum Cycles {
     Single(u8),
-    Conditional { not_met: u8, met: u8 },
+    OneCondition { not_met: u8, met: u8 },
+    TwoConditions { not_met: u8, first_met: u8, second_met: u8 },
 }
 
 pub trait InputDevice {
@@ -48,8 +76,10 @@ pub trait Cpu<W, I, E, F>
         let cycles = instruction.get_cycles()?;
         Ok(match cycles {
             Cycles::Single(cycles) => cycles,
-            Cycles::Conditional { not_met, met } =>
-                self.get_cycles_from_condition(instruction, not_met, met),
+            Cycles::OneCondition { not_met, met } =>
+                self.get_cycles_from_one_condition(instruction, not_met, met),
+            Cycles::TwoConditions { not_met, first_met, second_met } =>
+                self.get_cycles_from_two_conditions(instruction, not_met, first_met, second_met),
         })
     }
 
@@ -60,5 +90,6 @@ pub trait Cpu<W, I, E, F>
     fn add_input_device(&mut self, id: u8, device: Box<InputDevice>);
     fn add_output_device(&mut self, id: u8, device: Box<OutputDevice>);
     fn increase_pc(&mut self, steps: u8);
-    fn get_cycles_from_condition(&self, instruction: &I, not_met: u8, met: u8) -> u8;
+    fn get_cycles_from_one_condition(&self, instruction: &I, not_met: u8, met: u8) -> u8;
+    fn get_cycles_from_two_conditions(&self, instruction: &I, not_met: u8, first_met: u8, second_met: u8) -> u8;
 }
