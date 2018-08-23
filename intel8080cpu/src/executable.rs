@@ -3,9 +3,10 @@ use instruction::{Intel8080Instruction, Intel8080InstructionError};
 use std::cmp::min;
 use super::cpu::{Cpu, InputDevice, OutputDevice};
 use super::CpuError;
+use super::failure::Error;
 
-impl<'a> Cpu<u8, Intel8080Instruction, CpuError, Intel8080InstructionError> for Intel8080Cpu<'a> {
-    fn execute_instruction(&mut self, instruction: Intel8080Instruction) -> Result<(), CpuError> {
+impl<'a> Cpu<u8, Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
+    fn execute_instruction(&mut self, instruction: Intel8080Instruction) -> Result<(), Error> {
         if !self.can_run(&instruction) {
             return Ok(());
         }

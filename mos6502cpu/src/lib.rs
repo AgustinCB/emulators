@@ -4,4 +4,4 @@
 mod instruction;
 
 pub use cpu::Instruction;
-pub use instruction::Mos6502Instruction;
+pub use instruction::{Mos6502Instruction, Mos6502InstructionError};

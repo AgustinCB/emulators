@@ -50,16 +50,16 @@ pub trait OutputDevice {
     fn write(&mut self, byte: u8);
 }
 
-pub trait Instruction<W: MemoryAddressWidth, E: Fail> {
-    fn size(&self) -> Result<u8, E>;
-    fn get_cycles(&self) -> Result<Cycles, E>;
+pub trait Instruction {
+    type Error: Fail;
+    fn size(&self) -> Result<u8, Error>;
+    fn get_cycles(&self) -> Result<Cycles, Error>;
 }
 
-pub trait Cpu<W, I, E, F>
+pub trait Cpu<W, I, F>
     where W: MemoryAddressWidth + Clone,
-          I: Instruction<W, F> + ToString + From<Vec<W>>,
-          F: Fail,
-          E: Fail {
+          I: Instruction + ToString + From<Vec<W>>,
+          F: Fail {
     fn execute(&mut self) -> Result<u8, Error> {
         let instruction = I::from(self.get_next_instruction_bytes().to_vec());
         if !self.can_run(&instruction) {
@@ -72,7 +72,7 @@ pub trait Cpu<W, I, E, F>
         Ok(cycles)
     }
 
-    fn get_cycles_for_instruction(&self, instruction: &I) -> Result<u8, F> {
+    fn get_cycles_for_instruction(&self, instruction: &I) -> Result<u8, Error> {
         let cycles = instruction.get_cycles()?;
         Ok(match cycles {
             Cycles::Single(cycles) => cycles,
@@ -83,7 +83,7 @@ pub trait Cpu<W, I, E, F>
         })
     }
 
-    fn execute_instruction(&mut self, instruction: I) -> Result<(), E>;
+    fn execute_instruction(&mut self, instruction: I) -> Result<(), Error>;
     fn get_next_instruction_bytes(&self) -> &[W];
     fn can_run(&self, instruction: &I) -> bool;
     fn is_done(&self) -> bool;

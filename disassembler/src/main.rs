@@ -1,8 +1,12 @@
-extern crate mos6502cpu;
+extern crate cpu;
 extern crate failure;
+extern crate intel8080cpu;
+extern crate mos6502cpu;
 
-use failure::Error;
-use mos6502cpu::{Instruction, Mos6502Instruction};
+use cpu::{Instruction, MemoryAddressWidth};
+use failure::{Error, Fail};
+use mos6502cpu::Mos6502Instruction;
+use intel8080cpu::Intel8080Instruction;
 use std::cmp::min;
 use std::env::args;
 use std::fs::File;

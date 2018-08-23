@@ -1,5 +1,5 @@
 use std::fmt;
-use super::failure::Fail;
+use super::failure::{Error, Fail};
 use super::cpu::{Cycles, Instruction};
 
 #[derive(Debug, Fail)]
@@ -183,7 +183,7 @@ pub struct Mos6502Instruction {
 }
 
 impl Mos6502Instruction {
-    fn alu_size(&self) -> Result<u8, Mos6502InstructionError> {
+    fn alu_size(&self) -> Result<u8, Error> {
         match self.addressing_mode {
             AddressingMode::Immediate { byte: _ } => Ok(2),
             AddressingMode::ZeroPage { byte: _ } => Ok(2),
@@ -197,7 +197,7 @@ impl Mos6502Instruction {
         }
     }
 
-    fn alu_accumulator_size(&self) -> Result<u8, Mos6502InstructionError> {
+    fn alu_accumulator_size(&self) -> Result<u8, Error> {
         match self.addressing_mode {
             AddressingMode::ZeroPage { byte: _ } => Ok(2),
             AddressingMode::ZeroPageIndexedX { byte: _ } => Ok(2),
@@ -210,7 +210,7 @@ impl Mos6502Instruction {
         }
     }
 
-    fn data_movement_size(&self) -> Result<u8, Mos6502InstructionError> {
+    fn data_movement_size(&self) -> Result<u8, Error> {
         match self.addressing_mode {
             AddressingMode::Accumulator => Ok(1),
             AddressingMode::ZeroPage { byte: _ } => Ok(2),
@@ -221,7 +221,7 @@ impl Mos6502Instruction {
         }
     }
 
-    fn alu_cycles(&self) -> Result<Cycles, Mos6502InstructionError> {
+    fn alu_cycles(&self) -> Result<Cycles, Error> {
         match self.addressing_mode {
             AddressingMode::Immediate { byte: _ } => Ok(single!(2)),
             AddressingMode::ZeroPage { byte: _ } => Ok(single!(3)),
@@ -237,7 +237,7 @@ impl Mos6502Instruction {
         }
     }
 
-    fn alu_accumulator_cycles(&self) -> Result<Cycles, Mos6502InstructionError> {
+    fn alu_accumulator_cycles(&self) -> Result<Cycles, Error> {
         match self.addressing_mode {
             AddressingMode::ZeroPage { byte: _ } => Ok(single!(3)),
             AddressingMode::ZeroPageIndexedX { byte: _ } => Ok(single!(4)),
@@ -250,7 +250,7 @@ impl Mos6502Instruction {
         }
     }
 
-    fn data_movement_cycles(&self) -> Result<Cycles, Mos6502InstructionError> {
+    fn data_movement_cycles(&self) -> Result<Cycles, Error> {
         match self.addressing_mode {
             AddressingMode::Accumulator => Ok(single!(2)),
             AddressingMode::ZeroPage { byte: _ } => Ok(single!(5)),
@@ -262,16 +262,17 @@ impl Mos6502Instruction {
     }
 
     #[inline]
-    fn invalid_addressing_mode(&self) -> Mos6502InstructionError {
-        Mos6502InstructionError::InvalidAddressingMode {
+    fn invalid_addressing_mode(&self) -> Error {
+        Error::from(Mos6502InstructionError::InvalidAddressingMode {
             addressing_mode: self.addressing_mode.clone(),
             instruction_code: self.instruction.clone(),
-        }
+        })
     }
 }
 
-impl Instruction<u8, Mos6502InstructionError> for Mos6502Instruction {
-    fn size(&self) -> Result<u8, Mos6502InstructionError> {
+impl Instruction for Mos6502Instruction {
+    type Error = Mos6502InstructionError;
+    fn size(&self) -> Result<u8, Error> {
         match self.instruction {
             Mos6502InstructionCode::Adc => self.alu_size(),
             Mos6502InstructionCode::And => self.alu_size(),
@@ -386,7 +387,7 @@ impl Instruction<u8, Mos6502InstructionError> for Mos6502Instruction {
         }
     }
 
-    fn get_cycles(&self) -> Result<Cycles, Mos6502InstructionError> {
+    fn get_cycles(&self) -> Result<Cycles, Error> {
         match self.instruction {
             Mos6502InstructionCode::Adc => self.alu_cycles(),
             Mos6502InstructionCode::And => self.alu_cycles(),

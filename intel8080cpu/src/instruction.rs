@@ -1,5 +1,5 @@
 use super::cpu::{Cycles, Instruction};
-use super::failure::Fail;
+use super::failure::{Error, Fail};
 use intel8080cpu::{RegisterType, Location, Address};
 
 #[derive(Debug, Fail)]
@@ -88,8 +88,9 @@ pub enum Intel8080Instruction {
     Cpi { byte: u8 },
 }
 
-impl Instruction<u8, Intel8080InstructionError> for Intel8080Instruction {
-    fn size(&self) -> Result<u8, Intel8080InstructionError> {
+impl Instruction for Intel8080Instruction {
+    type Error = Intel8080InstructionError;
+    fn size(&self) -> Result<u8, Error> {
         Ok(match self {
             Intel8080Instruction::Noop => 1,
             Intel8080Instruction::Lxi { register: _, low_byte: _, high_byte: _ } => 3,
@@ -172,7 +173,7 @@ impl Instruction<u8, Intel8080InstructionError> for Intel8080Instruction {
         })
     }
 
-    fn get_cycles(&self) -> Result<Cycles, Intel8080InstructionError> {
+    fn get_cycles(&self) -> Result<Cycles, Error> {
         Ok(match self {
             Intel8080Instruction::Noop => single!(4),
             Intel8080Instruction::Lxi { register: _, low_byte: _, high_byte: _ } => single!(10),

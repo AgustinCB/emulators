@@ -4,5 +4,7 @@ version = "0.1.0"
 authors = ["AgustinCB <jnieve@gmail.com>"]
 
 [dependencies]
+cpu = { path = "../cpu" }
 mos6502cpu = { path = "../mos6502cpu" }
+intel8080cpu = { path = "../intel8080cpu" }
 failure = "0.1.2"
