@@ -1,0 +1,8 @@
+[package]
+name = "disassembler"
+version = "0.1.0"
+authors = ["AgustinCB <jnieve@gmail.com>"]
+
+[dependencies]
+mos6502cpu = { path = "../mos6502cpu" }
+failure = "0.1.2"

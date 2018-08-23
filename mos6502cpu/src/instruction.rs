@@ -3,7 +3,7 @@ use super::failure::Fail;
 use super::cpu::{Cycles, Instruction};
 
 #[derive(Debug, Fail)]
-enum Mos6502InstructionError {
+pub enum Mos6502InstructionError {
     #[fail(display = "Invalid Addressing Mode {} for {}", addressing_mode, instruction_code)]
     InvalidAddressingMode {
         addressing_mode: AddressingMode,
@@ -177,7 +177,7 @@ impl fmt::Display for Mos6502InstructionCode {
     }
 }
 
-struct Mos6502Instruction {
+pub struct Mos6502Instruction {
     instruction: Mos6502InstructionCode,
     addressing_mode: AddressingMode,
 }

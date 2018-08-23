@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "cpu",
+    "disassembler",
     "intel8080cpu",
     "mos6502cpu",
     "space_invaders",
