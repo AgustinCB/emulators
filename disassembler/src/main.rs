@@ -21,16 +21,18 @@ enum DisassemblerError {
 // This is an arbitrarily chosen number. We either need RFC 2000 or something else that I dunno yet
 const ROM_MEMORY_LIMIT: usize = 8192;
 
-const USAGE: &'static str = "Usage: disassembler [file]
+const USAGE: &'static str = "Usage: disassembler [cpu] [file]
 
 Disassemble a binary file for an old cpu. So far, supports only:
 
-- MOS 6502";
+- mos6502
+- intel8080";
 
 fn get_instructions_for_cpu(cpu: &str, bytes: [u8; ROM_MEMORY_LIMIT])
     -> Result<Vec<(u16, Box<ToString>)>, Error> {
     match cpu {
         "mos6502" => get_instructions::<Mos6502Instruction>(bytes),
+        "intel8080" => get_instructions::<Intel8080Instruction>(bytes),
         _ => Err(Error::from(DisassemblerError::InvalidCpu { name: String::from(cpu) })),
     }
 }
@@ -63,8 +65,8 @@ fn read_file(file_name: &str) -> std::io::Result<[u8; ROM_MEMORY_LIMIT]> {
     Ok(memory)
 }
 
-fn disassemble(memory: [u8; ROM_MEMORY_LIMIT]) -> Result<(), Error> {
-    let instructions = get_instructions_for_cpu("mos6502",memory)?;
+fn disassemble(cpu: &str, memory: [u8; ROM_MEMORY_LIMIT]) -> Result<(), Error> {
+    let instructions = get_instructions_for_cpu(cpu,memory)?;
     for (pc,instruction) in &instructions {
         println!("{:04x} {}", pc, instruction.to_string());
     };
@@ -73,12 +75,13 @@ fn disassemble(memory: [u8; ROM_MEMORY_LIMIT]) -> Result<(), Error> {
 
 fn main() {
     let args: Vec<String> = args().collect();
-    if args.len() != 2 {
+    if args.len() != 3 {
         panic!(USAGE);
     }
 
-    let memory = read_file(&args[1]).unwrap();
-    match disassemble(memory) {
+    let memory = read_file(&args[2]).unwrap();
+    let cpu = &args[1];
+    match disassemble(cpu, memory) {
         Ok(()) => {},
         Err(err) => panic!(err),
     };
