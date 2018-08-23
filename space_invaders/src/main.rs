@@ -10,9 +10,9 @@ use std::cmp::min;
 use std::fs::File;
 use std::io::Read;
 
-const USAGE: &'static str = "Usage: disassembler-8080 [game|test|disassemble] [file]
+const USAGE: &'static str = "Usage: disassembler-8080 [game|test] [file]
 
-If running either test or disassemble, [file] should be a hex file with Intel 8080 instructions.
+If running either test, [file] should be a hex file with Intel 8080 instructions.
 
 When selecting the mode game, [file] should be a folder that contains the following content:
 
@@ -25,26 +25,6 @@ impl Printer for PrintScreen {
     fn print(&mut self, bytes: &[u8]) {
         println!("{}", String::from_utf8_lossy(bytes));
     }
-}
-
-fn get_instructions(bytes: [u8; ROM_MEMORY_LIMIT]) -> Result<Vec<(u16, Intel8080Instruction)>, Error> {
-    let mut result = Vec::with_capacity(bytes.len());
-    let mut pass = 0;
-    let mut pc: u16 = 0;
-    for index in 0..bytes.len() {
-        if pass == 0 {
-            let i =
-                Intel8080Instruction::from(
-                    bytes[index..min(index+3, bytes.len())].to_vec());
-            let instruction_size = i.size()?;
-            pass = instruction_size - 1;
-            result.push((pc, i));
-            pc += instruction_size as u16;
-        } else {
-            pass -= 1;
-        }
-    }
-    Ok(result)
 }
 
 fn read_file(file_name: &str) -> std::io::Result<[u8; ROM_MEMORY_LIMIT]> {
@@ -61,14 +41,6 @@ fn start_game(folder: &str) -> Result<(), Error> {
     let memory = read_file(&rom_location)?;
     let mut console = Console::new(memory, folder)?;
     console.start().map_err(|e| Error::from(e))
-}
-
-fn disassemble(memory: [u8; ROM_MEMORY_LIMIT]) -> Result<(), Error> {
-    let instructions = get_instructions(memory)?;
-    for (pc,instruction) in &instructions {
-        println!("{:04x} {}", pc, instruction.to_string());
-    };
-    Ok(())
 }
 
 fn test(memory: [u8; ROM_MEMORY_LIMIT]) -> Result<(), Error> {
@@ -96,9 +68,6 @@ fn main() {
 
     if args[1] == "game" {
         handle_result(start_game(&args[2]));
-    } else if args[1] == "disassemble" {
-        let memory = read_file(&args[2]).unwrap();
-        handle_result(disassemble(memory));
     } else if args[1] == "test" {
         let memory = read_file(&args[2]).unwrap();
         handle_result(test(memory));
