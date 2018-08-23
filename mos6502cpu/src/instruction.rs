@@ -68,6 +68,13 @@ pub enum Mos6502InstructionCode {
     Bvc,
     Bvs,
     Clc,
+    Cld,
+    Cli,
+    Clv,
+    Cmp,
+    Cpx,
+    Cpy,
+    Dec,
     Nop,
 }
 
@@ -88,6 +95,13 @@ impl fmt::Display for Mos6502InstructionCode {
             Mos6502InstructionCode::Bvc => String::from("BVC"),
             Mos6502InstructionCode::Bvs => String::from("BVS"),
             Mos6502InstructionCode::Clc => String::from("CLC"),
+            Mos6502InstructionCode::Cld => String::from("CLD"),
+            Mos6502InstructionCode::Cli => String::from("CLI"),
+            Mos6502InstructionCode::Clv => String::from("CLV"),
+            Mos6502InstructionCode::Cmp => String::from("CMP"),
+            Mos6502InstructionCode::Cpx => String::from("CPX"),
+            Mos6502InstructionCode::Cpy => String::from("CPY"),
+            Mos6502InstructionCode::Dec => String::from("DEC"),
             Mos6502InstructionCode::Nop => String::from("NOP"),
         };
         write!(f, "{}", s)
@@ -145,9 +159,9 @@ impl Mos6502Instruction {
         match self.addressing_mode {
             AddressingMode::Accumulator => Ok(single!(2)),
             AddressingMode::ZeroPage { byte: _ } => Ok(single!(5)),
-            AddressingMode::ZeroPageIndexedX { byte: _ }=> Ok(single!(6)),
-            AddressingMode::Absolute { low_byte: _, high_byte: _ }=> Ok(single!(6)),
-            AddressingMode::AbsoluteIndexedX { low_byte: _, high_byte: _ }=> Ok(single!(7)),
+            AddressingMode::ZeroPageIndexedX { byte: _ } => Ok(single!(6)),
+            AddressingMode::Absolute { low_byte: _, high_byte: _ } => Ok(single!(6)),
+            AddressingMode::AbsoluteIndexedX { low_byte: _, high_byte: _ } => Ok(single!(7)),
             _ => Err(self.invalid_addressing_mode()),
         }
     }
@@ -182,6 +196,29 @@ impl Instruction<u8, Mos6502InstructionError> for Mos6502Instruction {
             Mos6502InstructionCode::Bvc => Ok(2),
             Mos6502InstructionCode::Bvs => Ok(2),
             Mos6502InstructionCode::Clc => Ok(1),
+            Mos6502InstructionCode::Cld => Ok(1),
+            Mos6502InstructionCode::Cli => Ok(1),
+            Mos6502InstructionCode::Clv => Ok(1),
+            Mos6502InstructionCode::Cmp => self.alu_size(),
+            Mos6502InstructionCode::Cpx => match self.addressing_mode {
+                AddressingMode::Immediate { byte: _ } => Ok(2),
+                AddressingMode::ZeroPage { byte: _ } => Ok(2),
+                AddressingMode::Absolute { low_byte: _, high_byte: _ } => Ok(3),
+                _ => Err(self.invalid_addressing_mode()),
+            },
+            Mos6502InstructionCode::Cpy => match self.addressing_mode {
+                AddressingMode::Immediate { byte: _ } => Ok(2),
+                AddressingMode::ZeroPage { byte: _ } => Ok(2),
+                AddressingMode::Absolute { low_byte: _, high_byte: _ } => Ok(3),
+                _ => Err(self.invalid_addressing_mode()),
+            },
+            Mos6502InstructionCode::Dec => match self.addressing_mode {
+                AddressingMode::ZeroPage { byte: _ } => Ok(2),
+                AddressingMode::ZeroPageIndexedX { byte: _ } => Ok(2),
+                AddressingMode::Absolute { low_byte: _, high_byte: _ } => Ok(3),
+                AddressingMode::AbsoluteIndexedX { low_byte: _, high_byte: _ } => Ok(3),
+                _ => Err(self.invalid_addressing_mode()),
+            },
             Mos6502InstructionCode::Nop => Ok(1),
         }
     }
@@ -206,6 +243,29 @@ impl Instruction<u8, Mos6502InstructionError> for Mos6502Instruction {
             Mos6502InstructionCode::Bvc => Ok(bi_conditional!(2, 3, 5)),
             Mos6502InstructionCode::Bvs => Ok(bi_conditional!(2, 3, 5)),
             Mos6502InstructionCode::Clc => Ok(single!(2)),
+            Mos6502InstructionCode::Cld => Ok(single!(2)),
+            Mos6502InstructionCode::Cli => Ok(single!(2)),
+            Mos6502InstructionCode::Clv => Ok(single!(2)),
+            Mos6502InstructionCode::Cmp => self.alu_cycles(),
+            Mos6502InstructionCode::Cpx => match self.addressing_mode {
+                AddressingMode::Immediate { byte: _ } => Ok(single!(2)),
+                AddressingMode::ZeroPage { byte: _ } => Ok(single!(3)),
+                AddressingMode::Absolute { low_byte: _, high_byte: _ } => Ok(single!(4)),
+                _ => Err(self.invalid_addressing_mode()),
+            },
+            Mos6502InstructionCode::Cpy => match self.addressing_mode {
+                AddressingMode::Immediate { byte: _ } => Ok(single!(2)),
+                AddressingMode::ZeroPage { byte: _ } => Ok(single!(3)),
+                AddressingMode::Absolute { low_byte: _, high_byte: _ } => Ok(single!(4)),
+                _ => Err(self.invalid_addressing_mode()),
+            },
+            Mos6502InstructionCode::Dec => match self.addressing_mode {
+                AddressingMode::ZeroPage { byte: _ } => Ok(single!(5)),
+                AddressingMode::ZeroPageIndexedX { byte: _ } => Ok(single!(6)),
+                AddressingMode::Absolute { low_byte: _, high_byte: _ } => Ok(single!(6)),
+                AddressingMode::AbsoluteIndexedX { low_byte: _, high_byte: _ } => Ok(single!(7)),
+                _ => Err(self.invalid_addressing_mode()),
+            },
             Mos6502InstructionCode::Nop => Ok(single!(2)),
         }
     }
@@ -314,6 +374,10 @@ impl From<Vec<u8>> for Mos6502Instruction {
                 instruction: Mos6502InstructionCode::Bvc,
                 addressing_mode: AddressingMode::Relative { byte: bytes[1] },
             },
+            0x58 => Mos6502Instruction {
+                instruction: Mos6502InstructionCode::Cli,
+                addressing_mode: AddressingMode::Implicit,
+            },
             0x61 => Mos6502Instruction {
                 instruction: Mos6502InstructionCode::Adc,
                 addressing_mode: AddressingMode::IndexedIndirect { byte: bytes[1] },
@@ -367,9 +431,110 @@ impl From<Vec<u8>> for Mos6502Instruction {
                 instruction: Mos6502InstructionCode::Bcs,
                 addressing_mode: AddressingMode::Relative { byte: bytes[1] },
             },
+            0xB8 => Mos6502Instruction {
+                instruction: Mos6502InstructionCode::Clv,
+                addressing_mode: AddressingMode::Implicit,
+            },
+            0xC0 => Mos6502Instruction {
+                instruction: Mos6502InstructionCode::Cpy,
+                addressing_mode: AddressingMode::Immediate { byte: bytes[1] },
+            },
+            0xC1 => Mos6502Instruction {
+                instruction: Mos6502InstructionCode::Cmp,
+                addressing_mode: AddressingMode::IndexedIndirect { byte: bytes[1] },
+            },
+            0xC4 => Mos6502Instruction {
+                instruction: Mos6502InstructionCode::Cpy,
+                addressing_mode: AddressingMode::ZeroPage { byte: bytes[1] },
+            },
+            0xC5 => Mos6502Instruction {
+                instruction: Mos6502InstructionCode::Cmp,
+                addressing_mode: AddressingMode::ZeroPage { byte: bytes[1] },
+            },
+            0xC6 => Mos6502Instruction {
+                instruction: Mos6502InstructionCode::Dec,
+                addressing_mode: AddressingMode::ZeroPage { byte: bytes[1] },
+            },
+            0xC9 => Mos6502Instruction {
+                instruction: Mos6502InstructionCode::Cmp,
+                addressing_mode: AddressingMode::Immediate { byte: bytes[1] },
+            },
+            0xCC => Mos6502Instruction {
+                instruction: Mos6502InstructionCode::Cpy,
+                addressing_mode: AddressingMode::Absolute {
+                    low_byte: bytes[1],
+                    high_byte: bytes[2]
+                },
+            },
+            0xCD => Mos6502Instruction {
+                instruction: Mos6502InstructionCode::Cmp,
+                addressing_mode: AddressingMode::Absolute {
+                    low_byte: bytes[1],
+                    high_byte: bytes[2]
+                },
+            },
+            0xCE => Mos6502Instruction {
+                instruction: Mos6502InstructionCode::Dec,
+                addressing_mode: AddressingMode::Absolute {
+                    low_byte: bytes[1],
+                    high_byte: bytes[2]
+                },
+            },
             0xD0 => Mos6502Instruction {
                 instruction: Mos6502InstructionCode::Bne,
                 addressing_mode: AddressingMode::Relative { byte: bytes[1] },
+            },
+            0xD1 => Mos6502Instruction {
+                instruction: Mos6502InstructionCode::Cmp,
+                addressing_mode: AddressingMode::IndirectIndexed { byte: bytes[1] },
+            },
+            0xD5 => Mos6502Instruction {
+                instruction: Mos6502InstructionCode::Cmp,
+                addressing_mode: AddressingMode::ZeroPageIndexedX { byte: bytes[1] },
+            },
+            0xD6 => Mos6502Instruction {
+                instruction: Mos6502InstructionCode::Dec,
+                addressing_mode: AddressingMode::ZeroPageIndexedX { byte: bytes[1] },
+            },
+            0xD8 => Mos6502Instruction {
+                instruction: Mos6502InstructionCode::Cld,
+                addressing_mode: AddressingMode::Implicit,
+            },
+            0xD9 => Mos6502Instruction {
+                instruction: Mos6502InstructionCode::Cmp,
+                addressing_mode: AddressingMode::AbsoluteIndexedY {
+                    low_byte: bytes[1],
+                    high_byte: bytes[2]
+                },
+            },
+            0xDD => Mos6502Instruction {
+                instruction: Mos6502InstructionCode::Cmp,
+                addressing_mode: AddressingMode::AbsoluteIndexedX {
+                    low_byte: bytes[1],
+                    high_byte: bytes[2]
+                },
+            },
+            0xDE => Mos6502Instruction {
+                instruction: Mos6502InstructionCode::Dec,
+                addressing_mode: AddressingMode::AbsoluteIndexedX {
+                    low_byte: bytes[1],
+                    high_byte: bytes[2]
+                },
+            },
+            0xE0 => Mos6502Instruction {
+                instruction: Mos6502InstructionCode::Cpx,
+                addressing_mode: AddressingMode::Immediate { byte: bytes[1] },
+            },
+            0xE4 => Mos6502Instruction {
+                instruction: Mos6502InstructionCode::Cpx,
+                addressing_mode: AddressingMode::ZeroPage { byte: bytes[1] },
+            },
+            0xEC => Mos6502Instruction {
+                instruction: Mos6502InstructionCode::Cpx,
+                addressing_mode: AddressingMode::Absolute {
+                    low_byte: bytes[1],
+                    high_byte: bytes[2]
+                },
             },
             0xF0 => Mos6502Instruction {
                 instruction: Mos6502InstructionCode::Beq,
