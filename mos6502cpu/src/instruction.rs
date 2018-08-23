@@ -271,7 +271,6 @@ impl Mos6502Instruction {
 }
 
 impl Instruction for Mos6502Instruction {
-    type Error = Mos6502InstructionError;
     fn size(&self) -> Result<u8, Error> {
         match self.instruction {
             Mos6502InstructionCode::Adc => self.alu_size(),

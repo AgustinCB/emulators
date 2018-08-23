@@ -89,7 +89,6 @@ pub enum Intel8080Instruction {
 }
 
 impl Instruction for Intel8080Instruction {
-    type Error = Intel8080InstructionError;
     fn size(&self) -> Result<u8, Error> {
         Ok(match self {
             Intel8080Instruction::Noop => 1,

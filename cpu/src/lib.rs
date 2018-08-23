@@ -51,7 +51,6 @@ pub trait OutputDevice {
 }
 
 pub trait Instruction {
-    type Error: Fail;
     fn size(&self) -> Result<u8, Error>;
     fn get_cycles(&self) -> Result<Cycles, Error>;
 }
