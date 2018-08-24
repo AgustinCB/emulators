@@ -178,8 +178,8 @@ impl fmt::Display for Mos6502InstructionCode {
 }
 
 pub struct Mos6502Instruction {
-    instruction: Mos6502InstructionCode,
-    addressing_mode: AddressingMode,
+    pub(crate) instruction: Mos6502InstructionCode,
+    pub(crate) addressing_mode: AddressingMode,
 }
 
 impl Mos6502Instruction {

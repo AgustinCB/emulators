@@ -86,9 +86,12 @@ pub trait Cpu<W, I, F>
     fn get_next_instruction_bytes(&self) -> &[W];
     fn can_run(&self, instruction: &I) -> bool;
     fn is_done(&self) -> bool;
-    fn add_input_device(&mut self, id: u8, device: Box<InputDevice>);
-    fn add_output_device(&mut self, id: u8, device: Box<OutputDevice>);
     fn increase_pc(&mut self, steps: u8);
     fn get_cycles_from_one_condition(&self, instruction: &I, not_met: u8, met: u8) -> u8;
     fn get_cycles_from_two_conditions(&self, instruction: &I, not_met: u8, first_met: u8, second_met: u8) -> u8;
+}
+
+pub trait WithPorts {
+    fn add_input_device(&mut self, id: u8, device: Box<InputDevice>);
+    fn add_output_device(&mut self, id: u8, device: Box<OutputDevice>);
 }

@@ -1,7 +1,7 @@
 use intel8080cpu::{Intel8080Cpu, Location, State, ROM_MEMORY_LIMIT};
 use instruction::{Intel8080Instruction, Intel8080InstructionError};
 use std::cmp::min;
-use super::cpu::{Cpu, InputDevice, OutputDevice};
+use super::cpu::{Cpu, InputDevice, OutputDevice, WithPorts};
 use super::CpuError;
 use super::failure::Error;
 
@@ -155,15 +155,7 @@ impl<'a> Cpu<u8, Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
     }
 
     fn is_done(&self) -> bool {
-        (self.pc as usize) >= ROM_MEMORY_LIMIT
-    }
-
-    fn add_input_device(&mut self, id: u8, device: Box<InputDevice>) {
-        self.inputs[id as usize] = Some(device);
-    }
-
-    fn add_output_device(&mut self, id: u8, device: Box<OutputDevice>) {
-        self.outputs[id as usize] = Some(device);
+        self.pc >= ROM_MEMORY_LIMIT as u16
     }
 
     fn increase_pc(&mut self, steps: u8) {
@@ -210,6 +202,16 @@ impl<'a> Cpu<u8, Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
 
     fn get_cycles_from_two_conditions(&self, _: &Intel8080Instruction, _: u8, _: u8, _: u8) -> u8 {
         panic!("This CPU doesn't have instructions with two conditions")
+    }
+}
+
+impl<'a> WithPorts for Intel8080Cpu<'a> {
+    fn add_input_device(&mut self, id: u8, device: Box<InputDevice>) {
+        self.inputs[id as usize] = Some(device);
+    }
+
+    fn add_output_device(&mut self, id: u8, device: Box<OutputDevice>) {
+        self.outputs[id as usize] = Some(device);
     }
 }
 
