@@ -1,11 +1,22 @@
 use cpu::Cpu;
-use failure::Error;
+use failure::{Error, Fail};
 use std::cmp::min;
-use super::CpuError;
 use super::Mos6502Instruction;
 use super::instruction::Mos6502InstructionCode;
 
-const AVAILABLE_MEMORY: usize = 0x10000;
+pub const AVAILABLE_MEMORY: usize = 0x10000;
+const ZERO_PAGE_START: usize = 0;
+const ZERO_PAGE_END: usize = 0x100;
+const STACK_PAGE_START: usize = 0x100;
+const STACK_PAGE_END: usize = 0x200;
+const INTERRUPT_HANDLERS_START: usize = 0xFFFA;
+const INTERRUPT_HANDLERS_END: usize = 0x10000;
+
+#[derive(Debug, Fail)]
+pub enum CpuError {
+    #[fail(display = "Attempt to access reserved memory. 0x0000-0x0200 and 0xFFFA to 0x10000 are reserved.")]
+    ReservedMemory,
+}
 
 struct ProcessorStatus {
     negative: bool,
@@ -65,8 +76,28 @@ impl Mos6502Cpu {
             registers: RegisterSet::new(),
         }
     }
+
     #[inline]
     fn execute_nop(&self) {
+    }
+
+    pub fn get_memory_slice(&mut self, from: usize, to: usize) -> Result<&[u8], CpuError> {
+        if (from >= ZERO_PAGE_START && from < ZERO_PAGE_END) ||
+            (from >= STACK_PAGE_START && from < STACK_PAGE_END) ||
+            (from >= INTERRUPT_HANDLERS_START && from < INTERRUPT_HANDLERS_END) {
+            Err(CpuError::ReservedMemory)
+        } else if (to >= ZERO_PAGE_START && to < ZERO_PAGE_END) ||
+            (to >= STACK_PAGE_START && to < STACK_PAGE_END) ||
+            (to >= INTERRUPT_HANDLERS_START && to < INTERRUPT_HANDLERS_END) {
+            Err(CpuError::ReservedMemory)
+        } else if (from < ZERO_PAGE_START && to >= ZERO_PAGE_END) ||
+            (from < STACK_PAGE_START && to >= STACK_PAGE_END) ||
+            (from < INTERRUPT_HANDLERS_START && to >= INTERRUPT_HANDLERS_END) {
+            Err(CpuError::ReservedMemory)
+        } else {
+            Ok(&mut self.memory[from..to])
+        }
+
     }
 }
 
@@ -108,5 +139,67 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
     fn get_cycles_from_two_conditions
         (&self, instruction: &Mos6502Instruction, not_met: u8, first_met: u8, second_met: u8) -> u8 {
         0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use AVAILABLE_MEMORY;
+    use Mos6502Cpu;
+
+    #[test]
+    fn it_shouldnt_access_zero_page_memory() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        {
+            let mem = cpu.get_memory_slice(0, 0x200);
+            assert!(mem.is_err());
+        }
+        {
+            let mem = cpu.get_memory_slice(0x20, 0x200);
+            assert!(mem.is_err());
+        }
+        {
+            let mem = cpu.get_memory_slice(0x20, 0x1FF);
+            assert!(mem.is_err());
+        }
+    }
+
+    #[test]
+    fn it_shouldnt_access_stack_memory() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        {
+            let mem = cpu.get_memory_slice(0x100, 0x300);
+            assert!(mem.is_err());
+        }
+        {
+            let mem = cpu.get_memory_slice(0xFF, 0x1FA);
+            assert!(mem.is_err());
+        }
+        {
+            let mem = cpu.get_memory_slice(0x101, 0x1FA);
+            assert!(mem.is_err());
+        }
+    }
+
+
+    #[test]
+    fn it_shouldnt_access_interrupt_handlers_memory() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        {
+            let mem = cpu.get_memory_slice(0x100, 0xFFFB);
+            assert!(mem.is_err());
+        }
+        {
+            let mem = cpu.get_memory_slice(0xFFFA, 0x10001);
+            assert!(mem.is_err());
+        }
+        {
+            let mem = cpu.get_memory_slice(0xFFF5, 0x10001);
+            assert!(mem.is_err());
+        }
+        {
+            let mem = cpu.get_memory_slice(0xFFFB, 0xFFFC);
+            assert!(mem.is_err());
+        }
     }
 }
