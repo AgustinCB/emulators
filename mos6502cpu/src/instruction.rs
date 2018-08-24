@@ -1253,6 +1253,11 @@ impl From<Vec<u8>> for Mos6502Instruction {
                     high_byte: bytes[2]
                 },
             },
+            // TODO: Support different addressing modes for NOP
+            // Only the "official" NOP has implicit addressing mode
+            // All the other OP codes that act as NOP have different addressing mode
+            // And its timing and size varies accordingly.
+            // See: https://www.reddit.com/r/EmuDev/comments/99xdce/nop_and_mos_6502/
             _ => Mos6502Instruction {
                 instruction: Mos6502InstructionCode::Nop,
                 addressing_mode: AddressingMode::Implicit,

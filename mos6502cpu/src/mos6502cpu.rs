@@ -7,9 +7,28 @@ use super::instruction::Mos6502InstructionCode;
 
 const AVAILABLE_MEMORY: usize = 0x10000;
 
+struct ProcessorStatus {
+    negative: bool,
+    overflow: bool,
+    break_flag: bool,
+    decimal: bool,
+    interrupt: bool,
+    zero: bool,
+    carry: bool,
+}
+
+struct RegisterSet {
+    pc: u16,
+    s: u8,
+    x: u8,
+    y: u8,
+    a: u8,
+    p: ProcessorStatus,
+}
+
 struct Mos6502Cpu {
     memory: [u8; AVAILABLE_MEMORY],
-    pc: u16,
+    registers: RegisterSet,
 }
 
 impl Mos6502Cpu {
@@ -31,7 +50,7 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
     }
 
     fn get_next_instruction_bytes(&self) -> &[u8] {
-        let from = self.pc as usize;
+        let from = self.registers.pc as usize;
         let to = min(from+3, self.memory.len());
         &self.memory[from..to]
     }
@@ -41,11 +60,11 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
     }
 
     fn is_done(&self) -> bool {
-        self.pc >= AVAILABLE_MEMORY as u16
+        self.registers.pc >= AVAILABLE_MEMORY as u16
     }
 
     fn increase_pc(&mut self, steps: u8) {
-        self.pc += steps as u16
+        self.registers.pc += steps as u16
     }
 
     fn get_cycles_from_one_condition
