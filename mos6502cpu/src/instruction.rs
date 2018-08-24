@@ -553,7 +553,7 @@ impl From<Vec<u8>> for Mos6502Instruction {
             },
             0x10 => Mos6502Instruction {
                 instruction: Mos6502InstructionCode::Bpl,
-                addressing_mode: AddressingMode::Relative { byte: bytes[1] },
+                addressing_mode: AddressingMode::Relative { byte: bytes[1] as i8 },
             },
             0x11 => Mos6502Instruction {
                 instruction: Mos6502InstructionCode::Ora,
@@ -650,7 +650,7 @@ impl From<Vec<u8>> for Mos6502Instruction {
             },
             0x30 => Mos6502Instruction {
                 instruction: Mos6502InstructionCode::Bmi,
-                addressing_mode: AddressingMode::Relative { byte: bytes[1] },
+                addressing_mode: AddressingMode::Relative { byte: bytes[1] as i8  },
             },
             0x31 => Mos6502Instruction {
                 instruction: Mos6502InstructionCode::Adc,
@@ -740,7 +740,7 @@ impl From<Vec<u8>> for Mos6502Instruction {
             },
             0x50 => Mos6502Instruction {
                 instruction: Mos6502InstructionCode::Bvc,
-                addressing_mode: AddressingMode::Relative { byte: bytes[1] },
+                addressing_mode: AddressingMode::Relative { byte: bytes[1] as i8 },
             },
             0x51 => Mos6502Instruction {
                 instruction: Mos6502InstructionCode::Eor,
@@ -830,7 +830,7 @@ impl From<Vec<u8>> for Mos6502Instruction {
             },
             0x70 => Mos6502Instruction {
                 instruction: Mos6502InstructionCode::Bvs,
-                addressing_mode: AddressingMode::Relative { byte: bytes[1] },
+                addressing_mode: AddressingMode::Relative { byte: bytes[1] as i8 },
             },
             0x71 => Mos6502Instruction {
                 instruction: Mos6502InstructionCode::Adc,
@@ -916,7 +916,7 @@ impl From<Vec<u8>> for Mos6502Instruction {
             },
             0x90 => Mos6502Instruction {
                 instruction: Mos6502InstructionCode::Bcc,
-                addressing_mode: AddressingMode::Relative { byte: bytes[1] },
+                addressing_mode: AddressingMode::Relative { byte: bytes[1] as i8 },
             },
             0x91 => Mos6502Instruction {
                 instruction: Mos6502InstructionCode::Sta,
@@ -958,7 +958,7 @@ impl From<Vec<u8>> for Mos6502Instruction {
             },
             0xB0 => Mos6502Instruction {
                 instruction: Mos6502InstructionCode::Bcs,
-                addressing_mode: AddressingMode::Relative { byte: bytes[1] },
+                addressing_mode: AddressingMode::Relative { byte: bytes[1] as i8 },
             },
             0xA0 => Mos6502Instruction {
                 instruction: Mos6502InstructionCode::Ldy,
@@ -1124,7 +1124,7 @@ impl From<Vec<u8>> for Mos6502Instruction {
             },
             0xD0 => Mos6502Instruction {
                 instruction: Mos6502InstructionCode::Bne,
-                addressing_mode: AddressingMode::Relative { byte: bytes[1] },
+                addressing_mode: AddressingMode::Relative { byte: bytes[1] as i8 },
             },
             0xD1 => Mos6502Instruction {
                 instruction: Mos6502InstructionCode::Cmp,
@@ -1214,7 +1214,7 @@ impl From<Vec<u8>> for Mos6502Instruction {
             },
             0xF0 => Mos6502Instruction {
                 instruction: Mos6502InstructionCode::Beq,
-                addressing_mode: AddressingMode::Relative { byte: bytes[1] },
+                addressing_mode: AddressingMode::Relative { byte: bytes[1] as i8 },
             },
             0xF1 => Mos6502Instruction {
                 instruction: Mos6502InstructionCode::Sbc,

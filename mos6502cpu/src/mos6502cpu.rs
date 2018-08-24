@@ -2,7 +2,7 @@ use cpu::Cpu;
 use failure::{Error, Fail};
 use std::cmp::min;
 use super::Mos6502Instruction;
-use super::instruction::Mos6502InstructionCode;
+use super::instruction::{Mos6502InstructionCode, AddressingMode};
 
 pub const AVAILABLE_MEMORY: usize = 0x10000;
 const ZERO_PAGE_START: usize = 0;
@@ -12,20 +12,26 @@ const STACK_PAGE_END: usize = 0x200;
 const INTERRUPT_HANDLERS_START: usize = 0xFFFA;
 const INTERRUPT_HANDLERS_END: usize = 0x10000;
 
+fn two_bytes_to_word(high_byte: u8, low_byte: u8) -> u16 {
+    (high_byte as u16) << 8 | (low_byte as u16)
+}
+
 #[derive(Debug, Fail)]
 pub enum CpuError {
     #[fail(display = "Attempt to access reserved memory. 0x0000-0x0200 and 0xFFFA to 0x10000 are reserved.")]
     ReservedMemory,
+    #[fail(display = "Attempt to use invalid addressing mode.")]
+    InvalidAddressingMode,
 }
 
-struct ProcessorStatus {
-    negative: bool,
-    overflow: bool,
-    break_flag: bool,
-    decimal: bool,
-    interrupt: bool,
-    zero: bool,
-    carry: bool,
+pub(crate) struct ProcessorStatus {
+    pub(crate) negative: bool,
+    pub(crate) overflow: bool,
+    pub(crate) break_flag: bool,
+    pub(crate) decimal: bool,
+    pub(crate) interrupt: bool,
+    pub(crate) zero: bool,
+    pub(crate) carry: bool,
 }
 
 impl ProcessorStatus {
@@ -42,13 +48,13 @@ impl ProcessorStatus {
     }
 }
 
-struct RegisterSet {
-    pc: u16,
-    s: u8,
-    x: u8,
-    y: u8,
-    a: u8,
-    p: ProcessorStatus,
+pub(crate) struct RegisterSet {
+    pub(crate) pc: u16,
+    pub(crate) s: u8,
+    pub(crate) x: u8,
+    pub(crate) y: u8,
+    pub(crate) a: u8,
+    pub(crate) p: ProcessorStatus,
 }
 
 impl RegisterSet {
@@ -66,7 +72,7 @@ impl RegisterSet {
 
 pub struct Mos6502Cpu {
     memory: [u8; AVAILABLE_MEMORY],
-    registers: RegisterSet,
+    pub(crate) registers: RegisterSet,
 }
 
 impl Mos6502Cpu {
@@ -99,6 +105,44 @@ impl Mos6502Cpu {
         }
 
     }
+
+    pub(crate) fn get_value_from_addressing_mode(&self, addressing_mode: AddressingMode) -> u8 {
+        match addressing_mode {
+            AddressingMode::Immediate { byte } => byte,
+            AddressingMode::ZeroPage { byte } => self.memory[byte as usize],
+            AddressingMode::ZeroPageIndexedX { byte } => {
+                let x = self.registers.x as u16;
+                let address = (x + byte as u16) as u8;
+                self.memory[address as usize]
+            },
+            AddressingMode::Absolute { high_byte, low_byte } => {
+                let address = two_bytes_to_word(high_byte, low_byte) as usize;
+                self.memory[address]
+            },
+            AddressingMode::AbsoluteIndexedX { high_byte, low_byte } => {
+                let address = two_bytes_to_word(high_byte, low_byte) as usize;
+                self.memory[address + self.registers.x as usize]
+            },
+            AddressingMode::AbsoluteIndexedY { high_byte, low_byte } => {
+                let address = two_bytes_to_word(high_byte, low_byte) as usize;
+                self.memory[address + self.registers.y as usize]
+            },
+            AddressingMode::IndexedIndirect { byte } => {
+                let indirect_address = ((byte as u16 + self.registers.x as u16) as u8) as usize;
+                let (low_byte, high_byte) =
+                    (self.memory[indirect_address], self.memory[indirect_address+1]);
+                self.memory[two_bytes_to_word(high_byte, low_byte) as usize]
+            },
+            AddressingMode::IndirectIndexed { byte } => {
+                let (low_byte, high_byte) =
+                    (self.memory[byte as usize], self.memory[byte as usize + 1]);
+                let direct_address =
+                    two_bytes_to_word(high_byte, low_byte) + self.registers.y as u16;
+                self.memory[direct_address as usize]
+            },
+            _ => panic!("Not implemented yet"),
+        }
+    }
 }
 
 impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
@@ -107,6 +151,7 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
             return Ok(());
         }
         match instruction.instruction {
+            Mos6502InstructionCode::Adc => self.execute_adc(instruction.addressing_mode)?,
             Mos6502InstructionCode::Nop => self.execute_nop(),
             _ => self.execute_nop(),
         };
