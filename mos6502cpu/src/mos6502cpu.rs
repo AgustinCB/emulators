@@ -17,6 +17,20 @@ struct ProcessorStatus {
     carry: bool,
 }
 
+impl ProcessorStatus {
+    fn new() -> ProcessorStatus {
+        ProcessorStatus {
+            negative: false,
+            overflow: false,
+            break_flag: false,
+            decimal: false,
+            interrupt: false,
+            zero: false,
+            carry: false,
+        }
+    }
+}
+
 struct RegisterSet {
     pc: u16,
     s: u8,
@@ -26,12 +40,31 @@ struct RegisterSet {
     p: ProcessorStatus,
 }
 
-struct Mos6502Cpu {
+impl RegisterSet {
+    fn new() -> RegisterSet {
+        RegisterSet {
+            pc: 0,
+            s: 0xff,
+            x: 0,
+            y: 0,
+            a: 0,
+            p: ProcessorStatus::new(),
+        }
+    }
+}
+
+pub struct Mos6502Cpu {
     memory: [u8; AVAILABLE_MEMORY],
     registers: RegisterSet,
 }
 
 impl Mos6502Cpu {
+    pub fn new(memory: [u8; AVAILABLE_MEMORY]) -> Mos6502Cpu {
+        Mos6502Cpu {
+            memory,
+            registers: RegisterSet::new(),
+        }
+    }
     #[inline]
     fn execute_nop(&self) {
     }

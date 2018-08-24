@@ -18,5 +18,6 @@ pub enum CpuError {
 mod instruction;
 mod mos6502cpu;
 
+pub use mos6502cpu::Mos6502Cpu;
 pub use cpu::Instruction;
 pub use instruction::{Mos6502Instruction, Mos6502InstructionError};
