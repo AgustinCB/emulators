@@ -5,6 +5,7 @@ mod alu;
 mod instruction;
 mod logical;
 mod math;
+mod data_movement;
 mod mos6502cpu;
 
 pub type CpuResult = Result<(), CpuError>;

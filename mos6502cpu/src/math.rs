@@ -2,17 +2,17 @@ use {Mos6502Cpu, CpuResult};
 use instruction::AddressingMode;
 
 impl Mos6502Cpu {
-    pub(crate) fn execute_adc(&mut self, addressing_mode: AddressingMode) -> CpuResult {
+    pub(crate) fn execute_adc(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_alu_address(&addressing_mode)?;
         let value = self.get_value_from_addressing_mode(addressing_mode) as u16;
         let carry_as_u16 = self.registers.p.carry as u16;
-        let new_a = self.registers.a as u16 + value + carry_as_u16;
-        self.registers.p.zero = (new_a as u8) == 0;
-        self.registers.p.carry = new_a > 0xff;
-        self.registers.p.negative = new_a & 0x80 > 0;
+        let answer = self.registers.a as u16 + value + carry_as_u16;
+        self.update_zero_flag(answer as u8);
+        self.update_negative_flag(answer as u8);
+        self.registers.p.carry = answer > 0xff;
         self.registers.p.overflow =
-            self.calculate_overflow(self.registers.a, (value + carry_as_u16) as u8, new_a as u8);
-        self.registers.a = new_a as u8;
+            self.calculate_overflow(self.registers.a, (value + carry_as_u16) as u8, answer as u8);
+        self.registers.a = answer as u8;
         Ok(())
     }
 

@@ -2,12 +2,13 @@ use {Mos6502Cpu, CpuResult};
 use instruction::AddressingMode;
 
 impl Mos6502Cpu {
-    pub(crate) fn execute_and(&mut self, addressing_mode: AddressingMode) -> CpuResult {
+    pub(crate) fn execute_and(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_alu_address(&addressing_mode)?;
         let value = self.get_value_from_addressing_mode(addressing_mode);
-        self.registers.a = self.registers.a & value;
-        self.registers.p.zero = self.registers.a == 0;
-        self.registers.p.negative = self.registers.a & 0x80 > 0;
+        let answer = self.registers.a & value;
+        self.registers.a = answer;
+        self.update_zero_flag(answer);
+        self.update_negative_flag(answer);
         Ok(())
     }
 }
