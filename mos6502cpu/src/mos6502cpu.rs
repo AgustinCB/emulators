@@ -157,6 +157,7 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
         }
         match instruction.instruction {
             Mos6502InstructionCode::Adc => self.execute_adc(instruction.addressing_mode)?,
+            Mos6502InstructionCode::And => self.execute_and(instruction.addressing_mode)?,
             Mos6502InstructionCode::Nop => self.execute_nop(),
             _ => self.execute_nop(),
         };

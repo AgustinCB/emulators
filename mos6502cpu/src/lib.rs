@@ -1,7 +1,9 @@
 #[macro_use] extern crate cpu;
 #[macro_use] extern crate failure;
 
+mod alu;
 mod instruction;
+mod logical;
 mod math;
 mod mos6502cpu;
 
