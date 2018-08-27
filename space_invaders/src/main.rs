@@ -6,7 +6,6 @@ use intel8080cpu::*;
 use emulator_space_invaders::console::Console;
 use failure::Error;
 use std::env::args;
-use std::cmp::min;
 use std::fs::File;
 use std::io::Read;
 

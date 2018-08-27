@@ -1,5 +1,5 @@
 use intel8080cpu::{Intel8080Cpu, Location, State, ROM_MEMORY_LIMIT};
-use instruction::{Intel8080Instruction, Intel8080InstructionError};
+use instruction::Intel8080Instruction;
 use std::cmp::min;
 use super::cpu::{Cpu, InputDevice, OutputDevice, WithPorts};
 use super::CpuError;
