@@ -49,6 +49,21 @@ impl Mos6502Cpu {
         }
         Ok(())
     }
+    pub(crate) fn execute_bvc(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        let offset = self.get_branch_offset(&addressing_mode)?;
+        if !self.registers.p.overflow {
+            self.update_pc_from_offset(offset);
+        }
+        Ok(())
+    }
+
+    pub(crate) fn execute_bvs(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        let offset = self.get_branch_offset(&addressing_mode)?;
+        if self.registers.p.overflow {
+            self.update_pc_from_offset(offset);
+        }
+        Ok(())
+    }
 
     #[inline]
     fn get_branch_offset(&self, addressing_mode: &AddressingMode) -> Result<i8, CpuError> {
@@ -215,5 +230,53 @@ mod tests {
             addressing_mode: AddressingMode::Relative { byte: 0x42 },
         }).unwrap();
         assert_eq!(cpu.registers.pc, 0x0);
+    }
+
+    #[test]
+    fn it_should_branch_if_overflow_is_clear_on_bvc() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.p.overflow = false;
+        cpu.registers.pc = 0;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Bvc,
+            addressing_mode: AddressingMode::Relative { byte: 0x42 },
+        }).unwrap();
+        assert_eq!(cpu.registers.pc, 0x42);
+    }
+
+    #[test]
+    fn it_shouldnt_branch_if_overflow_is_set_on_bvc() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.p.overflow = true;
+        cpu.registers.pc = 0;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Bvc,
+            addressing_mode: AddressingMode::Relative { byte: 0x42 },
+        }).unwrap();
+        assert_eq!(cpu.registers.pc, 0x0);
+    }
+
+    #[test]
+    fn it_shouldnt_branch_if_overflow_is_clear_on_bvs() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.p.overflow = false;
+        cpu.registers.pc = 0;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Bvs,
+            addressing_mode: AddressingMode::Relative { byte: 0x42 },
+        }).unwrap();
+        assert_eq!(cpu.registers.pc, 0x0);
+    }
+
+    #[test]
+    fn it_should_branch_if_overflow_is_set_on_bvs() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.p.overflow = true;
+        cpu.registers.pc = 0;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Bvs,
+            addressing_mode: AddressingMode::Relative { byte: 0x42 },
+        }).unwrap();
+        assert_eq!(cpu.registers.pc, 0x42);
     }
 }

@@ -36,6 +36,15 @@ impl Mos6502Cpu {
         }
     }
 
+    pub(crate) fn execute_clc(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        if let AddressingMode::Implicit = addressing_mode {
+            self.registers.p.carry = false;
+            Ok(())
+        } else {
+            Err(CpuError::InvalidAddressingMode)
+        }
+    }
+
     #[inline]
     fn check_bit_address(&self, addressing_mode: &AddressingMode) -> CpuResult {
         match addressing_mode {
@@ -121,5 +130,16 @@ mod tests {
         assert_eq!(cpu.memory[3], 0x42);
         assert_eq!(cpu.memory[2], 0x24);
         assert_eq!(cpu.memory[1], 0x30);
+    }
+
+    #[test]
+    fn it_should_set_carry_to_zero_on_clc() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.p.carry = true;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Clc,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert!(!cpu.registers.p.carry);
     }
 }
