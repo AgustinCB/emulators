@@ -272,14 +272,39 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
         self.registers.pc += steps as u16
     }
 
+    // TODO: Remove this panic and use Result<u8, CpuError) as a return instead
     fn get_cycles_from_one_condition
         (&self, instruction: &Mos6502Instruction, not_met: u8, met: u8) -> u8 {
-        0
+        macro_rules! page_crossed_condition {
+            () => {
+                if self.page_crossed { met } else { not_met }
+            }
+        }
+        match instruction.instruction {
+            Mos6502InstructionCode::Adc => page_crossed_condition!(),
+            Mos6502InstructionCode::And => page_crossed_condition!(),
+            _ => panic!("This instruction doesn't have conditional cycles."),
+        }
     }
 
+    // TODO: Remove this panic and use Result<u8, CpuError) as a return instead
     fn get_cycles_from_two_conditions
         (&self, instruction: &Mos6502Instruction, not_met: u8, first_met: u8, second_met: u8) -> u8 {
-        0
+        macro_rules! bicondition {
+            ($condition:expr) => {
+                if $condition {
+                    if self.page_crossed { second_met } else { first_met }
+                } else {
+                    not_met
+                }
+            }
+        }
+        match instruction.instruction {
+            Mos6502InstructionCode::Bcc => bicondition!(!self.registers.p.carry),
+            Mos6502InstructionCode::Bcs => bicondition!(self.registers.p.carry),
+            Mos6502InstructionCode::Beq => bicondition!(self.registers.p.zero),
+            _ => panic!("This instruction doesn't have biconditional cycles."),
+        }
     }
 }
 
