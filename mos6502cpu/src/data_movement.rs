@@ -7,7 +7,6 @@ impl Mos6502Cpu {
         let value = self.get_value_from_addressing_mode(addressing_mode);
         let future_carry = value & 0x80 > 0;
         let answer = value << 1;
-        println!("{} {}", answer, value);
         self.update_zero_flag(answer);
         self.update_negative_flag(answer);
         self.registers.p.carry = future_carry;
