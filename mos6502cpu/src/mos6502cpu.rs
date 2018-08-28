@@ -272,6 +272,9 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
             Mos6502InstructionCode::Bvc => self.execute_bvc(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Bvs => self.execute_bvs(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Clc => self.execute_clc(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Cld => self.execute_cld(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Cli => self.execute_cli(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Clv => self.execute_clv(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Nop => self.execute_nop(),
             _ => self.execute_nop(),
         };

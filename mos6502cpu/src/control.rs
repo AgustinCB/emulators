@@ -45,6 +45,33 @@ impl Mos6502Cpu {
         }
     }
 
+    pub(crate) fn execute_cld(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        if let AddressingMode::Implicit = addressing_mode {
+            self.registers.p.decimal = false;
+            Ok(())
+        } else {
+            Err(CpuError::InvalidAddressingMode)
+        }
+    }
+
+    pub(crate) fn execute_cli(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        if let AddressingMode::Implicit = addressing_mode {
+            self.registers.p.interrupt = false;
+            Ok(())
+        } else {
+            Err(CpuError::InvalidAddressingMode)
+        }
+    }
+
+    pub(crate) fn execute_clv(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        if let AddressingMode::Implicit = addressing_mode {
+            self.registers.p.overflow = false;
+            Ok(())
+        } else {
+            Err(CpuError::InvalidAddressingMode)
+        }
+    }
+
     #[inline]
     fn check_bit_address(&self, addressing_mode: &AddressingMode) -> CpuResult {
         match addressing_mode {
@@ -141,5 +168,38 @@ mod tests {
             addressing_mode: AddressingMode::Implicit,
         }).unwrap();
         assert!(!cpu.registers.p.carry);
+    }
+
+    #[test]
+    fn it_should_set_carry_to_zero_on_cld() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.p.decimal = true;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Cld,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert!(!cpu.registers.p.decimal);
+    }
+
+    #[test]
+    fn it_should_set_carry_to_zero_on_cli() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.p.interrupt = true;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Cli,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert!(!cpu.registers.p.interrupt);
+    }
+
+    #[test]
+    fn it_should_set_carry_to_zero_on_clv() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.p.overflow = true;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Clv,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert!(!cpu.registers.p.overflow);
     }
 }
