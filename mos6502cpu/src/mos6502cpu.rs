@@ -9,10 +9,10 @@ const ZERO_PAGE_START: usize = 0;
 const ZERO_PAGE_END: usize = 0x100;
 const STACK_PAGE_START: usize = 0x100;
 const STACK_PAGE_END: usize = 0x200;
-const INTERRUPT_HANDLERS_START: usize = 0xFFFA;
+pub(crate) const INTERRUPT_HANDLERS_START: usize = 0xFFFA;
 const INTERRUPT_HANDLERS_END: usize = 0x10000;
 
-fn two_bytes_to_word(high_byte: u8, low_byte: u8) -> u16 {
+pub(crate) fn two_bytes_to_word(high_byte: u8, low_byte: u8) -> u16 {
     (high_byte as u16) << 8 | (low_byte as u16)
 }
 
@@ -45,6 +45,16 @@ impl ProcessorStatus {
             zero: false,
             carry: false,
         }
+    }
+    pub fn to_byte(&self) -> u8 {
+        ((self.negative as u8) << 7) |
+            ((self.overflow as u8) << 6) |
+            0x20 |
+            ((self.break_flag as u8) << 4) |
+            ((self.decimal as u8) << 3) |
+            ((self.interrupt as u8) << 2) |
+            ((self.zero as u8) << 1) |
+            (self.carry as u8)
     }
 }
 
@@ -222,6 +232,12 @@ impl Mos6502Cpu {
     pub(crate) fn update_page_crossed_status(&mut self, original: u16, new: u16) {
         self.page_crossed = (original & 0xff00) == (new & 0xff00);
     }
+
+    #[inline]
+    pub(crate) fn push(&mut self, value: u8) {
+        self.memory[self.registers.s as usize] = value;
+        self.registers.s -= 1;
+    }
 }
 
 impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
@@ -251,6 +267,8 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
             Mos6502InstructionCode::Bit => self.execute_bit(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Bmi => self.execute_bmi(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Bne => self.execute_bne(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Bpl => self.execute_bpl(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Brk => self.execute_brk(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Nop => self.execute_nop(),
             _ => self.execute_nop(),
         };
@@ -308,6 +326,7 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
             Mos6502InstructionCode::Beq => bicondition!(self.registers.p.zero),
             Mos6502InstructionCode::Bmi => bicondition!(self.registers.p.negative),
             Mos6502InstructionCode::Bne => bicondition!(!self.registers.p.zero),
+            Mos6502InstructionCode::Bpl => bicondition!(!self.registers.p.negative),
             _ => panic!("This instruction doesn't have biconditional cycles."),
         }
     }

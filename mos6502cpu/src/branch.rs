@@ -33,9 +33,18 @@ impl Mos6502Cpu {
         }
         Ok(())
     }
+
     pub(crate) fn execute_bne(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         let offset = self.get_branch_offset(&addressing_mode)?;
         if !self.registers.p.zero {
+            self.update_pc_from_offset(offset);
+        }
+        Ok(())
+    }
+
+    pub(crate) fn execute_bpl(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        let offset = self.get_branch_offset(&addressing_mode)?;
+        if !self.registers.p.negative {
             self.update_pc_from_offset(offset);
         }
         Ok(())
@@ -179,6 +188,30 @@ mod tests {
         cpu.registers.pc = 0;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Bne,
+            addressing_mode: AddressingMode::Relative { byte: 0x42 },
+        }).unwrap();
+        assert_eq!(cpu.registers.pc, 0x0);
+    }
+
+    #[test]
+    fn it_should_branch_if_negative_is_clear_on_bpl() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.p.negative = false;
+        cpu.registers.pc = 0;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Bpl,
+            addressing_mode: AddressingMode::Relative { byte: 0x42 },
+        }).unwrap();
+        assert_eq!(cpu.registers.pc, 0x42);
+    }
+
+    #[test]
+    fn it_shouldnt_branch_if_negative_is_set_on_bpl() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.p.negative = true;
+        cpu.registers.pc = 0;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Bpl,
             addressing_mode: AddressingMode::Relative { byte: 0x42 },
         }).unwrap();
         assert_eq!(cpu.registers.pc, 0x0);
