@@ -219,6 +219,8 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
             Mos6502InstructionCode::And => self.execute_and(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Asl => self.execute_asl(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Bcc => self.execute_bcc(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Bcs => self.execute_bcs(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Beq => self.execute_beq(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Nop => self.execute_nop(),
             _ => self.execute_nop(),
         };
