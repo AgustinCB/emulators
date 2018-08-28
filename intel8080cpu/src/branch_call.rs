@@ -137,7 +137,7 @@ mod tests {
         let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
-        cpu.execute_instruction(Intel8080Instruction::Call { address: [0x00, 0x3c] }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Call { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x3c00);
         assert_eq!(cpu.get_current_sp_value(), 0);
         assert_eq!(cpu.memory[0], 0x03);
@@ -162,7 +162,7 @@ mod tests {
             cpu.memory[3] = '4' as u8;
             cpu.memory[4] = '2' as u8;
             cpu.memory[5] = '$' as u8;
-            cpu.execute_instruction(Intel8080Instruction::Call { address: [0x05, 0x00] }).unwrap();
+            cpu.execute_instruction(&Intel8080Instruction::Call { address: [0x05, 0x00] }).unwrap();
             assert_eq!(cpu.pc, 0x2c03);
         }
         assert_eq!(screen.res, "42");
@@ -174,7 +174,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.flags.carry = true;
-        cpu.execute_instruction(Intel8080Instruction::Cc { address: [0x00, 0x3c] }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Cc { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x3c00);
         assert_eq!(cpu.get_current_sp_value(), 0);
         assert_eq!(cpu.memory[0], 0x03);
@@ -187,7 +187,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.flags.carry = false;
-        cpu.execute_instruction(Intel8080Instruction::Cc { address: [0x00, 0x3c] }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Cc { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
         assert_eq!(cpu.memory[0], 0);
@@ -200,7 +200,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.flags.sign = true;
-        cpu.execute_instruction(Intel8080Instruction::Cm { address: [0x00, 0x3c] }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Cm { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x3c00);
         assert_eq!(cpu.get_current_sp_value(), 0);
         assert_eq!(cpu.memory[0], 0x03);
@@ -213,7 +213,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.flags.sign = false;
-        cpu.execute_instruction(Intel8080Instruction::Cm { address: [0x00, 0x3c] }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Cm { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
         assert_eq!(cpu.memory[0], 0);
@@ -226,7 +226,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.flags.carry = false;
-        cpu.execute_instruction(Intel8080Instruction::Cnc { address: [0x00, 0x3c] }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Cnc { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x3c00);
         assert_eq!(cpu.get_current_sp_value(), 0);
         assert_eq!(cpu.memory[0], 0x03);
@@ -239,7 +239,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.flags.carry = true;
-        cpu.execute_instruction(Intel8080Instruction::Cnc { address: [0x00, 0x3c] }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Cnc { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
         assert_eq!(cpu.memory[0], 0);
@@ -252,7 +252,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.flags.zero = false;
-        cpu.execute_instruction(Intel8080Instruction::Cnz { address: [0x00, 0x3c] }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Cnz { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x3c00);
         assert_eq!(cpu.get_current_sp_value(), 0);
         assert_eq!(cpu.memory[0], 0x03);
@@ -265,7 +265,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.flags.zero = true;
-        cpu.execute_instruction(Intel8080Instruction::Cnz { address: [0x00, 0x3c] }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Cnz { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
         assert_eq!(cpu.memory[0], 0);
@@ -278,7 +278,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.flags.sign = false;
-        cpu.execute_instruction(Intel8080Instruction::Cp { address: [0x00, 0x3c] }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Cp { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x3c00);
         assert_eq!(cpu.get_current_sp_value(), 0);
         assert_eq!(cpu.memory[0], 0x03);
@@ -291,7 +291,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.flags.sign = true;
-        cpu.execute_instruction(Intel8080Instruction::Cp { address: [0x00, 0x3c] }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Cp { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
         assert_eq!(cpu.memory[0], 0);
@@ -304,7 +304,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.flags.parity = true;
-        cpu.execute_instruction(Intel8080Instruction::Cpe { address: [0x00, 0x3c] }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Cpe { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x3c00);
         assert_eq!(cpu.get_current_sp_value(), 0);
         assert_eq!(cpu.memory[0], 0x03);
@@ -317,7 +317,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.flags.parity = false;
-        cpu.execute_instruction(Intel8080Instruction::Cpe { address: [0x00, 0x3c] }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Cpe { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
         assert_eq!(cpu.memory[0], 0);
@@ -330,7 +330,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.flags.parity = false;
-        cpu.execute_instruction(Intel8080Instruction::Cpo { address: [0x00, 0x3c] }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Cpo { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x3c00);
         assert_eq!(cpu.get_current_sp_value(), 0);
         assert_eq!(cpu.memory[0], 0x03);
@@ -343,7 +343,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.flags.parity = true;
-        cpu.execute_instruction(Intel8080Instruction::Cpo { address: [0x00, 0x3c] }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Cpo { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
         assert_eq!(cpu.memory[0], 0);
@@ -356,7 +356,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.flags.zero = true;
-        cpu.execute_instruction(Intel8080Instruction::Cz { address: [0x00, 0x3c] }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Cz { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x3c00);
         assert_eq!(cpu.get_current_sp_value(), 0);
         assert_eq!(cpu.memory[0], 0x03);
@@ -369,7 +369,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.flags.zero = false;
-        cpu.execute_instruction(Intel8080Instruction::Cz { address: [0x00, 0x3c] }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Cz { address: [0x00, 0x3c] }).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.get_current_sp_value(), 2);
         assert_eq!(cpu.memory[0], 0);
@@ -381,7 +381,7 @@ mod tests {
         let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
-        cpu.execute_instruction(Intel8080Instruction::Rst { value: 3 }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Rst { value: 3 }).unwrap();
         assert_eq!(cpu.pc, 0x18);
         assert_eq!(cpu.state, State::Running);
         assert_eq!(cpu.get_current_sp_value(), 0);
@@ -395,7 +395,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.interruptions_enabled = false;
-        cpu.execute_instruction(Intel8080Instruction::Rst { value: 3 }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Rst { value: 3 }).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.state, State::Running);
         assert_eq!(cpu.get_current_sp_value(), 2);
@@ -409,7 +409,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.state = State::Stopped;
-        cpu.execute_instruction(Intel8080Instruction::Rst { value: 3 }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Rst { value: 3 }).unwrap();
         assert_eq!(cpu.pc, 0x18);
         assert_eq!(cpu.state, State::Running);
         assert_eq!(cpu.get_current_sp_value(), 0);

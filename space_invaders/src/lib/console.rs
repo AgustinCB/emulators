@@ -133,7 +133,7 @@ impl<'a> Console<'a> {
                 1
             };
             self.view.update_image(self.screen.get_pixels());
-            self.cpu.execute_instruction(Intel8080Instruction::Rst {
+            self.cpu.execute_instruction(&Intel8080Instruction::Rst {
                 value: self.prev_interruption
             })?;
         }

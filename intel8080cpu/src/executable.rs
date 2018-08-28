@@ -6,11 +6,11 @@ use super::CpuError;
 use super::failure::Error;
 
 impl<'a> Cpu<u8, Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
-    fn execute_instruction(&mut self, instruction: Intel8080Instruction) -> Result<(), Error> {
+    fn execute_instruction(&mut self, instruction: &Intel8080Instruction) -> Result<(), Error> {
         if !self.can_run(&instruction) {
             return Ok(());
         }
-        match instruction {
+        match *instruction {
             Intel8080Instruction::Adc { source: Location::Register { register } } =>
                 self.execute_adc_by_register(&register)?,
             Intel8080Instruction::Adc { source: Location::Memory } => self.execute_adc_by_memory()?,

@@ -210,7 +210,7 @@ impl Mos6502Cpu {
 }
 
 impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
-    fn execute_instruction(&mut self, instruction: Mos6502Instruction) -> Result<(), Error> {
+    fn execute_instruction(&mut self, instruction: &Mos6502Instruction) -> Result<(), Error> {
         if !self.can_run(&instruction) {
             return Ok(());
         }

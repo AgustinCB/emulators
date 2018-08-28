@@ -66,8 +66,8 @@ pub trait Cpu<W, I, F>
         }
         println!("{}", instruction.to_string());
         self.increase_pc(instruction.size()?);
+        self.execute_instruction(&instruction)?;
         let cycles = self.get_cycles_for_instruction(&instruction)?;
-        self.execute_instruction(instruction)?;
         Ok(cycles)
     }
 
@@ -82,7 +82,7 @@ pub trait Cpu<W, I, F>
         })
     }
 
-    fn execute_instruction(&mut self, instruction: I) -> Result<(), Error>;
+    fn execute_instruction(&mut self, instruction: &I) -> Result<(), Error>;
     fn get_next_instruction_bytes(&self) -> &[W];
     fn can_run(&self, instruction: &I) -> bool;
     fn is_done(&self) -> bool;

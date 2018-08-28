@@ -37,7 +37,7 @@ mod tests {
     fn it_should_execut_asl_with_no_flag() {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.a = 0x03;
-        cpu.execute_instruction(Mos6502Instruction {
+        cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Asl,
             addressing_mode: AddressingMode::Accumulator,
         }).unwrap();
@@ -51,7 +51,7 @@ mod tests {
     fn it_should_execut_asl_setting_carry() {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.a = 0xc0;
-        cpu.execute_instruction(Mos6502Instruction {
+        cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Asl,
             addressing_mode: AddressingMode::Accumulator,
         }).unwrap();
@@ -65,7 +65,7 @@ mod tests {
     fn it_should_execut_asl_setting_zero() {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.a = 0x80;
-        cpu.execute_instruction(Mos6502Instruction {
+        cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Asl,
             addressing_mode: AddressingMode::Accumulator,
         }).unwrap();

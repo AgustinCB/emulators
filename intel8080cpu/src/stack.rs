@@ -116,7 +116,7 @@ mod tests {
     #[test]
     fn it_should_pop_from_stack_to_b() {
         let mut cpu = get_pop_ready_cpu();
-        cpu.execute_instruction(Intel8080Instruction::Pop { register: RegisterType::B }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Pop { register: RegisterType::B }).unwrap();
         assert_eq!(cpu.get_current_bc_value(), 0x933d);
         assert_eq!(cpu.get_current_sp_value(), 0x123b);
     }
@@ -124,7 +124,7 @@ mod tests {
     #[test]
     fn it_should_pop_from_stack_to_d() {
         let mut cpu = get_pop_ready_cpu();
-        cpu.execute_instruction(Intel8080Instruction::Pop { register: RegisterType::D }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Pop { register: RegisterType::D }).unwrap();
         assert_eq!(cpu.get_current_de_value(), 0x933d);
         assert_eq!(cpu.get_current_sp_value(), 0x123b);
     }
@@ -132,7 +132,7 @@ mod tests {
     #[test]
     fn it_should_pop_from_stack_to_h() {
         let mut cpu = get_pop_ready_cpu();
-        cpu.execute_instruction(Intel8080Instruction::Pop { register: RegisterType::H }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Pop { register: RegisterType::H }).unwrap();
         assert_eq!(cpu.get_current_hl_value(), 0x933d);
         assert_eq!(cpu.get_current_sp_value(), 0x123b);
     }
@@ -140,7 +140,7 @@ mod tests {
     #[test]
     fn it_should_pop_from_stack_to_a_and_flags() {
         let mut cpu = get_pop_ready_cpu();
-        cpu.execute_instruction(Intel8080Instruction::Pop { register: RegisterType::Psw }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Pop { register: RegisterType::Psw }).unwrap();
         assert_eq!(cpu.get_current_a_value().unwrap(), 0x93);
         assert_eq!(cpu.get_current_sp_value(), 0x123b);
         assert!(cpu.flags.zero);
@@ -153,7 +153,7 @@ mod tests {
     #[test]
     fn it_should_push_from_stack_to_b() {
         let mut cpu = get_push_ready_cpu(&RegisterType::B);
-        cpu.execute_instruction(Intel8080Instruction::Push { register: RegisterType::B }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Push { register: RegisterType::B }).unwrap();
         assert_eq!(cpu.memory[0x3a2b], 0x8f);
         assert_eq!(cpu.memory[0x3a2a], 0x9d);
         assert_eq!(cpu.get_current_sp_value(), 0x3A2A);
@@ -162,7 +162,7 @@ mod tests {
     #[test]
     fn it_should_push_from_stack_to_d() {
         let mut cpu = get_push_ready_cpu(&RegisterType::D);
-        cpu.execute_instruction(Intel8080Instruction::Push { register: RegisterType::D }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Push { register: RegisterType::D }).unwrap();
         assert_eq!(cpu.memory[0x3a2b], 0x8f);
         assert_eq!(cpu.memory[0x3a2a], 0x9d);
         assert_eq!(cpu.get_current_sp_value(), 0x3A2A);
@@ -171,7 +171,7 @@ mod tests {
     #[test]
     fn it_should_push_from_stack_to_h() {
         let mut cpu = get_push_ready_cpu(&RegisterType::H);
-        cpu.execute_instruction(Intel8080Instruction::Push { register: RegisterType::H }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Push { register: RegisterType::H }).unwrap();
         assert_eq!(cpu.memory[0x3a2b], 0x8f);
         assert_eq!(cpu.memory[0x3a2a], 0x9d);
         assert_eq!(cpu.get_current_sp_value(), 0x3A2A);
@@ -180,7 +180,7 @@ mod tests {
     #[test]
     fn it_should_push_from_stack_to_a_and_flags() {
         let mut cpu = get_push_ready_cpu(&RegisterType::Psw);
-        cpu.execute_instruction(Intel8080Instruction::Push { register: RegisterType::Psw }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Push { register: RegisterType::Psw }).unwrap();
         assert_eq!(cpu.memory[0x3a2b], 0x8f);
         assert_eq!(cpu.memory[0x3a2a], 0x1d);
         assert_eq!(cpu.get_current_sp_value(), 0x3A2A);

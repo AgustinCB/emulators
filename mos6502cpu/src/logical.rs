@@ -23,7 +23,7 @@ mod tests {
     fn it_should_execute_and_not_set_anything() {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.a = 0x03;
-        cpu.execute_instruction(Mos6502Instruction {
+        cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::And,
             addressing_mode: AddressingMode::Immediate { byte: 0x01 },
         }).unwrap();
@@ -36,7 +36,7 @@ mod tests {
     fn it_should_execute_and_set_zero() {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.a = 0x03;
-        cpu.execute_instruction(Mos6502Instruction {
+        cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::And,
             addressing_mode: AddressingMode::Immediate { byte: 0x04 },
         }).unwrap();
@@ -49,7 +49,7 @@ mod tests {
     fn it_should_execute_and_set_negative() {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.a = 0x80;
-        cpu.execute_instruction(Mos6502Instruction {
+        cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::And,
             addressing_mode: AddressingMode::Immediate { byte: 0x80 },
         }).unwrap();

@@ -34,7 +34,7 @@ mod tests {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.a = 0x21;
         cpu.registers.p.carry = false;
-        cpu.execute_instruction(Mos6502Instruction {
+        cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Adc,
             addressing_mode: AddressingMode::Immediate { byte: 0x21 },
         }).unwrap();
@@ -50,7 +50,7 @@ mod tests {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.a = 0x21;
         cpu.registers.p.carry = true;
-        cpu.execute_instruction(Mos6502Instruction {
+        cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Adc,
             addressing_mode: AddressingMode::Immediate { byte: 0x21 },
         }).unwrap();
@@ -66,7 +66,7 @@ mod tests {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.a = 0x42;
         cpu.registers.p.carry = false;
-        cpu.execute_instruction(Mos6502Instruction {
+        cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Adc,
             addressing_mode: AddressingMode::Immediate { byte: 0x42 },
         }).unwrap();
@@ -82,7 +82,7 @@ mod tests {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.a = 0x42;
         cpu.registers.p.carry = true;
-        cpu.execute_instruction(Mos6502Instruction {
+        cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Adc,
             addressing_mode: AddressingMode::Immediate { byte: 0x42 },
         }).unwrap();
@@ -98,7 +98,7 @@ mod tests {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.a = 0x84;
         cpu.registers.p.carry = false;
-        cpu.execute_instruction(Mos6502Instruction {
+        cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Adc,
             addressing_mode: AddressingMode::Immediate { byte: 0x84 },
         }).unwrap();
@@ -114,7 +114,7 @@ mod tests {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.a = 0x84;
         cpu.registers.p.carry = true;
-        cpu.execute_instruction(Mos6502Instruction {
+        cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Adc,
             addressing_mode: AddressingMode::Immediate { byte: 0x84 },
         }).unwrap();
@@ -130,7 +130,7 @@ mod tests {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.a = 0x42;
         cpu.registers.p.carry = false;
-        cpu.execute_instruction(Mos6502Instruction {
+        cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Adc,
             addressing_mode: AddressingMode::Immediate { byte: 0xbe },
         }).unwrap();
@@ -146,7 +146,7 @@ mod tests {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.a = 0x41;
         cpu.registers.p.carry = true;
-        cpu.execute_instruction(Mos6502Instruction {
+        cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Adc,
             addressing_mode: AddressingMode::Immediate { byte: 0xbe },
         }).unwrap();

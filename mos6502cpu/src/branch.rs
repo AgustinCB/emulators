@@ -46,7 +46,7 @@ mod tests {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.p.carry = false;
         cpu.registers.pc = 0;
-        cpu.execute_instruction(Mos6502Instruction {
+        cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Bcc,
             addressing_mode: AddressingMode::Relative { byte: 0x42 },
         }).unwrap();
@@ -58,7 +58,7 @@ mod tests {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.p.carry = true;
         cpu.registers.pc = 0;
-        cpu.execute_instruction(Mos6502Instruction {
+        cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Bcc,
             addressing_mode: AddressingMode::Relative { byte: 0x42 },
         }).unwrap();
@@ -70,7 +70,7 @@ mod tests {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.p.carry = false;
         cpu.registers.pc = 0;
-        cpu.execute_instruction(Mos6502Instruction {
+        cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Bcs,
             addressing_mode: AddressingMode::Relative { byte: 0x42 },
         }).unwrap();
@@ -82,7 +82,7 @@ mod tests {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.p.carry = true;
         cpu.registers.pc = 0;
-        cpu.execute_instruction(Mos6502Instruction {
+        cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Bcs,
             addressing_mode: AddressingMode::Relative { byte: 0x42 },
         }).unwrap();
@@ -94,7 +94,7 @@ mod tests {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.p.zero = false;
         cpu.registers.pc = 0;
-        cpu.execute_instruction(Mos6502Instruction {
+        cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Beq,
             addressing_mode: AddressingMode::Relative { byte: 0x42 },
         }).unwrap();
@@ -106,7 +106,7 @@ mod tests {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.p.zero = true;
         cpu.registers.pc = 0;
-        cpu.execute_instruction(Mos6502Instruction {
+        cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Beq,
             addressing_mode: AddressingMode::Relative { byte: 0x42 },
         }).unwrap();

@@ -191,21 +191,21 @@ mod tests {
         let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x42).unwrap();
         cpu.memory[0x24] = 0x24;
-        cpu.execute_instruction(Intel8080Instruction::Lda { address: [0x24,0x00] }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Lda { address: [0x24,0x00] }).unwrap();
         assert_eq!(cpu.get_current_a_value().unwrap(), 0x24);
     }
 
     #[test]
     fn it_should_execute_ldax_from_b() {
         let mut cpu = get_ldax_ready_cpu(&RegisterType::B);
-        cpu.execute_instruction(Intel8080Instruction::Ldax { register: RegisterType::B }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Ldax { register: RegisterType::B }).unwrap();
         assert_eq!(cpu.get_current_a_value().unwrap(), 42);
     }
 
     #[test]
     fn it_should_execute_ldax_from_d() {
         let mut cpu = get_ldax_ready_cpu(&RegisterType::D);
-        cpu.execute_instruction(Intel8080Instruction::Ldax { register: RegisterType::D }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Ldax { register: RegisterType::D }).unwrap();
         assert_eq!(cpu.get_current_a_value().unwrap(), 42);
     }
 
@@ -214,7 +214,7 @@ mod tests {
         let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.memory[0x025b] = 0xff;
         cpu.memory[0x025c] = 0x03;
-        cpu.execute_instruction(Intel8080Instruction::Lhld { address: [0x5b, 0x02] }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Lhld { address: [0x5b, 0x02] }).unwrap();
         assert_eq!(cpu.get_current_single_register_value(&RegisterType::H).unwrap(), 0x03);
         assert_eq!(cpu.get_current_single_register_value(&RegisterType::L).unwrap(), 0xff);
     }
@@ -222,7 +222,7 @@ mod tests {
     #[test]
     fn it_should_execute_lxi_to_b() {
         let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
-        cpu.execute_instruction(Intel8080Instruction::Lxi {
+        cpu.execute_instruction(&Intel8080Instruction::Lxi {
             register: RegisterType::B,
             high_byte: 0x42,
             low_byte: 0x24,
@@ -234,7 +234,7 @@ mod tests {
     #[test]
     fn it_should_execute_lxi_to_d() {
         let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
-        cpu.execute_instruction(Intel8080Instruction::Lxi {
+        cpu.execute_instruction(&Intel8080Instruction::Lxi {
             register: RegisterType::D,
             high_byte: 0x42,
             low_byte: 0x24,
@@ -246,7 +246,7 @@ mod tests {
     #[test]
     fn it_should_execute_lxi_to_h() {
         let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
-        cpu.execute_instruction(Intel8080Instruction::Lxi {
+        cpu.execute_instruction(&Intel8080Instruction::Lxi {
             register: RegisterType::H,
             high_byte: 0x42,
             low_byte: 0x24,
@@ -258,7 +258,7 @@ mod tests {
     #[test]
     fn it_should_execute_lxi_to_sp() {
         let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
-        cpu.execute_instruction(Intel8080Instruction::Lxi {
+        cpu.execute_instruction(&Intel8080Instruction::Lxi {
             register: RegisterType::Sp,
             high_byte: 0x42,
             low_byte: 0x24,
@@ -270,7 +270,7 @@ mod tests {
     fn it_should_execute_mov_from_register_to_register() {
         let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_single_register(0x42, &RegisterType::B).unwrap();
-        cpu.execute_instruction(Intel8080Instruction::Mov{
+        cpu.execute_instruction(&Intel8080Instruction::Mov{
             destiny: Location::Register { register: RegisterType::C },
             source: Location::Register { register: RegisterType::B },
         }).unwrap();
@@ -283,7 +283,7 @@ mod tests {
         cpu.memory[0x42] = 0x24;
         cpu.save_to_single_register(0x00, &RegisterType::H).unwrap();
         cpu.save_to_single_register(0x42, &RegisterType::L).unwrap();
-        cpu.execute_instruction(Intel8080Instruction::Mov{
+        cpu.execute_instruction(&Intel8080Instruction::Mov{
             destiny: Location::Register { register: RegisterType::C },
             source: Location::Memory,
         }).unwrap();
@@ -296,7 +296,7 @@ mod tests {
         cpu.save_to_single_register(0x24, &RegisterType::C).unwrap();
         cpu.save_to_single_register(0x00, &RegisterType::H).unwrap();
         cpu.save_to_single_register(0x42, &RegisterType::L).unwrap();
-        cpu.execute_instruction(Intel8080Instruction::Mov{
+        cpu.execute_instruction(&Intel8080Instruction::Mov{
             destiny: Location::Memory,
             source: Location::Register { register: RegisterType::C },
         }).unwrap();
@@ -308,7 +308,7 @@ mod tests {
         let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_single_register(0x00, &RegisterType::H).unwrap();
         cpu.save_to_single_register(0x42, &RegisterType::L).unwrap();
-        cpu.execute_instruction(Intel8080Instruction::Mvi {
+        cpu.execute_instruction(&Intel8080Instruction::Mvi {
             source: Location::Memory,
             byte: 0x24,
         }).unwrap();
@@ -320,7 +320,7 @@ mod tests {
         let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_single_register(0xae, &RegisterType::H).unwrap();
         cpu.save_to_single_register(0x29, &RegisterType::L).unwrap();
-        cpu.execute_instruction(Intel8080Instruction::Shld { address: [0x0a, 0x01] }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Shld { address: [0x0a, 0x01] }).unwrap();
         assert_eq!(cpu.memory[0x010a], 0x29);
         assert_eq!(cpu.memory[0x010b], 0xae);
     }
@@ -330,7 +330,7 @@ mod tests {
         let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_single_register(0x00, &RegisterType::H).unwrap();
         cpu.save_to_single_register(0x42, &RegisterType::L).unwrap();
-        cpu.execute_instruction(Intel8080Instruction::Sphl).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Sphl).unwrap();
         assert_eq!(cpu.get_current_sp_value(), 0x42);
         assert_eq!(cpu.get_current_hl_value(), 0x42);
     }
@@ -339,21 +339,21 @@ mod tests {
     fn it_should_execute_sta() {
         let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x42).unwrap();
-        cpu.execute_instruction(Intel8080Instruction::Sta { address: [0x24, 0x00] }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Sta { address: [0x24, 0x00] }).unwrap();
         assert_eq!(cpu.memory[0x24], 0x42);
     }
 
     #[test]
     fn it_should_execute_stax_for_b() {
         let mut cpu = get_stax_ready_cpu(&RegisterType::B);
-        cpu.execute_instruction(Intel8080Instruction::Stax { register: RegisterType::B }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Stax { register: RegisterType::B }).unwrap();
         assert_eq!(cpu.memory[0x3f16], 0x42);
     }
 
     #[test]
     fn it_should_execute_stax_for_d() {
         let mut cpu = get_stax_ready_cpu(&RegisterType::D);
-        cpu.execute_instruction(Intel8080Instruction::Stax { register: RegisterType::D }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Stax { register: RegisterType::D }).unwrap();
         assert_eq!(cpu.memory[0x3f16], 0x42);
     }
 
@@ -364,7 +364,7 @@ mod tests {
         cpu.save_to_single_register(0x24, &RegisterType::E).unwrap();
         cpu.save_to_single_register(0x24, &RegisterType::H).unwrap();
         cpu.save_to_single_register(0x42, &RegisterType::L).unwrap();
-        cpu.execute_instruction(Intel8080Instruction::Xchg).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Xchg).unwrap();
         assert_eq!(cpu.get_current_de_value(), 0x2442);
         assert_eq!(cpu.get_current_hl_value(), 0x4224);
     }
@@ -375,7 +375,7 @@ mod tests {
         cpu.save_to_sp(0);
         cpu.memory[0] = 0x42;
         cpu.memory[1] = 0x24;
-        cpu.execute_instruction(Intel8080Instruction::Xthl).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Xthl).unwrap();
         assert_eq!(cpu.get_current_hl_value(), 0x2442);
     }
 }

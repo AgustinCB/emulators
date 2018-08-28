@@ -41,7 +41,7 @@ mod tests {
         let input_device = TestInputDevice {};
         let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.add_input_device(0, Box::new(input_device));
-        cpu.execute_instruction(Intel8080Instruction::In { byte: 0 }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::In { byte: 0 }).unwrap();
         assert_eq!(cpu.get_current_a_value().unwrap(), 42);
     }
 
@@ -57,6 +57,6 @@ mod tests {
         let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.add_output_device(0, Box::new(output_device));
         cpu.save_to_a(42).unwrap();
-        cpu.execute_instruction(Intel8080Instruction::Out { byte: 0 }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Out { byte: 0 }).unwrap();
     }
 }
