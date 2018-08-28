@@ -71,7 +71,7 @@ impl RegisterSet {
 }
 
 pub struct Mos6502Cpu {
-    memory: [u8; AVAILABLE_MEMORY],
+    pub(crate) memory: [u8; AVAILABLE_MEMORY],
     pub(crate) registers: RegisterSet,
     pub(crate) page_crossed: bool,
 }
@@ -248,6 +248,9 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
             Mos6502InstructionCode::Bcc => self.execute_bcc(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Bcs => self.execute_bcs(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Beq => self.execute_beq(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Bit => self.execute_bit(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Bmi => self.execute_bmi(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Bne => self.execute_bne(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Nop => self.execute_nop(),
             _ => self.execute_nop(),
         };
@@ -303,6 +306,8 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
             Mos6502InstructionCode::Bcc => bicondition!(!self.registers.p.carry),
             Mos6502InstructionCode::Bcs => bicondition!(self.registers.p.carry),
             Mos6502InstructionCode::Beq => bicondition!(self.registers.p.zero),
+            Mos6502InstructionCode::Bmi => bicondition!(self.registers.p.negative),
+            Mos6502InstructionCode::Bne => bicondition!(!self.registers.p.zero),
             _ => panic!("This instruction doesn't have biconditional cycles."),
         }
     }

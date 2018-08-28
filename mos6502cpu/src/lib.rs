@@ -3,6 +3,7 @@
 
 mod alu;
 mod branch;
+mod control;
 mod instruction;
 mod logical;
 mod math;
