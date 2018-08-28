@@ -174,13 +174,17 @@ impl Mos6502Cpu {
                 Ok(())
             },
             AddressingMode::AbsoluteIndexedX { high_byte, low_byte } => {
+                let x = self.registers.x;
                 let address = two_bytes_to_word(*high_byte, *low_byte) as usize;
-                self.memory[address + self.registers.x as usize] = value;
+                self.memory[address + x as usize] = value;
+                self.update_page_crossed_status(address as u16, address as u16 + x as u16);
                 Ok(())
             },
             AddressingMode::AbsoluteIndexedY { high_byte, low_byte } => {
+                let y = self.registers.y;
                 let address = two_bytes_to_word(*high_byte, *low_byte) as usize;
-                self.memory[address + self.registers.y as usize] = value;
+                self.memory[address + y as usize] = value;
+                self.update_page_crossed_status(address as u16, address as u16 + y as u16);
                 Ok(())
             },
             AddressingMode::IndexedIndirect { byte } => {
@@ -191,10 +195,12 @@ impl Mos6502Cpu {
                 Ok(())
             },
             AddressingMode::IndirectIndexed { byte } => {
+                let y = self.registers.y;
                 let (low_byte, high_byte) =
                     (self.memory[*byte as usize], self.memory[*byte as usize + 1]);
-                let direct_address =
-                    two_bytes_to_word(high_byte, low_byte) + self.registers.y as u16;
+                let indirect_address = two_bytes_to_word(high_byte, low_byte);
+                let direct_address = indirect_address + y as u16;
+                self.update_page_crossed_status(indirect_address, direct_address);
                 self.memory[direct_address as usize] = value;
                 Ok(())
             },
@@ -202,12 +208,19 @@ impl Mos6502Cpu {
         }
     }
 
+    #[inline]
     pub(crate) fn update_zero_flag(&mut self, answer: u8) {
         self.registers.p.zero = answer == 0;
     }
 
+    #[inline]
     pub(crate) fn update_negative_flag(&mut self, answer: u8) {
         self.registers.p.negative = answer & 0x80 > 0;
+    }
+
+    #[inline]
+    pub(crate) fn update_page_crossed_status(&mut self, original: u16, new: u16) {
+        self.page_crossed = (original & 0xff00) == (new & 0xff00);
     }
 }
 

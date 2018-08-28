@@ -41,11 +41,6 @@ impl Mos6502Cpu {
         self.update_page_crossed_status(pc, new_pc);
         self.registers.pc = new_pc;
     }
-
-    #[inline]
-    fn update_page_crossed_status(&mut self, original: u16, new: u16) {
-        self.page_crossed = (original & 0xff00) == (new & 0xff00);
-    }
 }
 
 #[cfg(test)]
