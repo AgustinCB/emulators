@@ -1,4 +1,4 @@
-use cpu::Cpu;
+use cpu::{Cpu, Cycles, Instruction};
 use failure::{Error, Fail};
 use std::cmp::min;
 use {CpuResult, Mos6502Instruction};
@@ -73,6 +73,7 @@ impl RegisterSet {
 pub struct Mos6502Cpu {
     memory: [u8; AVAILABLE_MEMORY],
     pub(crate) registers: RegisterSet,
+    pub(crate) page_crossed: bool,
 }
 
 impl Mos6502Cpu {
@@ -80,6 +81,7 @@ impl Mos6502Cpu {
         Mos6502Cpu {
             memory,
             registers: RegisterSet::new(),
+            page_crossed: false,
         }
     }
 
@@ -210,6 +212,18 @@ impl Mos6502Cpu {
 }
 
 impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
+    fn get_cycles_for_instruction(&mut self, instruction: &Mos6502Instruction) -> Result<u8, Error> {
+        let cycles = match instruction.get_cycles()? {
+            Cycles::Single(cycles) => cycles,
+            Cycles::OneCondition { not_met, met } =>
+                self.get_cycles_from_one_condition(instruction, not_met, met),
+            Cycles::TwoConditions { not_met, first_met, second_met } =>
+                self.get_cycles_from_two_conditions(instruction, not_met, first_met, second_met),
+        };
+        self.page_crossed = false;
+        Ok(cycles)
+    }
+
     fn execute_instruction(&mut self, instruction: &Mos6502Instruction) -> Result<(), Error> {
         if !self.can_run(&instruction) {
             return Ok(());

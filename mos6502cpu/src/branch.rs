@@ -5,7 +5,7 @@ impl Mos6502Cpu {
     pub(crate) fn execute_bcc(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         let offset = self.get_branch_offset(&addressing_mode)?;
         if !self.registers.p.carry {
-            self.registers.pc += offset as u16;
+            self.update_pc_from_offset(offset);
         }
         Ok(())
     }
@@ -13,7 +13,7 @@ impl Mos6502Cpu {
     pub(crate) fn execute_bcs(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         let offset = self.get_branch_offset(&addressing_mode)?;
         if self.registers.p.carry {
-            self.registers.pc += offset as u16;
+            self.update_pc_from_offset(offset);
         }
         Ok(())
     }
@@ -21,7 +21,7 @@ impl Mos6502Cpu {
     pub(crate) fn execute_beq(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         let offset = self.get_branch_offset(&addressing_mode)?;
         if self.registers.p.zero {
-            self.registers.pc += offset as u16;
+            self.update_pc_from_offset(offset);
         }
         Ok(())
     }
@@ -32,6 +32,19 @@ impl Mos6502Cpu {
             AddressingMode::Relative { byte } => Ok(*byte),
             _ => Err(CpuError::InvalidAddressingMode),
         }
+    }
+
+    #[inline]
+    fn update_pc_from_offset(&mut self, offset: i8) {
+        let pc = self.registers.pc;
+        let new_pc = pc + offset as u16;
+        self.update_page_crossed_status(pc, new_pc);
+        self.registers.pc = new_pc;
+    }
+
+    #[inline]
+    fn update_page_crossed_status(&mut self, original: u16, new: u16) {
+        self.page_crossed = (original & 0xff00) == (new & 0xff00);
     }
 }
 

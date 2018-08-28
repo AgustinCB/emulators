@@ -71,7 +71,7 @@ pub trait Cpu<W, I, F>
         Ok(cycles)
     }
 
-    fn get_cycles_for_instruction(&self, instruction: &I) -> Result<u8, Error> {
+    fn get_cycles_for_instruction(&mut self, instruction: &I) -> Result<u8, Error> {
         let cycles = instruction.get_cycles()?;
         Ok(match cycles {
             Cycles::Single(cycles) => cycles,
