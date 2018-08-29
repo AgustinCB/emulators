@@ -5,10 +5,11 @@ mod alu;
 mod bit_utils;
 mod branch;
 mod control;
+mod data_shifting;
+mod data_movement;
 mod instruction;
 mod logical;
 mod math;
-mod data_movement;
 mod mos6502cpu;
 
 pub type CpuResult = Result<(), CpuError>;

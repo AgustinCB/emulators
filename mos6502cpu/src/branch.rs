@@ -1,4 +1,5 @@
 use {Mos6502Cpu, CpuError, CpuResult};
+use bit_utils::{two_bytes_to_word, word_to_two_bytes};
 use instruction::AddressingMode;
 
 impl Mos6502Cpu {
@@ -69,6 +70,19 @@ impl Mos6502Cpu {
         let address = self.get_address_from_addressing_mode(addressing_mode)?;
         self.registers.pc = address;
         Ok(())
+    }
+
+    pub(crate) fn execute_jsr(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        if let AddressingMode::Absolute { high_byte, low_byte } = addressing_mode {
+            let address = two_bytes_to_word(*high_byte, *low_byte);
+            let (low_byte, high_byte) = word_to_two_bytes(self.registers.pc);
+            self.push(high_byte);
+            self.push(low_byte);
+            self.registers.pc = address;
+            Ok(())
+        } else {
+            Err(CpuError::InvalidAddressingMode)
+        }
     }
 
     #[inline]
@@ -298,5 +312,22 @@ mod tests {
             },
         }).unwrap();
         assert_eq!(cpu.registers.pc, 0x4224);
+    }
+
+    #[test]
+    fn it_should_jump_and_push_pc_to_stack() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.pc = 0x0042;
+        cpu.registers.s = 0xff;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Jsr,
+            addressing_mode: AddressingMode::Absolute {
+                high_byte: 0x42,
+                low_byte: 0x24,
+            },
+        }).unwrap();
+        assert_eq!(cpu.registers.pc, 0x4224);
+        assert_eq!(cpu.memory[0xff], 0x00);
+        assert_eq!(cpu.memory[0xfe], 0x42);
     }
 }

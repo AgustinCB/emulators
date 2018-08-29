@@ -289,6 +289,10 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
             Mos6502InstructionCode::Inx => self.execute_inx(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Iny => self.execute_iny(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Jmp => self.execute_jmp(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Jsr => self.execute_jsr(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Lda => self.execute_lda(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Ldx => self.execute_ldx(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Ldy => self.execute_ldy(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Nop => self.execute_nop(),
             _ => self.execute_nop(),
         };
@@ -325,6 +329,8 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
             Mos6502InstructionCode::Adc => page_crossed_condition!(),
             Mos6502InstructionCode::And => page_crossed_condition!(),
             Mos6502InstructionCode::Cmp => page_crossed_condition!(),
+            Mos6502InstructionCode::Lda => page_crossed_condition!(),
+            Mos6502InstructionCode::Ldx => page_crossed_condition!(),
             _ => panic!("This instruction doesn't have conditional cycles."),
         }
     }
