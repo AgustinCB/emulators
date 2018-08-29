@@ -11,6 +11,7 @@ mod instruction;
 mod logical;
 mod math;
 mod mos6502cpu;
+mod stack;
 
 pub type CpuResult = Result<(), CpuError>;
 

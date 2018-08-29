@@ -242,6 +242,13 @@ impl Mos6502Cpu {
         self.memory[self.registers.s as usize] = value;
         self.registers.s -= 1;
     }
+
+    #[inline]
+    pub(crate) fn pull(&mut self) -> u8 {
+        let value = self.memory[self.registers.s as usize + 1];
+        self.registers.s += 1;
+        value
+    }
 }
 
 impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
@@ -297,6 +304,9 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
             Mos6502InstructionCode::Lsr => self.execute_lsr(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Nop => self.execute_nop(),
             Mos6502InstructionCode::Ora => self.execute_ora(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Pha => self.execute_pha(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Php => self.execute_php(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Pla => self.execute_pla(&instruction.addressing_mode)?,
             _ => self.execute_nop(),
         };
         Ok(())
