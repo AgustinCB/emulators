@@ -43,7 +43,20 @@ impl ProcessorStatus {
             carry: false,
         }
     }
-    pub fn to_byte(&self) -> u8 {
+
+    pub(crate) fn from_byte(byte: u8) -> ProcessorStatus {
+        ProcessorStatus {
+            negative: (byte & 0x80) > 0,
+            overflow: (byte & 0x40) > 0,
+            break_flag: (byte & 0x10) > 0,
+            decimal: (byte & 0x08) > 0,
+            interrupt: (byte & 0x04) > 0,
+            zero: (byte & 0x02) > 0,
+            carry: (byte & 0x01) > 0,
+        }
+    }
+
+    pub(crate) fn to_byte(&self) -> u8 {
         ((self.negative as u8) << 7) |
             ((self.overflow as u8) << 6) |
             0x20 |
@@ -307,6 +320,7 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
             Mos6502InstructionCode::Pha => self.execute_pha(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Php => self.execute_php(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Pla => self.execute_pla(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Plp => self.execute_plp(&instruction.addressing_mode)?,
             _ => self.execute_nop(),
         };
         Ok(())

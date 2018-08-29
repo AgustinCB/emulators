@@ -1,5 +1,6 @@
 use {Mos6502Cpu, CpuError, CpuResult};
 use instruction::AddressingMode;
+use mos6502cpu::ProcessorStatus;
 
 impl Mos6502Cpu {
     pub(crate) fn execute_pha(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
@@ -28,6 +29,16 @@ impl Mos6502Cpu {
             self.registers.a = new_a;
             self.update_negative_flag(new_a);
             self.update_zero_flag(new_a);
+            Ok(())
+        } else {
+            Err(CpuError::InvalidAddressingMode)
+        }
+    }
+
+    pub(crate) fn execute_plp(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        if let AddressingMode::Implicit = addressing_mode {
+            let new_status = self.pull();
+            self.registers.p = ProcessorStatus::from_byte(new_status);
             Ok(())
         } else {
             Err(CpuError::InvalidAddressingMode)
@@ -114,5 +125,26 @@ mod tests {
         assert_eq!(cpu.registers.s, 0xff);
         assert!(!cpu.registers.p.zero);
         assert!(cpu.registers.p.negative);
+    }
+
+    #[test]
+    fn it_should_pull_status() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.s = 0xfe;
+        cpu.registers.p.carry = true;
+        cpu.memory[0xff] = cpu.registers.p.to_byte();
+        cpu.registers.p.carry = false;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Plp,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert_eq!(cpu.registers.s, 0xff);
+        assert!(cpu.registers.p.carry);
+        assert!(!cpu.registers.p.zero);
+        assert!(!cpu.registers.p.interrupt);
+        assert!(!cpu.registers.p.negative);
+        assert!(!cpu.registers.p.decimal);
+        assert!(!cpu.registers.p.overflow);
+        assert!(!cpu.registers.p.break_flag);
     }
 }
