@@ -2,6 +2,7 @@
 #[macro_use] extern crate failure;
 
 mod alu;
+mod bit_utils;
 mod branch;
 mod control;
 mod instruction;

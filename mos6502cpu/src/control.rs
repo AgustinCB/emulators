@@ -1,11 +1,7 @@
 use {Mos6502Cpu, CpuError, CpuResult};
+use bit_utils::{two_bytes_to_word, word_to_two_bytes};
 use instruction::AddressingMode;
-use mos6502cpu::{INTERRUPT_HANDLERS_START, two_bytes_to_word};
-
-#[inline]
-fn word_to_two_bytes(word: u16) -> (u8, u8) {
-    (word as u8, ((word & 0xff00) >> 8) as u8)
-}
+use mos6502cpu::INTERRUPT_HANDLERS_START;
 
 impl Mos6502Cpu {
     pub(crate) fn execute_bit(&mut self, addressing_mode: &AddressingMode) -> CpuResult {

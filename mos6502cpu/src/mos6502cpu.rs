@@ -1,3 +1,4 @@
+use bit_utils::two_bytes_to_word;
 use cpu::{Cpu, Cycles, Instruction};
 use failure::{Error, Fail};
 use std::cmp::min;
@@ -11,10 +12,6 @@ const STACK_PAGE_START: usize = 0x100;
 const STACK_PAGE_END: usize = 0x200;
 pub(crate) const INTERRUPT_HANDLERS_START: usize = 0xFFFA;
 const INTERRUPT_HANDLERS_END: usize = 0x10000;
-
-pub(crate) fn two_bytes_to_word(high_byte: u8, low_byte: u8) -> u16 {
-    (high_byte as u16) << 8 | (low_byte as u16)
-}
 
 #[derive(Debug, Fail)]
 pub enum CpuError {
@@ -219,16 +216,6 @@ impl Mos6502Cpu {
     }
 
     #[inline]
-    pub(crate) fn update_zero_flag(&mut self, answer: u8) {
-        self.registers.p.zero = answer == 0;
-    }
-
-    #[inline]
-    pub(crate) fn update_negative_flag(&mut self, answer: u8) {
-        self.registers.p.negative = answer & 0x80 > 0;
-    }
-
-    #[inline]
     pub(crate) fn update_page_crossed_status(&mut self, original: u16, new: u16) {
         self.page_crossed = (original & 0xff00) == (new & 0xff00);
     }
@@ -275,6 +262,12 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
             Mos6502InstructionCode::Cld => self.execute_cld(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Cli => self.execute_cli(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Clv => self.execute_clv(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Cmp => self.execute_cmp(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Cpx => self.execute_cpx(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Cpy => self.execute_cpy(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Dec => self.execute_dec(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Dex => self.execute_dex(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Dey => self.execute_dey(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Nop => self.execute_nop(),
             _ => self.execute_nop(),
         };
@@ -310,6 +303,7 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
         match instruction.instruction {
             Mos6502InstructionCode::Adc => page_crossed_condition!(),
             Mos6502InstructionCode::And => page_crossed_condition!(),
+            Mos6502InstructionCode::Cmp => page_crossed_condition!(),
             _ => panic!("This instruction doesn't have conditional cycles."),
         }
     }

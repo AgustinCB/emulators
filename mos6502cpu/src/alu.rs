@@ -16,4 +16,19 @@ impl Mos6502Cpu {
             _ => Err(CpuError::InvalidAddressingMode)
         }
     }
+
+    #[inline]
+    pub(crate) fn update_zero_flag(&mut self, answer: u8) {
+        self.registers.p.zero = answer == 0;
+    }
+
+    #[inline]
+    pub(crate) fn update_negative_flag(&mut self, answer: u8) {
+        self.registers.p.negative = answer & 0x80 > 0;
+    }
+
+    #[inline]
+    pub(crate) fn update_carry_flag(&mut self, answer: u16) {
+        self.registers.p.carry = answer > 0xff;
+    }
 }
