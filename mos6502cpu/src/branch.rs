@@ -65,6 +65,12 @@ impl Mos6502Cpu {
         Ok(())
     }
 
+    pub(crate) fn execute_jmp(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        let address = self.get_address_from_addressing_mode(addressing_mode)?;
+        self.registers.pc = address;
+        Ok(())
+    }
+
     #[inline]
     fn get_branch_offset(&self, addressing_mode: &AddressingMode) -> Result<i8, CpuError> {
         match addressing_mode {
@@ -278,5 +284,19 @@ mod tests {
             addressing_mode: AddressingMode::Relative { byte: 0x42 },
         }).unwrap();
         assert_eq!(cpu.registers.pc, 0x42);
+    }
+
+    #[test]
+    fn it_should_jump() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.pc = 0;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Jmp,
+            addressing_mode: AddressingMode::Absolute {
+                high_byte: 0x42,
+                low_byte: 0x24,
+            },
+        }).unwrap();
+        assert_eq!(cpu.registers.pc, 0x4224);
     }
 }

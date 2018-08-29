@@ -114,6 +114,22 @@ impl Mos6502Cpu {
         }
     }
 
+    pub(crate) fn get_address_from_addressing_mode(
+        &self, addressing_mode: &AddressingMode) -> Result<u16, CpuError> {
+        match addressing_mode {
+            AddressingMode::Indirect { high_byte, low_byte } => {
+                let indirect_address = two_bytes_to_word(*high_byte, *low_byte);
+                let (low_byte, high_byte) =
+                    (self.memory[indirect_address as usize], self.memory[indirect_address as usize+1]);
+                Ok(two_bytes_to_word(high_byte, low_byte))
+            },
+            AddressingMode::Absolute { high_byte, low_byte } => {
+                Ok(two_bytes_to_word(*high_byte, *low_byte))
+            },
+            _ => Err(CpuError::InvalidAddressingMode),
+        }
+    }
+
     pub(crate) fn get_value_from_addressing_mode(&self, addressing_mode: &AddressingMode) -> u8 {
         match addressing_mode {
             AddressingMode::Accumulator => self.registers.a,
@@ -154,7 +170,7 @@ impl Mos6502Cpu {
                     two_bytes_to_word(high_byte, low_byte) + self.registers.y as u16;
                 self.memory[direct_address as usize]
             },
-            _ => panic!("Not implemented yet"),
+            _ => panic!("Can't have value"),
         }
     }
 
@@ -272,6 +288,7 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
             Mos6502InstructionCode::Inc => self.execute_inc(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Inx => self.execute_inx(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Iny => self.execute_iny(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Jmp => self.execute_jmp(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Nop => self.execute_nop(),
             _ => self.execute_nop(),
         };
@@ -575,7 +592,7 @@ mod tests {
             high_byte: 0x24,
             low_byte: 0x42,
         }, 0x42).unwrap();
-        cpu.memory[0x2443] = 0x42;
+        assert_eq!(cpu.memory[0x2443], 0x42);
     }
 
     #[test]
@@ -587,7 +604,7 @@ mod tests {
         cpu.set_value_to_addressing_mode(&AddressingMode::IndexedIndirect {
             byte: 0x20,
         }, 0x42).unwrap();
-        cpu.memory[0x2074] = 0x42;
+        assert_eq!(cpu.memory[0x2074], 0x42);
     }
 
     #[test]
@@ -599,6 +616,28 @@ mod tests {
         cpu.set_value_to_addressing_mode(&AddressingMode::IndexedIndirect {
             byte: 0x86,
         }, 0x42).unwrap();
-        cpu.memory[0x4028] = 0x42;
+        assert_eq!(cpu.memory[0x4028], 0x42);
+    }
+
+    #[test]
+    fn it_should_get_address_from_addressing_mode_for_absolute() {
+        let cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        let address = cpu.get_address_from_addressing_mode(&AddressingMode::Absolute {
+            high_byte: 0x42,
+            low_byte: 0x24,
+        }).unwrap();
+        assert_eq!(address, 0x4224);
+    }
+
+    #[test]
+    fn it_should_get_address_from_addressing_mode_for_indirect() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.memory[0x0120] = 0xFC;
+        cpu.memory[0x0121] = 0xBA;
+        let address = cpu.get_address_from_addressing_mode(&AddressingMode::Indirect {
+            high_byte: 0x01,
+            low_byte: 0x20,
+        }).unwrap();
+        assert_eq!(address, 0xBAFC);
     }
 }
