@@ -268,6 +268,10 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
             Mos6502InstructionCode::Dec => self.execute_dec(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Dex => self.execute_dex(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Dey => self.execute_dey(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Eor => self.execute_eor(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Inc => self.execute_inc(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Inx => self.execute_inx(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Iny => self.execute_iny(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Nop => self.execute_nop(),
             _ => self.execute_nop(),
         };
