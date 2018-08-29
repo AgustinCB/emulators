@@ -76,6 +76,17 @@ impl Mos6502Cpu {
         }
     }
 
+    pub(crate) fn execute_lsr(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        self.check_data_shifting_address(addressing_mode)?;
+        let value = self.get_value_from_addressing_mode(addressing_mode);
+        let answer = value >> 1;
+        self.registers.p.zero = answer == 0;
+        self.registers.p.carry = value & 0x01 > 0;
+        self.registers.p.negative = false;
+        self.set_value_to_addressing_mode(addressing_mode, answer)?;
+        Ok(())
+    }
+
     #[inline]
     fn increment(&mut self, value: u8) -> u8 {
         let answer = (value as u16 + 1) as u8;
@@ -397,5 +408,47 @@ mod tests {
         assert_eq!(cpu.registers.y, 0xff);
         assert!(cpu.registers.p.negative);
         assert!(!cpu.registers.p.zero);
+    }
+
+    #[test]
+    fn it_should_shift_right_without_setting_anything() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.a = 0x02;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Lsr,
+            addressing_mode: AddressingMode::Accumulator,
+        }).unwrap();
+        assert_eq!(cpu.registers.a, 0x01);
+        assert!(!cpu.registers.p.carry);
+        assert!(!cpu.registers.p.negative);
+        assert!(!cpu.registers.p.zero);
+    }
+
+    #[test]
+    fn it_should_shift_right_setting_carry() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.a = 0x03;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Lsr,
+            addressing_mode: AddressingMode::Accumulator,
+        }).unwrap();
+        assert_eq!(cpu.registers.a, 0x01);
+        assert!(cpu.registers.p.carry);
+        assert!(!cpu.registers.p.negative);
+        assert!(!cpu.registers.p.zero);
+    }
+
+    #[test]
+    fn it_should_shift_right_setting_zero() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.a = 0x00;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Lsr,
+            addressing_mode: AddressingMode::Accumulator,
+        }).unwrap();
+        assert_eq!(cpu.registers.a, 0x00);
+        assert!(!cpu.registers.p.carry);
+        assert!(!cpu.registers.p.negative);
+        assert!(cpu.registers.p.zero);
     }
 }

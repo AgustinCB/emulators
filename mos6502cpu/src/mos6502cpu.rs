@@ -130,6 +130,7 @@ impl Mos6502Cpu {
         }
     }
 
+    // TODO: Make it return Result<u8, CpuError> instead
     pub(crate) fn get_value_from_addressing_mode(&self, addressing_mode: &AddressingMode) -> u8 {
         match addressing_mode {
             AddressingMode::Accumulator => self.registers.a,
@@ -293,7 +294,9 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
             Mos6502InstructionCode::Lda => self.execute_lda(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Ldx => self.execute_ldx(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Ldy => self.execute_ldy(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Lsr => self.execute_lsr(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Nop => self.execute_nop(),
+            Mos6502InstructionCode::Ora => self.execute_ora(&instruction.addressing_mode)?,
             _ => self.execute_nop(),
         };
         Ok(())
@@ -331,6 +334,8 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
             Mos6502InstructionCode::Cmp => page_crossed_condition!(),
             Mos6502InstructionCode::Lda => page_crossed_condition!(),
             Mos6502InstructionCode::Ldx => page_crossed_condition!(),
+            Mos6502InstructionCode::Ldy => page_crossed_condition!(),
+            Mos6502InstructionCode::Ora => page_crossed_condition!(),
             _ => panic!("This instruction doesn't have conditional cycles."),
         }
     }

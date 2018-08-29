@@ -21,6 +21,16 @@ impl Mos6502Cpu {
         self.update_negative_flag(answer);
         Ok(())
     }
+
+    pub(crate) fn execute_ora(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        self.check_alu_address(&addressing_mode)?;
+        let value = self.get_value_from_addressing_mode(addressing_mode);
+        let answer = self.registers.a | value;
+        self.registers.a = answer;
+        self.update_zero_flag(answer);
+        self.update_negative_flag(answer);
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -101,6 +111,45 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Eor,
             addressing_mode: AddressingMode::Immediate { byte: 0x80 },
+        }).unwrap();
+        assert_eq!(cpu.registers.a, 0x80);
+        assert!(!cpu.registers.p.zero);
+        assert!(cpu.registers.p.negative);
+    }
+
+    #[test]
+    fn it_should_execute_inclusive_or_and_set_nothing() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.a = 0x0;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Ora,
+            addressing_mode: AddressingMode::Immediate { byte: 0x42 },
+        }).unwrap();
+        assert_eq!(cpu.registers.a, 0x42);
+        assert!(!cpu.registers.p.zero);
+        assert!(!cpu.registers.p.negative);
+    }
+
+    #[test]
+    fn it_should_execute_inclusive_or_and_set_zero() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.a = 0x0;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Ora,
+            addressing_mode: AddressingMode::Immediate { byte: 0x0 },
+        }).unwrap();
+        assert_eq!(cpu.registers.a, 0x0);
+        assert!(cpu.registers.p.zero);
+        assert!(!cpu.registers.p.negative);
+    }
+
+    #[test]
+    fn it_should_execute_inclusive_or_and_set_negative() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.a = 0x80;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Ora,
+            addressing_mode: AddressingMode::Immediate { byte: 0x0 },
         }).unwrap();
         assert_eq!(cpu.registers.a, 0x80);
         assert!(!cpu.registers.p.zero);
