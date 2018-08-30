@@ -26,7 +26,7 @@ pub(crate) struct ProcessorStatus {
     pub(crate) overflow: bool,
     pub(crate) break_flag: bool,
     pub(crate) decimal: bool,
-    pub(crate) interrupt: bool,
+    pub(crate) interrupt_disable: bool,
     pub(crate) zero: bool,
     pub(crate) carry: bool,
 }
@@ -38,7 +38,7 @@ impl ProcessorStatus {
             overflow: false,
             break_flag: false,
             decimal: false,
-            interrupt: false,
+            interrupt_disable: false,
             zero: false,
             carry: false,
         }
@@ -50,7 +50,7 @@ impl ProcessorStatus {
             overflow: (byte & 0x40) > 0,
             break_flag: (byte & 0x10) > 0,
             decimal: (byte & 0x08) > 0,
-            interrupt: (byte & 0x04) > 0,
+            interrupt_disable: (byte & 0x04) > 0,
             zero: (byte & 0x02) > 0,
             carry: (byte & 0x01) > 0,
         }
@@ -62,7 +62,7 @@ impl ProcessorStatus {
             0x20 |
             ((self.break_flag as u8) << 4) |
             ((self.decimal as u8) << 3) |
-            ((self.interrupt as u8) << 2) |
+            ((self.interrupt_disable as u8) << 2) |
             ((self.zero as u8) << 1) |
             (self.carry as u8)
     }

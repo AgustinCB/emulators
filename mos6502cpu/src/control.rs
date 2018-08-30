@@ -52,7 +52,7 @@ impl Mos6502Cpu {
 
     pub(crate) fn execute_cli(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         if let AddressingMode::Implicit = addressing_mode {
-            self.registers.p.interrupt = false;
+            self.registers.p.interrupt_disable = false;
             Ok(())
         } else {
             Err(CpuError::InvalidAddressingMode)
@@ -88,7 +88,7 @@ impl Mos6502Cpu {
 
     pub(crate) fn execute_sei(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         if let AddressingMode::Implicit = addressing_mode {
-            self.registers.p.interrupt = true;
+            self.registers.p.interrupt_disable = true;
             Ok(())
         } else {
             Err(CpuError::InvalidAddressingMode)
@@ -207,12 +207,12 @@ mod tests {
     #[test]
     fn it_should_set_interrupt_to_zero_on_cli() {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
-        cpu.registers.p.interrupt = true;
+        cpu.registers.p.interrupt_disable = true;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Cli,
             addressing_mode: AddressingMode::Implicit,
         }).unwrap();
-        assert!(!cpu.registers.p.interrupt);
+        assert!(!cpu.registers.p.interrupt_disable);
     }
 
     #[test]
@@ -251,11 +251,11 @@ mod tests {
     #[test]
     fn it_should_set_interrupt_on_sei() {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
-        cpu.registers.p.interrupt = false;
+        cpu.registers.p.interrupt_disable = false;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Sei,
             addressing_mode: AddressingMode::Implicit,
         }).unwrap();
-        assert!(cpu.registers.p.interrupt);
+        assert!(cpu.registers.p.interrupt_disable);
     }
 }

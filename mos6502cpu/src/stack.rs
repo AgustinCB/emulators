@@ -141,7 +141,7 @@ mod tests {
         assert_eq!(cpu.registers.s, 0xff);
         assert!(cpu.registers.p.carry);
         assert!(!cpu.registers.p.zero);
-        assert!(!cpu.registers.p.interrupt);
+        assert!(!cpu.registers.p.interrupt_disable);
         assert!(!cpu.registers.p.negative);
         assert!(!cpu.registers.p.decimal);
         assert!(!cpu.registers.p.overflow);
