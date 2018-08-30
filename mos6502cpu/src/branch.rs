@@ -68,6 +68,7 @@ impl Mos6502Cpu {
     }
 
     pub(crate) fn execute_jmp(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        self.check_jmp_address(addressing_mode)?;
         let address = self.get_address_from_addressing_mode(addressing_mode)?;
         self.registers.pc = address;
         Ok(())
@@ -121,6 +122,15 @@ impl Mos6502Cpu {
         let new_pc = pc + offset as u16;
         self.update_page_crossed_status(pc, new_pc);
         self.registers.pc = new_pc;
+    }
+
+    #[inline]
+    fn check_jmp_address(&self, addressing_mode: &AddressingMode) -> CpuResult {
+        match addressing_mode {
+            AddressingMode::Indirect { low_byte: _, high_byte: _ } => Ok(()),
+            AddressingMode::Absolute { low_byte: _, high_byte: _ } => Ok(()),
+            _ => Err(CpuError::InvalidAddressingMode)
+        }
     }
 }
 
