@@ -1,6 +1,7 @@
 use {Mos6502Cpu, CpuError, CpuResult};
 use bit_utils::{two_bytes_to_word, word_to_two_bytes};
 use instruction::AddressingMode;
+use mos6502cpu::ProcessorStatus;
 
 impl Mos6502Cpu {
     pub(crate) fn execute_bcc(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
@@ -79,6 +80,27 @@ impl Mos6502Cpu {
             self.push(high_byte);
             self.push(low_byte);
             self.registers.pc = address;
+            Ok(())
+        } else {
+            Err(CpuError::InvalidAddressingMode)
+        }
+    }
+
+    pub(crate) fn execute_rti(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        if let AddressingMode::Implicit = addressing_mode {
+            self.registers.p = ProcessorStatus::from_byte(self.pull());
+            let (low_byte, high_byte) = (self.pull(), self.pull());
+            self.registers.pc = two_bytes_to_word(high_byte, low_byte);
+            Ok(())
+        } else {
+            Err(CpuError::InvalidAddressingMode)
+        }
+    }
+
+    pub(crate) fn execute_rts(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        if let AddressingMode::Implicit = addressing_mode {
+            let (low_byte, high_byte) = (self.pull(), self.pull());
+            self.registers.pc = two_bytes_to_word(high_byte, low_byte);
             Ok(())
         } else {
             Err(CpuError::InvalidAddressingMode)
@@ -329,5 +351,38 @@ mod tests {
         assert_eq!(cpu.registers.pc, 0x4224);
         assert_eq!(cpu.memory[0xff], 0x00);
         assert_eq!(cpu.memory[0xfe], 0x42);
+    }
+
+    #[test]
+    fn it_should_return_from_interrupt() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.pc = 0x0042;
+        cpu.registers.s = 0xfc;
+        cpu.registers.p.carry = false;
+        cpu.memory[0xfd] = 0x01;
+        cpu.memory[0xfe] = 0x00;
+        cpu.memory[0xff] = 0x42;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Rti,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert_eq!(cpu.registers.pc, 0x4200);
+        assert_eq!(cpu.registers.s, 0xff);
+        assert!(cpu.registers.p.carry);
+    }
+
+    #[test]
+    fn it_should_return_from_subroutine() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.pc = 0x0042;
+        cpu.registers.s = 0xfd;
+        cpu.memory[0xfe] = 0x00;
+        cpu.memory[0xff] = 0x42;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Rts,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert_eq!(cpu.registers.pc, 0x4200);
+        assert_eq!(cpu.registers.s, 0xff);
     }
 }
