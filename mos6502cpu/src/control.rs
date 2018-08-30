@@ -68,6 +68,33 @@ impl Mos6502Cpu {
         }
     }
 
+    pub(crate) fn execute_sec(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        if let AddressingMode::Implicit = addressing_mode {
+            self.registers.p.carry = true;
+            Ok(())
+        } else {
+            Err(CpuError::InvalidAddressingMode)
+        }
+    }
+
+    pub(crate) fn execute_sed(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        if let AddressingMode::Implicit = addressing_mode {
+            self.registers.p.decimal = true;
+            Ok(())
+        } else {
+            Err(CpuError::InvalidAddressingMode)
+        }
+    }
+
+    pub(crate) fn execute_sei(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        if let AddressingMode::Implicit = addressing_mode {
+            self.registers.p.interrupt = true;
+            Ok(())
+        } else {
+            Err(CpuError::InvalidAddressingMode)
+        }
+    }
+
     #[inline]
     fn check_bit_address(&self, addressing_mode: &AddressingMode) -> CpuResult {
         match addressing_mode {
@@ -167,7 +194,7 @@ mod tests {
     }
 
     #[test]
-    fn it_should_set_carry_to_zero_on_cld() {
+    fn it_should_set_decimal_to_zero_on_cld() {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.p.decimal = true;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -178,7 +205,7 @@ mod tests {
     }
 
     #[test]
-    fn it_should_set_carry_to_zero_on_cli() {
+    fn it_should_set_interrupt_to_zero_on_cli() {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.p.interrupt = true;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -189,7 +216,7 @@ mod tests {
     }
 
     #[test]
-    fn it_should_set_carry_to_zero_on_clv() {
+    fn it_should_set_overflow_to_zero_on_clv() {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.p.overflow = true;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -197,5 +224,38 @@ mod tests {
             addressing_mode: AddressingMode::Implicit,
         }).unwrap();
         assert!(!cpu.registers.p.overflow);
+    }
+
+    #[test]
+    fn it_should_set_carry_on_sec() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.p.carry = false;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Sec,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert!(cpu.registers.p.carry);
+    }
+
+    #[test]
+    fn it_should_set_decimal_on_sed() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.p.decimal = false;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Sed,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert!(cpu.registers.p.decimal);
+    }
+
+    #[test]
+    fn it_should_set_interrupt_on_sei() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.p.interrupt = false;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Sei,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert!(cpu.registers.p.interrupt);
     }
 }

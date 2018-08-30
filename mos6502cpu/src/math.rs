@@ -4,7 +4,7 @@ use instruction::AddressingMode;
 
 impl Mos6502Cpu {
     pub(crate) fn execute_adc(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
-        self.check_alu_address(&addressing_mode)?;
+        self.check_alu_address(addressing_mode)?;
         let value = self.get_value_from_addressing_mode(addressing_mode) as u16;
         let carry_as_u16 = self.registers.p.carry as u16;
         let answer = self.registers.a as u16 + value + carry_as_u16;
@@ -18,7 +18,7 @@ impl Mos6502Cpu {
     }
 
     pub(crate) fn execute_cmp(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
-        self.check_alu_address(&addressing_mode)?;
+        self.check_alu_address(addressing_mode)?;
         let value = two_complement(self.get_value_from_addressing_mode(addressing_mode));
         let a = self.registers.a;
         self.compare(a, value);
@@ -26,7 +26,7 @@ impl Mos6502Cpu {
     }
 
     pub(crate) fn execute_cpx(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
-        self.check_compare_address(&addressing_mode)?;
+        self.check_compare_address(addressing_mode)?;
         let value = two_complement(self.get_value_from_addressing_mode(addressing_mode));
         let x = self.registers.x;
         self.compare(x, value);
@@ -34,10 +34,26 @@ impl Mos6502Cpu {
     }
 
     pub(crate) fn execute_cpy(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
-        self.check_compare_address(&addressing_mode)?;
+        self.check_compare_address(addressing_mode)?;
         let value = two_complement(self.get_value_from_addressing_mode(addressing_mode));
         let y = self.registers.y;
         self.compare(y, value);
+        Ok(())
+    }
+
+    pub(crate) fn execute_sbc(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        self.check_alu_address(addressing_mode)?;
+        let value = self.get_value_from_addressing_mode(addressing_mode);
+        let carry_as_u16 = !self.registers.p.carry as u16;
+        let a_as_u16 = self.registers.a as u16;
+        let operand = two_complement(value) as u16;
+        let answer = a_as_u16 + operand - carry_as_u16;
+        self.update_zero_flag(answer as u8);
+        self.update_negative_flag(answer as u8);
+        self.update_carry_flag(answer);
+        self.registers.p.overflow =
+            self.calculate_overflow(self.registers.a, operand as u8, answer as u8);
+        self.registers.a = answer as u8;
         Ok(())
     }
 
@@ -324,5 +340,85 @@ mod tests {
         assert!(!cpu.registers.p.zero);
         assert!(!cpu.registers.p.carry);
         assert!(cpu.registers.p.negative);
+    }
+
+    #[test]
+    fn it_should_subtract_with_carry_set() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.a = 0x42;
+        cpu.registers.p.carry = true;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Sbc,
+            addressing_mode: AddressingMode::Immediate { byte: 0x01 },
+        }).unwrap();
+        assert_eq!(cpu.registers.a, 0x41);
+        assert!(!cpu.registers.p.zero);
+        assert!(cpu.registers.p.carry);
+        assert!(!cpu.registers.p.negative);
+        assert!(!cpu.registers.p.overflow);
+    }
+
+    #[test]
+    fn it_should_subtract_with_carry_clear() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.a = 0x42;
+        cpu.registers.p.carry = false;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Sbc,
+            addressing_mode: AddressingMode::Immediate { byte: 0x01 },
+        }).unwrap();
+        assert_eq!(cpu.registers.a, 0x40);
+        assert!(!cpu.registers.p.zero);
+        assert!(cpu.registers.p.carry);
+        assert!(!cpu.registers.p.negative);
+        assert!(!cpu.registers.p.overflow);
+    }
+
+    #[test]
+    fn it_should_subtract_setting_zero() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.a = 0x42;
+        cpu.registers.p.carry = true;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Sbc,
+            addressing_mode: AddressingMode::Immediate { byte: 0x42 },
+        }).unwrap();
+        assert_eq!(cpu.registers.a, 0x0);
+        assert!(cpu.registers.p.zero);
+        assert!(cpu.registers.p.carry);
+        assert!(!cpu.registers.p.negative);
+        assert!(!cpu.registers.p.overflow);
+    }
+
+    #[test]
+    fn it_should_subtract_setting_carry_and_negative() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.a = 0xc0;
+        cpu.registers.p.carry = true;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Sbc,
+            addressing_mode: AddressingMode::Immediate { byte: 0x40 },
+        }).unwrap();
+        assert_eq!(cpu.registers.a, 0x80);
+        assert!(!cpu.registers.p.zero);
+        assert!(cpu.registers.p.carry);
+        assert!(cpu.registers.p.negative);
+        assert!(!cpu.registers.p.overflow);
+    }
+
+    #[test]
+    fn it_should_subtract_setting_overflow() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.a = 0x80;
+        cpu.registers.p.carry = false;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Sbc,
+            addressing_mode: AddressingMode::Immediate { byte: 0x7f },
+        }).unwrap();
+        assert_eq!(cpu.registers.a, 0x0);
+        assert!(cpu.registers.p.zero);
+        assert!(cpu.registers.p.carry);
+        assert!(!cpu.registers.p.negative);
+        assert!(cpu.registers.p.overflow);
     }
 }
