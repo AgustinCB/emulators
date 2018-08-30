@@ -3,13 +3,13 @@ extern crate emulator_space_invaders;
 extern crate failure;
 
 use intel8080cpu::*;
-use emulator_space_invaders::console::Console;
+use emulator_space_invaders::console::{ConsoleOptions, Console};
 use failure::Error;
 use std::env::args;
 use std::fs::File;
 use std::io::Read;
 
-const USAGE: &'static str = "Usage: disassembler-8080 [game|test] [file]
+const USAGE: &'static str = "Usage: disassembler-8080 [game|test] [file] [--no-audio]
 
 If running either test, [file] should be a hex file with Intel 8080 instructions.
 
@@ -35,10 +35,11 @@ fn read_file(file_name: &str) -> std::io::Result<[u8; ROM_MEMORY_LIMIT]> {
     Ok(memory)
 }
 
-fn start_game(folder: &str) -> Result<(), Error> {
+fn start_game(folder: &str, has_audio: bool) -> Result<(), Error> {
     let rom_location = format!("{}/rom", folder);
     let memory = read_file(&rom_location)?;
-    let mut console = Console::new(memory, folder)?;
+    let options = ConsoleOptions::new(memory, folder).with_audio(has_audio);
+    let mut console = Console::new(options)?;
     console.start().map_err(|e| Error::from(e))
 }
 
@@ -61,12 +62,13 @@ fn handle_result(r: Result<(), Error>) {
 
 fn main() {
     let args: Vec<String> = args().collect();
-    if args.len() != 3 {
+    if args.len() != 3 && args.len() != 4 {
         panic!(USAGE);
     }
 
     if args[1] == "game" {
-        handle_result(start_game(&args[2]));
+        let has_audio = args[3] != String::from("--no-audio");
+        handle_result(start_game(&args[2], has_audio));
     } else if args[1] == "test" {
         let memory = read_file(&args[2]).unwrap();
         handle_result(test(memory));

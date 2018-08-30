@@ -23,6 +23,27 @@ const OPEN_GL: OpenGL = OpenGL::V3_2;
 pub(crate) const FRAME_BUFFER_ADDRESS: usize = 0x2400;
 pub(crate) const FRAME_BUFFER_SIZE: usize = 0x1C00;
 
+pub struct ConsoleOptions<'a> {
+    has_audio: bool,
+    folder: &'a str,
+    memory: [u8; ROM_MEMORY_LIMIT],
+}
+
+impl<'a> ConsoleOptions<'a> {
+    pub fn new(memory: [u8; ROM_MEMORY_LIMIT], folder: &'a str) -> ConsoleOptions<'a> {
+        ConsoleOptions {
+            folder,
+            memory,
+            has_audio: true,
+        }
+    }
+
+    pub fn with_audio(mut self, has_audio: bool) -> ConsoleOptions<'a> {
+        self.has_audio = has_audio;
+        self
+    }
+}
+
 pub struct Console<'a> {
     cpu: Intel8080Cpu<'a>,
     cycles_left: i64,
@@ -36,10 +57,10 @@ pub struct Console<'a> {
 }
 
 impl<'a> Console<'a> {
-    pub fn new(memory: [u8; ROM_MEMORY_LIMIT], folder: &str) -> Result<Console, Error> {
+    pub fn new(options: ConsoleOptions) -> Result<Console, Error> {
         let timer = Timer::new(SCREEN_INTERRUPTIONS_INTERVAL);
         let keypad_controller = KeypadController::new();
-        let cpu = Console::create_cpu(memory, &keypad_controller, folder)?;
+        let cpu = Console::create_cpu(&keypad_controller, options)?;
         let screen = Box::new(GameScreen::new());
         let window = Console::create_window()?;
         let gl = GlGraphics::new(OPEN_GL);
@@ -59,10 +80,9 @@ impl<'a> Console<'a> {
     }
 
     fn create_cpu<'b>(
-        memory: [u8; ROM_MEMORY_LIMIT],
         keypad_controller: &KeypadController,
-        folder: &str) -> Result<Intel8080Cpu<'b>, Error> {
-        let mut cpu = Intel8080Cpu::new(memory);
+        options: ConsoleOptions) -> Result<Intel8080Cpu<'b>, Error> {
+        let mut cpu = Intel8080Cpu::new(options.memory);
         let shift_writer = ExternalShiftWriter::new();
         let offset_writer = ExternalShiftOffsetWriter::new();
         let shift_reader = ExternalShiftReader::new(&shift_writer, &offset_writer);
@@ -72,10 +92,15 @@ impl<'a> Console<'a> {
         cpu.add_input_device(2, Box::new(DummyInputDevice { value: 1 }));
         cpu.add_input_device(3, Box::new(shift_reader));
         cpu.add_output_device(2, Box::new(offset_writer));
-        cpu.add_output_device(3, Box::new(SoundPort1::new(folder)?));
         cpu.add_output_device(4, Box::new(shift_writer));
-        cpu.add_output_device(5, Box::new(SoundPort2::new(folder)?));
-        cpu.add_output_device(6, Box::new(DummyOutputDevice{}));
+        cpu.add_output_device(6, Box::new(DummyOutputDevice {}));
+        if options.has_audio {
+            cpu.add_output_device(3, Box::new(SoundPort1::new(options.folder)?));
+            cpu.add_output_device(5, Box::new(SoundPort2::new(options.folder)?));
+        } else {
+            cpu.add_output_device(3, Box::new(DummyOutputDevice {}));
+            cpu.add_output_device(5, Box::new(DummyOutputDevice {}));
+        }
         Ok(cpu)
     }
 
