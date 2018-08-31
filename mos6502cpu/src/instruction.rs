@@ -467,7 +467,16 @@ impl Instruction for Mos6502Instruction {
                 _ => Err(self.invalid_addressing_mode()),
             },
             Mos6502InstructionCode::Lsr => self.data_movement_cycles(),
-            Mos6502InstructionCode::Nop => Ok(single!(2)),
+            Mos6502InstructionCode::Nop => match self.addressing_mode {
+                AddressingMode::Immediate { byte: _ } => Ok(single!(2)),
+                AddressingMode::Implicit => Ok(single!(2)),
+                AddressingMode::ZeroPage { byte: _ } => Ok(single!(3)),
+                AddressingMode::ZeroPageIndexedX { byte: _ } => Ok(single!(4)),
+                AddressingMode::Absolute { low_byte: _, high_byte: _ } => Ok(single!(4)),
+                AddressingMode::AbsoluteIndexedX { low_byte: _, high_byte: _ } =>
+                    Ok(conditional!(4, 5)),
+                _ => Err(self.invalid_addressing_mode()),
+            },
             Mos6502InstructionCode::Ora => self.alu_cycles(),
             Mos6502InstructionCode::Pha => Ok(single!(3)),
             Mos6502InstructionCode::Php => Ok(single!(3)),
@@ -1382,11 +1391,6 @@ impl From<Vec<u8>> for Mos6502Instruction {
                     high_byte: bytes[2]
                 },
             },
-            // TODO: Support different addressing modes for NOP
-            // Only the "official" NOP has implicit addressing mode
-            // All the other OP codes that act as NOP have different addressing mode
-            // And its timing and size varies accordingly.
-            // See: https://www.reddit.com/r/EmuDev/comments/99xdce/nop_and_mos_6502/
             _ => Mos6502Instruction {
                 instruction: Mos6502InstructionCode::Nop,
                 addressing_mode: AddressingMode::Implicit,

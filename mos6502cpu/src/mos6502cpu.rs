@@ -399,6 +399,7 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
             Mos6502InstructionCode::Lda => page_crossed_condition!(),
             Mos6502InstructionCode::Ldx => page_crossed_condition!(),
             Mos6502InstructionCode::Ldy => page_crossed_condition!(),
+            Mos6502InstructionCode::Nop => page_crossed_condition!(),
             Mos6502InstructionCode::Ora => page_crossed_condition!(),
             Mos6502InstructionCode::Sbc => page_crossed_condition!(),
             _ => panic!("This instruction doesn't have conditional cycles."),
