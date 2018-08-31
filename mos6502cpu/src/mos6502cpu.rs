@@ -356,7 +356,12 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
             Mos6502InstructionCode::Sta => self.execute_sta(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Stx => self.execute_stx(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Sty => self.execute_sty(&instruction.addressing_mode)?,
-            _ => self.execute_nop(),
+            Mos6502InstructionCode::Tax => self.execute_tax(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Tay => self.execute_tay(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Tsx => self.execute_tsx(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Txa => self.execute_txa(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Txs => self.execute_txs(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Tya => self.execute_tya(&instruction.addressing_mode)?,
         };
         Ok(())
     }

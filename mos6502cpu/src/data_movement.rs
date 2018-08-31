@@ -50,6 +50,78 @@ impl Mos6502Cpu {
         Ok(())
     }
 
+    pub(crate) fn execute_tax(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        if let AddressingMode::Implicit = addressing_mode {
+            let a_value = self.registers.a;
+            self.registers.x = a_value;
+            self.update_zero_flag(a_value);
+            self.update_negative_flag(a_value);
+            Ok(())
+        } else {
+            Err(CpuError::InvalidAddressingMode)
+        }
+    }
+
+    pub(crate) fn execute_tay(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        if let AddressingMode::Implicit = addressing_mode {
+            let a_value = self.registers.a;
+            self.registers.y = a_value;
+            self.update_zero_flag(a_value);
+            self.update_negative_flag(a_value);
+            Ok(())
+        } else {
+            Err(CpuError::InvalidAddressingMode)
+        }
+    }
+
+    pub(crate) fn execute_tsx(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        if let AddressingMode::Implicit = addressing_mode {
+            let s_value = self.registers.s;
+            self.registers.x = s_value;
+            self.update_zero_flag(s_value);
+            self.update_negative_flag(s_value);
+            Ok(())
+        } else {
+            Err(CpuError::InvalidAddressingMode)
+        }
+    }
+
+    pub(crate) fn execute_txa(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        if let AddressingMode::Implicit = addressing_mode {
+            let x_value = self.registers.x;
+            self.registers.a = x_value;
+            self.update_zero_flag(x_value);
+            self.update_negative_flag(x_value);
+            Ok(())
+        } else {
+            Err(CpuError::InvalidAddressingMode)
+        }
+    }
+
+    pub(crate) fn execute_txs(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        if let AddressingMode::Implicit = addressing_mode {
+            let x_value = self.registers.x;
+            self.registers.s = x_value;
+            self.update_zero_flag(x_value);
+            self.update_negative_flag(x_value);
+            Ok(())
+        } else {
+            Err(CpuError::InvalidAddressingMode)
+        }
+    }
+
+    pub(crate) fn execute_tya(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        if let AddressingMode::Implicit = addressing_mode {
+            let y_value = self.registers.y;
+            self.registers.a = y_value;
+            self.update_zero_flag(y_value);
+            self.update_negative_flag(y_value);
+            Ok(())
+        } else {
+            Err(CpuError::InvalidAddressingMode)
+        }
+    }
+
     #[inline]
     fn check_data_load_address(&self, addressing_mode: &AddressingMode) -> CpuResult {
         match addressing_mode {
@@ -234,5 +306,257 @@ mod tests {
             addressing_mode: AddressingMode::Absolute { high_byte: 0, low_byte: 0 },
         }).unwrap();
         assert_eq!(cpu.memory[0], 0x42);
+    }
+
+    #[test]
+    fn it_should_move_a_to_x() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.x = 0;
+        cpu.registers.a = 0x42;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Tax,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert_eq!(cpu.registers.x, 0x42);
+        assert!(!cpu.registers.p.zero);
+        assert!(!cpu.registers.p.negative);
+    }
+
+    #[test]
+    fn it_should_move_a_to_x_setting_zero() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.x = 0x42;
+        cpu.registers.a = 0;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Tax,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert_eq!(cpu.registers.x, 0);
+        assert!(cpu.registers.p.zero);
+        assert!(!cpu.registers.p.negative);
+    }
+
+    #[test]
+    fn it_should_move_a_to_x_setting_negative() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.x = 0;
+        cpu.registers.a = 0x80;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Tax,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert_eq!(cpu.registers.x, 0x80);
+        assert!(!cpu.registers.p.zero);
+        assert!(cpu.registers.p.negative);
+    }
+
+    #[test]
+    fn it_should_move_a_to_y() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.y = 0;
+        cpu.registers.a = 0x42;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Tay,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert_eq!(cpu.registers.y, 0x42);
+        assert!(!cpu.registers.p.zero);
+        assert!(!cpu.registers.p.negative);
+    }
+
+    #[test]
+    fn it_should_move_a_to_y_setting_zero() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.y = 0x42;
+        cpu.registers.a = 0;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Tay,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert_eq!(cpu.registers.y, 0);
+        assert!(cpu.registers.p.zero);
+        assert!(!cpu.registers.p.negative);
+    }
+
+    #[test]
+    fn it_should_move_a_to_y_setting_negative() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.y = 0;
+        cpu.registers.a = 0x80;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Tay,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert_eq!(cpu.registers.y, 0x80);
+        assert!(!cpu.registers.p.zero);
+        assert!(cpu.registers.p.negative);
+    }
+
+    #[test]
+    fn it_should_move_s_to_x() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.x = 0;
+        cpu.registers.s = 0x42;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Tsx,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert_eq!(cpu.registers.x, 0x42);
+        assert!(!cpu.registers.p.zero);
+        assert!(!cpu.registers.p.negative);
+    }
+
+    #[test]
+    fn it_should_move_s_to_x_setting_zero() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.x = 0x42;
+        cpu.registers.s = 0;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Tsx,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert_eq!(cpu.registers.x, 0);
+        assert!(cpu.registers.p.zero);
+        assert!(!cpu.registers.p.negative);
+    }
+
+    #[test]
+    fn it_should_move_s_to_x_setting_negative() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.x = 0;
+        cpu.registers.s = 0x80;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Tsx,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert_eq!(cpu.registers.x, 0x80);
+        assert!(!cpu.registers.p.zero);
+        assert!(cpu.registers.p.negative);
+    }
+
+    #[test]
+    fn it_should_move_x_to_a() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.a = 0;
+        cpu.registers.x = 0x42;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Txa,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert_eq!(cpu.registers.a, 0x42);
+        assert!(!cpu.registers.p.zero);
+        assert!(!cpu.registers.p.negative);
+    }
+
+    #[test]
+    fn it_should_move_x_to_a_setting_zero() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.a = 0x42;
+        cpu.registers.x = 0;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Txa,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert_eq!(cpu.registers.a, 0);
+        assert!(cpu.registers.p.zero);
+        assert!(!cpu.registers.p.negative);
+    }
+
+    #[test]
+    fn it_should_move_x_to_a_setting_negative() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.a = 0;
+        cpu.registers.x = 0x80;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Txa,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert_eq!(cpu.registers.a, 0x80);
+        assert!(!cpu.registers.p.zero);
+        assert!(cpu.registers.p.negative);
+    }
+
+    #[test]
+    fn it_should_move_x_to_s() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.s = 0;
+        cpu.registers.x = 0x42;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Txs,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert_eq!(cpu.registers.s, 0x42);
+        assert!(!cpu.registers.p.zero);
+        assert!(!cpu.registers.p.negative);
+    }
+
+    #[test]
+    fn it_should_move_x_to_s_setting_zero() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.s = 0x42;
+        cpu.registers.x = 0;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Txs,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert_eq!(cpu.registers.s, 0);
+        assert!(cpu.registers.p.zero);
+        assert!(!cpu.registers.p.negative);
+    }
+
+    #[test]
+    fn it_should_move_x_to_s_setting_negative() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.s = 0;
+        cpu.registers.x = 0x80;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Txs,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert_eq!(cpu.registers.s, 0x80);
+        assert!(!cpu.registers.p.zero);
+        assert!(cpu.registers.p.negative);
+    }
+
+    #[test]
+    fn it_should_move_y_to_a() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.a = 0;
+        cpu.registers.y = 0x42;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Tya,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert_eq!(cpu.registers.a, 0x42);
+        assert!(!cpu.registers.p.zero);
+        assert!(!cpu.registers.p.negative);
+    }
+
+    #[test]
+    fn it_should_move_y_to_a_setting_zero() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.a = 0x42;
+        cpu.registers.y = 0;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Tya,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert_eq!(cpu.registers.a, 0);
+        assert!(cpu.registers.p.zero);
+        assert!(!cpu.registers.p.negative);
+    }
+
+    #[test]
+    fn it_should_move_y_to_a_setting_negative() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.a = 0;
+        cpu.registers.y = 0x80;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Tya,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert_eq!(cpu.registers.a, 0x80);
+        assert!(!cpu.registers.p.zero);
+        assert!(cpu.registers.p.negative);
     }
 }
