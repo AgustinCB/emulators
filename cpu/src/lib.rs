@@ -73,13 +73,13 @@ pub trait Cpu<W, I, F>
 
     fn get_cycles_for_instruction(&mut self, instruction: &I) -> Result<u8, Error> {
         let cycles = instruction.get_cycles()?;
-        Ok(match cycles {
-            Cycles::Single(cycles) => cycles,
+        match cycles {
+            Cycles::Single(cycles) => Ok(cycles),
             Cycles::OneCondition { not_met, met } =>
                 self.get_cycles_from_one_condition(instruction, not_met, met),
             Cycles::TwoConditions { not_met, first_met, second_met } =>
                 self.get_cycles_from_two_conditions(instruction, not_met, first_met, second_met),
-        })
+        }
     }
 
     fn execute_instruction(&mut self, instruction: &I) -> Result<(), Error>;
@@ -87,8 +87,19 @@ pub trait Cpu<W, I, F>
     fn can_run(&self, instruction: &I) -> bool;
     fn is_done(&self) -> bool;
     fn increase_pc(&mut self, steps: u8);
-    fn get_cycles_from_one_condition(&self, instruction: &I, not_met: u8, met: u8) -> u8;
-    fn get_cycles_from_two_conditions(&self, instruction: &I, not_met: u8, first_met: u8, second_met: u8) -> u8;
+    fn get_cycles_from_one_condition(
+        &self,
+        instruction: &I,
+        not_met: u8,
+        met: u8
+    ) -> Result<u8, Error>;
+    fn get_cycles_from_two_conditions(
+        &self,
+        instruction: &I,
+        not_met: u8,
+        first_met: u8,
+        second_met: u8
+    ) -> Result<u8, Error>;
 }
 
 pub trait WithPorts {

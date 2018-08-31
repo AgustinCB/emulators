@@ -19,6 +19,8 @@ pub enum CpuError {
     ReservedMemory,
     #[fail(display = "Attempt to use invalid addressing mode.")]
     InvalidAddressingMode,
+    #[fail(display = "The instruction doesn't support that kind of cycle calculation.")]
+    InvalidCyclesCalculation,
 }
 
 pub(crate) struct ProcessorStatus {
@@ -276,9 +278,9 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
         let cycles = match instruction.get_cycles()? {
             Cycles::Single(cycles) => cycles,
             Cycles::OneCondition { not_met, met } =>
-                self.get_cycles_from_one_condition(instruction, not_met, met),
+                self.get_cycles_from_one_condition(instruction, not_met, met)?,
             Cycles::TwoConditions { not_met, first_met, second_met } =>
-                self.get_cycles_from_two_conditions(instruction, not_met, first_met, second_met),
+                self.get_cycles_from_two_conditions(instruction, not_met, first_met, second_met)?,
         };
         self.page_crossed = false;
         Ok(cycles)
@@ -367,12 +369,15 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
         self.registers.pc += steps as u16
     }
 
-    // TODO: Remove this panic and use Result<u8, CpuError) as a return instead
-    fn get_cycles_from_one_condition
-        (&self, instruction: &Mos6502Instruction, not_met: u8, met: u8) -> u8 {
+    fn get_cycles_from_one_condition(
+        &self,
+        instruction: &Mos6502Instruction,
+        not_met: u8,
+        met: u8
+    ) -> Result<u8, Error> {
         macro_rules! page_crossed_condition {
             () => {
-                if self.page_crossed { met } else { not_met }
+                if self.page_crossed { Ok(met) } else { Ok(not_met) }
             }
         }
         match instruction.instruction {
@@ -385,19 +390,23 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
             Mos6502InstructionCode::Nop => page_crossed_condition!(),
             Mos6502InstructionCode::Ora => page_crossed_condition!(),
             Mos6502InstructionCode::Sbc => page_crossed_condition!(),
-            _ => panic!("This instruction doesn't have conditional cycles."),
+            _ => Err(Error::from(CpuError::InvalidCyclesCalculation)),
         }
     }
 
-    // TODO: Remove this panic and use Result<u8, CpuError) as a return instead
-    fn get_cycles_from_two_conditions
-        (&self, instruction: &Mos6502Instruction, not_met: u8, first_met: u8, second_met: u8) -> u8 {
+    fn get_cycles_from_two_conditions(
+        &self,
+        instruction: &Mos6502Instruction,
+        not_met: u8,
+        first_met: u8,
+        second_met: u8
+    ) -> Result<u8, Error> {
         macro_rules! bicondition {
             ($condition:expr) => {
                 if $condition {
-                    if self.page_crossed { second_met } else { first_met }
+                    if self.page_crossed { Ok(second_met) } else { Ok(first_met) }
                 } else {
-                    not_met
+                    Ok(not_met)
                 }
             }
         }
@@ -410,7 +419,7 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
             Mos6502InstructionCode::Bpl => bicondition!(!self.registers.p.negative),
             Mos6502InstructionCode::Bvc => bicondition!(!self.registers.p.overflow),
             Mos6502InstructionCode::Bvs => bicondition!(self.registers.p.overflow),
-            _ => panic!("This instruction doesn't have biconditional cycles."),
+            _ => Err(Error::from(CpuError::InvalidCyclesCalculation)),
         }
     }
 }

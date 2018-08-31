@@ -38,6 +38,8 @@ pub enum CpuError {
     VirtualRegister {
         register: RegisterType,
     },
+    #[fail(display = "The instruction doesn't support that kind of cycle calculation.")]
+    InvalidCyclesCalculation,
 }
 
 pub use instruction::{Intel8080Instruction, Intel8080InstructionError};
