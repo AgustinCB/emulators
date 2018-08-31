@@ -152,6 +152,10 @@ impl Mos6502Cpu {
                 let x = self.registers.x as u16;
                 Ok((x + *byte as u16) & 0x00ff)
             },
+            AddressingMode::ZeroPageIndexedY { byte } => {
+                let y = self.registers.y as u16;
+                Ok((y + *byte as u16) & 0x00ff)
+            },
             AddressingMode::IndexedIndirect { byte } => {
                 let indirect_address = ((*byte as u16 + self.registers.x as u16) as u8) as usize;
                 let (low_byte, high_byte) =
@@ -167,48 +171,27 @@ impl Mos6502Cpu {
         }
     }
 
-    // TODO: Make it return Result<u8, CpuError> instead and remove duplicated code.
-    pub(crate) fn get_value_from_addressing_mode(&self, addressing_mode: &AddressingMode) -> u8 {
+    pub(crate) fn get_value_from_addressing_mode(&self, addressing_mode: &AddressingMode)
+        -> Result<u8, CpuError> {
         match addressing_mode {
-            AddressingMode::Accumulator => self.registers.a,
-            AddressingMode::Immediate { byte } => *byte,
-            AddressingMode::ZeroPage { byte } => self.memory[*byte as usize],
-            AddressingMode::ZeroPageIndexedX { byte } => {
-                let x = self.registers.x as u16;
-                let address = (x + *byte as u16) as u8;
-                self.memory[address as usize]
-            },
-            AddressingMode::ZeroPageIndexedY { byte } => {
-                let y = self.registers.y as u16;
-                let address = (y + *byte as u16) as u8;
-                self.memory[address as usize]
-            },
-            AddressingMode::Absolute { high_byte, low_byte } => {
-                let address = two_bytes_to_word(*high_byte, *low_byte) as usize;
-                self.memory[address]
-            },
-            AddressingMode::AbsoluteIndexedX { high_byte, low_byte } => {
-                let address = two_bytes_to_word(*high_byte, *low_byte) as usize;
-                self.memory[address + self.registers.x as usize]
-            },
-            AddressingMode::AbsoluteIndexedY { high_byte, low_byte } => {
-                let address = two_bytes_to_word(*high_byte, *low_byte) as usize;
-                self.memory[address + self.registers.y as usize]
-            },
-            AddressingMode::IndexedIndirect { byte } => {
-                let indirect_address = ((*byte as u16 + self.registers.x as u16) as u8) as usize;
-                let (low_byte, high_byte) =
-                    (self.memory[indirect_address], self.memory[indirect_address+1]);
-                self.memory[two_bytes_to_word(high_byte, low_byte) as usize]
-            },
-            AddressingMode::IndirectIndexed { byte } => {
-                let (low_byte, high_byte) =
-                    (self.memory[*byte as usize], self.memory[*byte as usize + 1]);
-                let direct_address =
-                    two_bytes_to_word(high_byte, low_byte) + self.registers.y as u16;
-                self.memory[direct_address as usize]
-            },
-            _ => panic!("Can't have value"),
+            AddressingMode::Accumulator => Ok(self.registers.a),
+            AddressingMode::Immediate { byte } => Ok(*byte),
+            AddressingMode::ZeroPage { byte } => Ok(self.memory[*byte as usize]),
+            AddressingMode::ZeroPageIndexedX { byte: _ } =>
+                Ok(self.memory[self.get_address_from_addressing_mode(addressing_mode)? as usize]),
+            AddressingMode::ZeroPageIndexedY { byte: _ } =>
+                Ok(self.memory[self.get_address_from_addressing_mode(addressing_mode)? as usize]),
+            AddressingMode::Absolute { high_byte: _, low_byte: _ } =>
+                Ok(self.memory[self.get_address_from_addressing_mode(addressing_mode)? as usize]),
+            AddressingMode::AbsoluteIndexedX { high_byte: _, low_byte: _ } =>
+                Ok(self.memory[self.get_address_from_addressing_mode(addressing_mode)? as usize]),
+            AddressingMode::AbsoluteIndexedY { high_byte: _, low_byte: _ } =>
+                Ok(self.memory[self.get_address_from_addressing_mode(addressing_mode)? as usize]),
+            AddressingMode::IndexedIndirect { byte: _ } =>
+                Ok(self.memory[self.get_address_from_addressing_mode(addressing_mode)? as usize]),
+            AddressingMode::IndirectIndexed { byte: _ } =>
+                Ok(self.memory[self.get_address_from_addressing_mode(addressing_mode)? as usize]),
+            _ => Err(CpuError::InvalidAddressingMode),
         }
     }
 
@@ -498,7 +481,7 @@ mod tests {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.a = 0x42;
         assert_eq!(
-            cpu.get_value_from_addressing_mode(&AddressingMode::Accumulator),
+            cpu.get_value_from_addressing_mode(&AddressingMode::Accumulator).unwrap(),
             0x42);
     }
 
@@ -506,7 +489,7 @@ mod tests {
     fn it_should_get_value_from_addressing_mode_for_immediate() {
         let cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         assert_eq!(
-            cpu.get_value_from_addressing_mode(&AddressingMode::Immediate { byte: 0x42 }),
+            cpu.get_value_from_addressing_mode(&AddressingMode::Immediate { byte: 0x42 }).unwrap(),
             0x42);
     }
 
@@ -515,7 +498,7 @@ mod tests {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.memory[0x35] = 0x42;
         assert_eq!(
-            cpu.get_value_from_addressing_mode(&AddressingMode::ZeroPage { byte: 0x35 }),
+            cpu.get_value_from_addressing_mode(&AddressingMode::ZeroPage { byte: 0x35 }).unwrap(),
             0x42);
     }
 
@@ -525,7 +508,7 @@ mod tests {
         cpu.memory[0x20] = 0x42;
         cpu.registers.x = 0x60;
         assert_eq!(
-            cpu.get_value_from_addressing_mode(&AddressingMode::ZeroPageIndexedX { byte: 0xC0 }),
+            cpu.get_value_from_addressing_mode(&AddressingMode::ZeroPageIndexedX { byte: 0xC0 }).unwrap(),
             0x42);
     }
 
@@ -535,7 +518,7 @@ mod tests {
         cpu.memory[0x20] = 0x42;
         cpu.registers.y = 0x60;
         assert_eq!(
-            cpu.get_value_from_addressing_mode(&AddressingMode::ZeroPageIndexedY { byte: 0xC0 }),
+            cpu.get_value_from_addressing_mode(&AddressingMode::ZeroPageIndexedY { byte: 0xC0 }).unwrap(),
             0x42);
     }
 
@@ -547,7 +530,7 @@ mod tests {
             cpu.get_value_from_addressing_mode(&AddressingMode::Absolute {
                 high_byte: 0x24,
                 low_byte: 0x42,
-            }),
+            }).unwrap(),
             0x42);
     }
 
@@ -560,7 +543,7 @@ mod tests {
             cpu.get_value_from_addressing_mode(&AddressingMode::AbsoluteIndexedX {
                 high_byte: 0x24,
                 low_byte: 0x42,
-            }),
+            }).unwrap(),
             0x42);
     }
 
@@ -573,7 +556,7 @@ mod tests {
             cpu.get_value_from_addressing_mode(&AddressingMode::AbsoluteIndexedY {
                 high_byte: 0x24,
                 low_byte: 0x42,
-            }),
+            }).unwrap(),
             0x42);
     }
 
@@ -587,7 +570,7 @@ mod tests {
         assert_eq!(
             cpu.get_value_from_addressing_mode(&AddressingMode::IndexedIndirect {
                 byte: 0x20,
-            }),
+            }).unwrap(),
             0x42);
     }
 
@@ -601,7 +584,7 @@ mod tests {
         assert_eq!(
             cpu.get_value_from_addressing_mode(&AddressingMode::IndexedIndirect {
                 byte: 0x86,
-            }),
+            }).unwrap(),
             0x42);
     }
 

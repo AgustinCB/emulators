@@ -4,7 +4,7 @@ use instruction::AddressingMode;
 impl Mos6502Cpu {
     pub(crate) fn execute_and(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_alu_address(&addressing_mode)?;
-        let value = self.get_value_from_addressing_mode(addressing_mode);
+        let value = self.get_value_from_addressing_mode(addressing_mode)?;
         let answer = self.registers.a & value;
         self.registers.a = answer;
         self.update_zero_flag(answer);
@@ -14,7 +14,7 @@ impl Mos6502Cpu {
 
     pub(crate) fn execute_eor(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_alu_address(&addressing_mode)?;
-        let value = self.get_value_from_addressing_mode(addressing_mode);
+        let value = self.get_value_from_addressing_mode(addressing_mode)?;
         let answer = self.registers.a ^ value;
         self.registers.a = answer;
         self.update_zero_flag(answer);
@@ -24,7 +24,7 @@ impl Mos6502Cpu {
 
     pub(crate) fn execute_ora(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_alu_address(&addressing_mode)?;
-        let value = self.get_value_from_addressing_mode(addressing_mode);
+        let value = self.get_value_from_addressing_mode(addressing_mode)?;
         let answer = self.registers.a | value;
         self.registers.a = answer;
         self.update_zero_flag(answer);

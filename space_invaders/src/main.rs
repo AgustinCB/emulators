@@ -68,7 +68,7 @@ fn main() {
 
     if args[1] == "game" {
         let has_audio = if args.len() == 4 {
-            args[3] != String::from("--no-audio");
+            args[3] != String::from("--no-audio")
         } else {
             true
         };

@@ -4,7 +4,7 @@ use instruction::AddressingMode;
 impl Mos6502Cpu {
     pub(crate) fn execute_lda(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_alu_address(addressing_mode)?;
-        let value = self.get_value_from_addressing_mode(addressing_mode);
+        let value = self.get_value_from_addressing_mode(addressing_mode)?;
         self.registers.a = value;
         self.update_zero_flag(value);
         self.update_negative_flag(value);
@@ -13,7 +13,7 @@ impl Mos6502Cpu {
 
     pub(crate) fn execute_ldx(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_data_load_address(addressing_mode)?;
-        let value = self.get_value_from_addressing_mode(addressing_mode);
+        let value = self.get_value_from_addressing_mode(addressing_mode)?;
         self.registers.x = value;
         self.update_zero_flag(value);
         self.update_negative_flag(value);
@@ -22,7 +22,7 @@ impl Mos6502Cpu {
 
     pub(crate) fn execute_ldy(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_data_load_address(addressing_mode)?;
-        let value = self.get_value_from_addressing_mode(addressing_mode);
+        let value = self.get_value_from_addressing_mode(addressing_mode)?;
         self.registers.y = value;
         self.update_zero_flag(value);
         self.update_negative_flag(value);

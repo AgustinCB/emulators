@@ -5,7 +5,7 @@ use instruction::AddressingMode;
 impl Mos6502Cpu {
     pub(crate) fn execute_adc(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_alu_address(addressing_mode)?;
-        let value = self.get_value_from_addressing_mode(addressing_mode) as u16;
+        let value = self.get_value_from_addressing_mode(addressing_mode)? as u16;
         let carry_as_u16 = self.registers.p.carry as u16;
         let answer = self.registers.a as u16 + value + carry_as_u16;
         self.update_zero_flag(answer as u8);
@@ -19,7 +19,7 @@ impl Mos6502Cpu {
 
     pub(crate) fn execute_cmp(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_alu_address(addressing_mode)?;
-        let value = two_complement(self.get_value_from_addressing_mode(addressing_mode));
+        let value = two_complement(self.get_value_from_addressing_mode(addressing_mode)?);
         let a = self.registers.a;
         self.compare(a, value);
         Ok(())
@@ -27,7 +27,7 @@ impl Mos6502Cpu {
 
     pub(crate) fn execute_cpx(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_compare_address(addressing_mode)?;
-        let value = two_complement(self.get_value_from_addressing_mode(addressing_mode));
+        let value = two_complement(self.get_value_from_addressing_mode(addressing_mode)?);
         let x = self.registers.x;
         self.compare(x, value);
         Ok(())
@@ -35,7 +35,7 @@ impl Mos6502Cpu {
 
     pub(crate) fn execute_cpy(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_compare_address(addressing_mode)?;
-        let value = two_complement(self.get_value_from_addressing_mode(addressing_mode));
+        let value = two_complement(self.get_value_from_addressing_mode(addressing_mode)?);
         let y = self.registers.y;
         self.compare(y, value);
         Ok(())
@@ -43,7 +43,7 @@ impl Mos6502Cpu {
 
     pub(crate) fn execute_sbc(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_alu_address(addressing_mode)?;
-        let value = self.get_value_from_addressing_mode(addressing_mode);
+        let value = self.get_value_from_addressing_mode(addressing_mode)?;
         let carry_as_u16 = !self.registers.p.carry as u16;
         let a_as_u16 = self.registers.a as u16;
         let operand = two_complement(value) as u16;

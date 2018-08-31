@@ -6,7 +6,7 @@ use mos6502cpu::INTERRUPT_HANDLERS_START;
 impl Mos6502Cpu {
     pub(crate) fn execute_bit(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_bit_address(addressing_mode)?;
-        let value = self.get_value_from_addressing_mode(addressing_mode);
+        let value = self.get_value_from_addressing_mode(addressing_mode)?;
         let answer = value & self.registers.a;
         self.update_zero_flag(answer);
         self.registers.p.overflow = value & 0x40 > 0;

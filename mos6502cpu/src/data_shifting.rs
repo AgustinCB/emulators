@@ -6,7 +6,7 @@ const ONE_TWO_COMPLEMENT: u8 = 0xff;
 impl Mos6502Cpu {
     pub(crate) fn execute_asl(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_data_shifting_address(addressing_mode)?;
-        let value = self.get_value_from_addressing_mode(addressing_mode);
+        let value = self.get_value_from_addressing_mode(addressing_mode)?;
         let future_carry = value & 0x80 > 0;
         let answer = value << 1;
         self.update_zero_flag(answer);
@@ -18,7 +18,7 @@ impl Mos6502Cpu {
 
     pub(crate) fn execute_dec(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_memory_data_shifting_address(addressing_mode)?;
-        let value = self.get_value_from_addressing_mode(addressing_mode);
+        let value = self.get_value_from_addressing_mode(addressing_mode)?;
         let answer = self.decrement(value);
         self.set_value_to_addressing_mode(addressing_mode, answer)?;
         Ok(())
@@ -48,7 +48,7 @@ impl Mos6502Cpu {
 
     pub(crate) fn execute_inc(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_memory_data_shifting_address(addressing_mode)?;
-        let value = self.get_value_from_addressing_mode(addressing_mode);
+        let value = self.get_value_from_addressing_mode(addressing_mode)?;
         let answer = self.increment(value);
         self.set_value_to_addressing_mode(addressing_mode, answer)?;
         Ok(())
@@ -78,7 +78,7 @@ impl Mos6502Cpu {
 
     pub(crate) fn execute_lsr(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_data_shifting_address(addressing_mode)?;
-        let value = self.get_value_from_addressing_mode(addressing_mode);
+        let value = self.get_value_from_addressing_mode(addressing_mode)?;
         let answer = value >> 1;
         self.registers.p.zero = answer == 0;
         self.registers.p.carry = value & 0x01 > 0;
@@ -90,7 +90,7 @@ impl Mos6502Cpu {
     pub(crate) fn execute_rol(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_data_shifting_address(addressing_mode)?;
         let carry_mask = self.registers.p.carry as u8;
-        let value = self.get_value_from_addressing_mode(addressing_mode);
+        let value = self.get_value_from_addressing_mode(addressing_mode)?;
         let answer = (value << 1) | carry_mask;
         self.registers.p.zero = answer == 0;
         self.registers.p.carry = value & 0x80 > 0;
@@ -102,7 +102,7 @@ impl Mos6502Cpu {
     pub(crate) fn execute_ror(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_data_shifting_address(addressing_mode)?;
         let carry_mask = (self.registers.p.carry as u8) << 7;
-        let value = self.get_value_from_addressing_mode(addressing_mode);
+        let value = self.get_value_from_addressing_mode(addressing_mode)?;
         let answer = (value >> 1) | carry_mask;
         self.registers.p.zero = answer == 0;
         self.registers.p.carry = value & 0x01 > 0;
