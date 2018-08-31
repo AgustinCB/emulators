@@ -67,7 +67,11 @@ fn main() {
     }
 
     if args[1] == "game" {
-        let has_audio = args[3] != String::from("--no-audio");
+        let has_audio = if args.len() == 4 {
+            args[3] != String::from("--no-audio");
+        } else {
+            true
+        };
         handle_result(start_game(&args[2], has_audio));
     } else if args[1] == "test" {
         let memory = read_file(&args[2]).unwrap();
