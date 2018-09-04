@@ -4,6 +4,11 @@ use instruction::AddressingMode;
 impl Mos6502Cpu {
     pub(crate) fn execute_lda(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_alu_address(addressing_mode)?;
+        self.execute_lda_unchecked(addressing_mode)
+    }
+
+    #[inline]
+    pub(crate) fn execute_lda_unchecked(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         let value = self.get_value_from_addressing_mode(addressing_mode)?;
         self.registers.a = value;
         self.update_zero_flag(value);
@@ -13,6 +18,11 @@ impl Mos6502Cpu {
 
     pub(crate) fn execute_ldx(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_data_load_address(addressing_mode)?;
+        self.execute_ldx_unchecked(addressing_mode)
+    }
+
+    #[inline]
+    pub(crate) fn execute_ldx_unchecked(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         let value = self.get_value_from_addressing_mode(addressing_mode)?;
         self.registers.x = value;
         self.update_zero_flag(value);
@@ -52,14 +62,19 @@ impl Mos6502Cpu {
 
     pub(crate) fn execute_tax(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         if let AddressingMode::Implicit = addressing_mode {
-            let a_value = self.registers.a;
-            self.registers.x = a_value;
-            self.update_zero_flag(a_value);
-            self.update_negative_flag(a_value);
+            self.execute_tax_unchecked();
             Ok(())
         } else {
             Err(CpuError::InvalidAddressingMode)
         }
+    }
+
+    #[inline]
+    pub(crate) fn execute_tax_unchecked(&mut self) {
+        let a_value = self.registers.a;
+        self.registers.x = a_value;
+        self.update_zero_flag(a_value);
+        self.update_negative_flag(a_value);
     }
 
     pub(crate) fn execute_tay(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
@@ -135,7 +150,7 @@ impl Mos6502Cpu {
     }
 
     #[inline]
-    fn check_data_store_address(&self, addressing_mode: &AddressingMode) -> CpuResult {
+    pub(crate) fn check_data_store_address(&self, addressing_mode: &AddressingMode) -> CpuResult {
         match addressing_mode {
             AddressingMode::ZeroPage { byte: _ } => Ok(()),
             AddressingMode::ZeroPageIndexedX { byte: _ } => Ok(()),

@@ -4,6 +4,11 @@ use instruction::AddressingMode;
 impl Mos6502Cpu {
     pub(crate) fn execute_and(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_alu_address(&addressing_mode)?;
+        self.execute_and_unchecked(addressing_mode)
+    }
+
+    #[inline]
+    pub(crate) fn execute_and_unchecked(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         let value = self.get_value_from_addressing_mode(addressing_mode)?;
         let answer = self.registers.a & value;
         self.registers.a = answer;
@@ -14,6 +19,11 @@ impl Mos6502Cpu {
 
     pub(crate) fn execute_eor(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_alu_address(&addressing_mode)?;
+        self.execute_eor_unchecked(addressing_mode)
+    }
+
+    #[inline]
+    pub(crate) fn execute_eor_unchecked(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         let value = self.get_value_from_addressing_mode(addressing_mode)?;
         let answer = self.registers.a ^ value;
         self.registers.a = answer;
@@ -24,6 +34,11 @@ impl Mos6502Cpu {
 
     pub(crate) fn execute_ora(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_alu_address(&addressing_mode)?;
+        self.execute_ora_unchecked(addressing_mode)
+    }
+
+    #[inline]
+    pub(crate) fn execute_ora_unchecked(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         let value = self.get_value_from_addressing_mode(addressing_mode)?;
         let answer = self.registers.a | value;
         self.registers.a = answer;

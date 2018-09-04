@@ -5,6 +5,11 @@ use instruction::AddressingMode;
 impl Mos6502Cpu {
     pub(crate) fn execute_adc(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_alu_address(addressing_mode)?;
+        self.execute_adc_unchecked(addressing_mode)
+    }
+
+    #[inline]
+    pub(crate) fn execute_adc_unchecked(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         let value = self.get_value_from_addressing_mode(addressing_mode)? as u16;
         let carry_as_u16 = self.registers.p.carry as u16;
         let answer = self.registers.a as u16 + value + carry_as_u16;
@@ -19,6 +24,11 @@ impl Mos6502Cpu {
 
     pub(crate) fn execute_cmp(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_alu_address(addressing_mode)?;
+        self.execute_cmp_unchecked(addressing_mode)
+    }
+
+    #[inline]
+    pub(crate) fn execute_cmp_unchecked(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         let value = two_complement(self.get_value_from_addressing_mode(addressing_mode)?);
         let a = self.registers.a;
         self.compare(a, value);
@@ -43,6 +53,11 @@ impl Mos6502Cpu {
 
     pub(crate) fn execute_sbc(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_alu_address(addressing_mode)?;
+        self.execute_sbc_unchecked(addressing_mode)
+    }
+
+    #[inline]
+    pub(crate) fn execute_sbc_unchecked(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         let value = self.get_value_from_addressing_mode(addressing_mode)?;
         let carry_as_u16 = !self.registers.p.carry as u16;
         let a_as_u16 = self.registers.a as u16;

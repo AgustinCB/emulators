@@ -339,6 +339,7 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
             Mos6502InstructionCode::Rra => self.execute_rra(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Rti => self.execute_rti(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Rts => self.execute_rts(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Sax => self.execute_sax(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Sbc => self.execute_sbc(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Sec => self.execute_sec(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Sed => self.execute_sed(&instruction.addressing_mode)?,
