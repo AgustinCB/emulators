@@ -103,14 +103,19 @@ impl Mos6502Cpu {
 
     pub(crate) fn execute_txa(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         if let AddressingMode::Implicit = addressing_mode {
-            let x_value = self.registers.x;
-            self.registers.a = x_value;
-            self.update_zero_flag(x_value);
-            self.update_negative_flag(x_value);
+            self.execute_txa_unchecked();
             Ok(())
         } else {
             Err(CpuError::InvalidAddressingMode)
         }
+    }
+
+    #[inline]
+    pub(crate) fn execute_txa_unchecked(&mut self) {
+        let x_value = self.registers.x;
+        self.registers.a = x_value;
+        self.update_zero_flag(x_value);
+        self.update_negative_flag(x_value);
     }
 
     pub(crate) fn execute_txs(&mut self, addressing_mode: &AddressingMode) -> CpuResult {

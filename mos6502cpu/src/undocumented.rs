@@ -3,6 +3,35 @@ use instruction::AddressingMode;
 
 // Implementation based on http://www.oxyron.de/html/opcodes02.html
 impl Mos6502Cpu {
+    pub(crate) fn execute_alr(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        if let AddressingMode::Immediate { byte: _ } = addressing_mode {
+            self.execute_and_unchecked(addressing_mode)?;
+            self.execute_lsr_unchecked(addressing_mode)
+        } else {
+            Err(CpuError::InvalidAddressingMode)
+        }
+    }
+
+    pub(crate) fn execute_anc(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        if let AddressingMode::Immediate { byte } = addressing_mode {
+            let future_carry = byte & 0x80 > 0;
+            self.execute_and_unchecked(addressing_mode)?;
+            self.registers.p.carry = future_carry;
+            Ok(())
+        } else {
+            Err(CpuError::InvalidAddressingMode)
+        }
+    }
+
+    pub(crate) fn execute_arr(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        if let AddressingMode::Immediate { byte: _ } = addressing_mode {
+            self.execute_and_unchecked(addressing_mode)?;
+            self.execute_ror_unchecked(addressing_mode)
+        } else {
+            Err(CpuError::InvalidAddressingMode)
+        }
+    }
+
     pub(crate) fn execute_dcp(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_data_store_address(addressing_mode)?;
         self.execute_dec_unchecked(addressing_mode)?;
@@ -70,5 +99,14 @@ impl Mos6502Cpu {
         self.check_data_store_address(addressing_mode)?;
         self.execute_lsr_unchecked(addressing_mode)?;
         self.execute_eor_unchecked(addressing_mode)
+    }
+
+    pub(crate) fn execute_xaa(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        if let AddressingMode::Immediate { byte: _ } = addressing_mode {
+            self.execute_txa_unchecked();
+            self.execute_and_unchecked(addressing_mode)
+        } else {
+            Err(CpuError::InvalidAddressingMode)
+        }
     }
 }

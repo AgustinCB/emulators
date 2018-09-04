@@ -292,7 +292,10 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
         }
         match instruction.instruction {
             Mos6502InstructionCode::Adc => self.execute_adc(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Alr => self.execute_alr(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Anc => self.execute_anc(&instruction.addressing_mode)?,
             Mos6502InstructionCode::And => self.execute_and(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Arr => self.execute_arr(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Asl => self.execute_asl(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Bcc => self.execute_bcc(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Bcs => self.execute_bcs(&instruction.addressing_mode)?,
@@ -355,6 +358,7 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
             Mos6502InstructionCode::Txa => self.execute_txa(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Txs => self.execute_txs(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Tya => self.execute_tya(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Xaa => self.execute_xaa(&instruction.addressing_mode)?,
             _ => self.execute_nop(),
         };
         Ok(())
