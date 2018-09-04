@@ -15,6 +15,7 @@ impl Mos6502Cpu {
         Ok(())
     }
 
+    // TODO: LAX for immediate does LDA #{imm} + TAX.
     pub(crate) fn execute_lax(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.execute_lda(addressing_mode)?;
         self.execute_ldx(addressing_mode)?;
