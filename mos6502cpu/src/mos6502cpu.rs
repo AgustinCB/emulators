@@ -327,6 +327,7 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
             Mos6502InstructionCode::Isc => self.execute_isc(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Jmp => self.execute_jmp(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Jsr => self.execute_jsr(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Las => self.execute_las(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Lax => self.execute_lax(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Lda => self.execute_lda(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Ldx => self.execute_ldx(&instruction.addressing_mode)?,
@@ -356,6 +357,7 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
             Mos6502InstructionCode::Sta => self.execute_sta(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Stx => self.execute_stx(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Sty => self.execute_sty(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Tas => self.execute_tas(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Tax => self.execute_tax(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Tay => self.execute_tay(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Tsx => self.execute_tsx(&instruction.addressing_mode)?,
@@ -363,7 +365,6 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
             Mos6502InstructionCode::Txs => self.execute_txs(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Tya => self.execute_tya(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Xaa => self.execute_xaa(&instruction.addressing_mode)?,
-            _ => self.execute_nop(),
         };
         Ok(())
     }

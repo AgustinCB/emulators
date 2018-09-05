@@ -1,6 +1,7 @@
 use {Mos6502Cpu, CpuError, CpuResult};
 use bit_utils::{two_complement, word_to_two_bytes};
 use instruction::AddressingMode;
+use mos6502cpu::ProcessorStatus;
 
 // Implementation based on http://www.oxyron.de/html/opcodes02.html
 impl Mos6502Cpu {
@@ -67,6 +68,19 @@ impl Mos6502Cpu {
         self.check_data_store_address(addressing_mode)?;
         self.execute_inc_unchecked(addressing_mode)?;
         self.execute_sbc_unchecked(addressing_mode)
+    }
+
+    pub(crate) fn execute_las(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        if let AddressingMode::AbsoluteIndexedY { high_byte: _, low_byte: _ } = addressing_mode {
+            let value = self.get_value_from_addressing_mode(addressing_mode)?;
+            let answer = value & self.registers.p.to_byte();
+            self.registers.x = answer;
+            self.registers.a = answer;
+            self.registers.p = ProcessorStatus::from_byte(answer);
+            Ok(())
+        } else {
+            Err(CpuError::InvalidAddressingMode)
+        }
     }
 
     pub(crate) fn execute_lax(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
@@ -146,6 +160,15 @@ impl Mos6502Cpu {
         self.check_data_store_address(addressing_mode)?;
         self.execute_lsr_unchecked(addressing_mode)?;
         self.execute_eor_unchecked(addressing_mode)
+    }
+
+    pub(crate) fn execute_tas(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        if let AddressingMode::AbsoluteIndexedY { high_byte: _, low_byte: _ } = addressing_mode {
+            self.registers.p = ProcessorStatus::from_byte(self.registers.a & self.registers.x);
+            self.execute_ahx(addressing_mode)
+        } else {
+            Err(CpuError::InvalidAddressingMode)
+        }
     }
 
     pub(crate) fn execute_xaa(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
