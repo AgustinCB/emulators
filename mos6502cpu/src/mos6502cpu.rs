@@ -292,6 +292,7 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
         }
         match instruction.instruction {
             Mos6502InstructionCode::Adc => self.execute_adc(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Ahx => self.execute_ahx(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Alr => self.execute_alr(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Anc => self.execute_anc(&instruction.addressing_mode)?,
             Mos6502InstructionCode::And => self.execute_and(&instruction.addressing_mode)?,
@@ -348,6 +349,8 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
             Mos6502InstructionCode::Sec => self.execute_sec(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Sed => self.execute_sed(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Sei => self.execute_sei(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Shx => self.execute_shx(&instruction.addressing_mode)?,
+            Mos6502InstructionCode::Shy => self.execute_shy(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Slo => self.execute_slo(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Sre => self.execute_sre(&instruction.addressing_mode)?,
             Mos6502InstructionCode::Sta => self.execute_sta(&instruction.addressing_mode)?,

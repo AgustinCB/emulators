@@ -1,9 +1,22 @@
 use {Mos6502Cpu, CpuError, CpuResult};
-use bit_utils::two_complement;
+use bit_utils::{two_complement, word_to_two_bytes};
 use instruction::AddressingMode;
 
 // Implementation based on http://www.oxyron.de/html/opcodes02.html
 impl Mos6502Cpu {
+    pub(crate) fn execute_ahx(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        match addressing_mode {
+            AddressingMode::IndirectIndexed { byte: _ } |
+            AddressingMode::AbsoluteIndexedY { high_byte: _, low_byte: _ } => {
+                let address = self.get_address_from_addressing_mode(addressing_mode)?;
+                let (_, high_byte) = word_to_two_bytes(address);
+                let answer = self.registers.x & self.registers.a & high_byte;
+                self.set_value_to_addressing_mode(addressing_mode, answer)
+            },
+            _ => Err(CpuError::InvalidAddressingMode),
+        }
+    }
+
     pub(crate) fn execute_alr(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         if let AddressingMode::Immediate { byte: _ } = addressing_mode {
             self.execute_and_unchecked(addressing_mode)?;
@@ -98,6 +111,28 @@ impl Mos6502Cpu {
                 self.set_value_to_addressing_mode(addressing_mode, answer)
             },
             _ => Err(CpuError::InvalidAddressingMode),
+        }
+    }
+
+    pub(crate) fn execute_shx(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        if let AddressingMode::AbsoluteIndexedY { high_byte: _, low_byte: _ } = addressing_mode {
+            let address = self.get_address_from_addressing_mode(addressing_mode)?;
+            let (_, high_byte) = word_to_two_bytes(address);
+            let answer = self.registers.x & high_byte;
+            self.set_value_to_addressing_mode(addressing_mode, answer)
+        } else {
+            Err(CpuError::InvalidAddressingMode)
+        }
+    }
+
+    pub(crate) fn execute_shy(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        if let AddressingMode::AbsoluteIndexedX { high_byte: _, low_byte: _ } = addressing_mode {
+            let address = self.get_address_from_addressing_mode(addressing_mode)?;
+            let (_, high_byte) = word_to_two_bytes(address);
+            let answer = self.registers.y & high_byte;
+            self.set_value_to_addressing_mode(addressing_mode, answer)
+        } else {
+            Err(CpuError::InvalidAddressingMode)
         }
     }
 
