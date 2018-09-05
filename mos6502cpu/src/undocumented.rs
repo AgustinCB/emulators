@@ -1,4 +1,5 @@
 use {Mos6502Cpu, CpuError, CpuResult};
+use bit_utils::two_complement;
 use instruction::AddressingMode;
 
 // Implementation based on http://www.oxyron.de/html/opcodes02.html
@@ -27,6 +28,17 @@ impl Mos6502Cpu {
         if let AddressingMode::Immediate { byte: _ } = addressing_mode {
             self.execute_and_unchecked(addressing_mode)?;
             self.execute_ror_unchecked(addressing_mode)
+        } else {
+            Err(CpuError::InvalidAddressingMode)
+        }
+    }
+
+    pub(crate) fn execute_axs(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        if let AddressingMode::Immediate { byte } = addressing_mode {
+            let operand1 = self.registers.x & self.registers.a;
+            let operand2 = two_complement(*byte);
+            self.registers.x = self.compare(operand1, operand2) as u8;
+            Ok(())
         } else {
             Err(CpuError::InvalidAddressingMode)
         }

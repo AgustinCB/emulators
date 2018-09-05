@@ -1433,6 +1433,10 @@ impl From<Vec<u8>> for Mos6502Instruction {
                 instruction: Mos6502InstructionCode::Sbc,
                 addressing_mode: AddressingMode::Immediate { byte: bytes[1] },
             },
+            0xEB => Mos6502Instruction {
+                instruction: Mos6502InstructionCode::Sbc,
+                addressing_mode: AddressingMode::Immediate { byte: bytes[1] },
+            },
             0xEC => Mos6502Instruction {
                 instruction: Mos6502InstructionCode::Cpx,
                 addressing_mode: AddressingMode::Absolute {

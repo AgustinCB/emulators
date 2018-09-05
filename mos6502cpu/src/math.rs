@@ -79,11 +79,12 @@ impl Mos6502Cpu {
     }
 
     #[inline]
-    fn compare(&mut self, register: u8, value: u8) {
+    pub(crate) fn compare(&mut self, register: u8, value: u8) -> u16 {
         let answer = register as u16 + value as u16;
         self.update_zero_flag(answer as u8);
         self.update_negative_flag(answer as u8);
         self.update_carry_flag(answer);
+        answer
     }
 
     #[inline]
