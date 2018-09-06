@@ -29,7 +29,7 @@ impl Mos6502Cpu {
 
     #[inline]
     pub(crate) fn execute_cmp_unchecked(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
-        let value = two_complement(self.get_value_from_addressing_mode(addressing_mode)?);
+        let value = self.get_value_from_addressing_mode(addressing_mode)?;
         let a = self.registers.a;
         self.compare(a, value);
         Ok(())
@@ -37,7 +37,7 @@ impl Mos6502Cpu {
 
     pub(crate) fn execute_cpx(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_compare_address(addressing_mode)?;
-        let value = two_complement(self.get_value_from_addressing_mode(addressing_mode)?);
+        let value = self.get_value_from_addressing_mode(addressing_mode)?;
         let x = self.registers.x;
         self.compare(x, value);
         Ok(())
@@ -45,7 +45,7 @@ impl Mos6502Cpu {
 
     pub(crate) fn execute_cpy(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_compare_address(addressing_mode)?;
-        let value = two_complement(self.get_value_from_addressing_mode(addressing_mode)?);
+        let value = self.get_value_from_addressing_mode(addressing_mode)?;
         let y = self.registers.y;
         self.compare(y, value);
         Ok(())
@@ -80,10 +80,10 @@ impl Mos6502Cpu {
 
     #[inline]
     pub(crate) fn compare(&mut self, register: u8, value: u8) -> u16 {
-        let answer = register as u16 + value as u16;
+        let answer = register as u16 + two_complement(value) as u16;
         self.update_zero_flag(answer as u8);
         self.update_negative_flag(answer as u8);
-        self.update_carry_flag(answer);
+        self.registers.p.carry = register >= value;
         answer
     }
 
@@ -247,7 +247,21 @@ mod tests {
     }
 
     #[test]
-    fn it_should_set_only_carry_on_cmp_with_smaller_value_but_not_negative() {
+    fn it_should_set_zero_and_carry_on_cmp_on_with_zeroes_but_not_negative() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.a = 0x0;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Cmp,
+            addressing_mode: AddressingMode::Immediate { byte: 0x0 },
+        }).unwrap();
+        assert_eq!(cpu.registers.a, 0x0);
+        assert!(cpu.registers.p.zero);
+        assert!(cpu.registers.p.carry);
+        assert!(!cpu.registers.p.negative);
+    }
+
+    #[test]
+    fn it_should_set_carry_on_cmp_with_smaller_value() {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.a = 0x42;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -289,7 +303,7 @@ mod tests {
     }
 
     #[test]
-    fn it_should_set_only_carry_on_cpx_with_smaller_value_but_not_negative() {
+    fn it_should_set_carry_on_cpx_with_smaller_value() {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.x = 0x42;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -331,7 +345,7 @@ mod tests {
     }
 
     #[test]
-    fn it_should_set_only_carry_on_cpy_with_smaller_value_but_not_negative() {
+    fn it_should_set_carry_on_cpy_with_smaller_value() {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.y = 0x42;
         cpu.execute_instruction(&Mos6502Instruction {
