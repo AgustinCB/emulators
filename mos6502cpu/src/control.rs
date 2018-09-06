@@ -177,9 +177,9 @@ mod tests {
             addressing_mode: AddressingMode::Implicit,
         }).unwrap();
         assert_eq!(cpu.registers.s, 0);
-        assert_eq!(cpu.memory[3], 0x42);
-        assert_eq!(cpu.memory[2], 0x24);
-        assert_eq!(cpu.memory[1], 0x30);
+        assert_eq!(cpu.memory[0x103], 0x42);
+        assert_eq!(cpu.memory[0x102], 0x24);
+        assert_eq!(cpu.memory[0x101], 0x30);
     }
 
     #[test]

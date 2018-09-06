@@ -265,14 +265,14 @@ impl Mos6502Cpu {
 
     #[inline]
     pub(crate) fn push(&mut self, value: u8) {
-        self.memory[self.registers.s as usize] = value;
+        self.memory[self.registers.s as usize + 0x100] = value;
         self.registers.s -= 1;
     }
 
     #[inline]
     pub(crate) fn pull(&mut self) -> u8 {
         self.registers.s += 1;
-        let value = self.memory[self.registers.s as usize];
+        let value = self.memory[self.registers.s as usize + 0x100];
         value
     }
 }

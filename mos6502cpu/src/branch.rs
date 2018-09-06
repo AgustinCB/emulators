@@ -375,8 +375,8 @@ mod tests {
             },
         }).unwrap();
         assert_eq!(cpu.registers.pc, 0x4224);
-        assert_eq!(cpu.memory[0xff], 0x00);
-        assert_eq!(cpu.memory[0xfe], 0x42);
+        assert_eq!(cpu.memory[0x1ff], 0x00);
+        assert_eq!(cpu.memory[0x1fe], 0x42);
     }
 
     #[test]
@@ -385,9 +385,9 @@ mod tests {
         cpu.registers.pc = 0x0042;
         cpu.registers.s = 0xfc;
         cpu.registers.p.carry = false;
-        cpu.memory[0xfd] = 0x01;
-        cpu.memory[0xfe] = 0x00;
-        cpu.memory[0xff] = 0x42;
+        cpu.memory[0x1fd] = 0x01;
+        cpu.memory[0x1fe] = 0x00;
+        cpu.memory[0x1ff] = 0x42;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Rti,
             addressing_mode: AddressingMode::Implicit,
@@ -402,8 +402,8 @@ mod tests {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.pc = 0x0042;
         cpu.registers.s = 0xfd;
-        cpu.memory[0xfe] = 0x00;
-        cpu.memory[0xff] = 0x42;
+        cpu.memory[0x1fe] = 0x00;
+        cpu.memory[0x1ff] = 0x42;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Rts,
             addressing_mode: AddressingMode::Implicit,

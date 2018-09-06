@@ -61,7 +61,7 @@ mod tests {
             instruction: Mos6502InstructionCode::Pha,
             addressing_mode: AddressingMode::Implicit,
         }).unwrap();
-        assert_eq!(cpu.memory[0xff], 0x42);
+        assert_eq!(cpu.memory[0x1ff], 0x42);
         assert_eq!(cpu.registers.s, 0xfe);
     }
 
@@ -75,7 +75,7 @@ mod tests {
             instruction: Mos6502InstructionCode::Php,
             addressing_mode: AddressingMode::Implicit,
         }).unwrap();
-        assert_eq!(cpu.memory[0xff], expected);
+        assert_eq!(cpu.memory[0x1ff], expected);
         assert_eq!(cpu.registers.s, 0xfe);
     }
 
@@ -84,7 +84,7 @@ mod tests {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.s = 0xfe;
         cpu.registers.a = 0;
-        cpu.memory[0xff] = 0x42;
+        cpu.memory[0x1ff] = 0x42;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Pla,
             addressing_mode: AddressingMode::Implicit,
@@ -116,7 +116,7 @@ mod tests {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.s = 0xfe;
         cpu.registers.a = 0x42;
-        cpu.memory[0xff] = 0x80;
+        cpu.memory[0x1ff] = 0x80;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Pla,
             addressing_mode: AddressingMode::Implicit,
@@ -132,7 +132,7 @@ mod tests {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.s = 0xfe;
         cpu.registers.p.carry = true;
-        cpu.memory[0xff] = cpu.registers.p.to_byte();
+        cpu.memory[0x1ff] = cpu.registers.p.to_byte();
         cpu.registers.p.carry = false;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Plp,
