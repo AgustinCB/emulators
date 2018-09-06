@@ -1,6 +1,6 @@
 #[inline]
 pub(crate) fn two_complement(value: u8) -> u8 {
-    !value + 1
+    (!value as u16 + 1) as u8
 }
 
 #[inline]
