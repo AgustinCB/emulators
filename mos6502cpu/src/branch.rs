@@ -1,5 +1,5 @@
 use {Mos6502Cpu, CpuError, CpuResult};
-use bit_utils::{two_bytes_to_word, word_to_two_bytes};
+use bit_utils::{two_bytes_to_word, two_complement, word_to_two_bytes};
 use instruction::AddressingMode;
 use mos6502cpu::ProcessorStatus;
 
@@ -109,7 +109,7 @@ impl Mos6502Cpu {
     }
 
     #[inline]
-    fn get_branch_offset(&self, addressing_mode: &AddressingMode) -> Result<i8, CpuError> {
+    fn get_branch_offset(&self, addressing_mode: &AddressingMode) -> Result<u8, CpuError> {
         match addressing_mode {
             AddressingMode::Relative { byte } => Ok(*byte),
             _ => Err(CpuError::InvalidAddressingMode),
@@ -117,9 +117,13 @@ impl Mos6502Cpu {
     }
 
     #[inline]
-    fn update_pc_from_offset(&mut self, offset: i8) {
+    fn update_pc_from_offset(&mut self, offset: u8) {
         let pc = self.registers.pc;
-        let new_pc = pc + offset as u16;
+        let new_pc = if offset & 0x80 == 0 {
+            pc + offset as u16
+        } else {
+            pc - two_complement(offset) as u16
+        };
         self.update_page_crossed_status(pc, new_pc);
         self.registers.pc = new_pc;
     }
@@ -150,6 +154,18 @@ mod tests {
             addressing_mode: AddressingMode::Relative { byte: 0x42 },
         }).unwrap();
         assert_eq!(cpu.registers.pc, 0x42);
+    }
+
+    #[test]
+    fn it_should_branch_back_if_carry_is_clear_on_bcc_and_argument_is_negative() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.p.carry = false;
+        cpu.registers.pc = 1;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Bcc,
+            addressing_mode: AddressingMode::Relative { byte: 0xff },
+        }).unwrap();
+        assert_eq!(cpu.registers.pc, 0x0);
     }
 
     #[test]
