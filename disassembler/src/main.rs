@@ -19,7 +19,7 @@ enum DisassemblerError {
 }
 
 // This is an arbitrarily chosen number. We either need RFC 2000 or something else that I dunno yet
-const ROM_MEMORY_LIMIT: usize = 8192;
+const ROM_MEMORY_LIMIT: usize = 0x10000;
 
 const USAGE: &'static str = "Usage: disassembler [cpu] [file]
 
@@ -41,7 +41,7 @@ fn get_instructions<I: 'static + Instruction + ToString + From<Vec<u8>>>(bytes: 
     -> Result<Vec<(u16, Box<ToString>)>, Error> {
     let mut result: Vec<(u16, Box<ToString>)> = Vec::with_capacity(bytes.len());
     let mut pass = 0;
-    let mut pc: u16 = 0;
+    let mut pc: usize = 0;
     for index in 0..bytes.len() {
         if pass == 0 {
             let i =
@@ -49,8 +49,8 @@ fn get_instructions<I: 'static + Instruction + ToString + From<Vec<u8>>>(bytes: 
                     bytes[index..min(index+3, bytes.len())].to_vec());
             let instruction_size = i.size()?;
             pass = instruction_size - 1;
-            result.push((pc, Box::new(i)));
-            pc += instruction_size as u16;
+            result.push((pc as u16, Box::new(i)));
+            pc += instruction_size as usize;
         } else {
             pass -= 1;
         }
