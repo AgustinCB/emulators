@@ -145,6 +145,6 @@ mod tests {
         assert!(!cpu.registers.p.negative);
         assert!(!cpu.registers.p.decimal);
         assert!(!cpu.registers.p.overflow);
-        assert!(!cpu.registers.p.break_flag);
+        assert!(cpu.registers.p.break_flag);
     }
 }

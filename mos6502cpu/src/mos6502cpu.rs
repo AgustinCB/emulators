@@ -38,7 +38,7 @@ impl ProcessorStatus {
         ProcessorStatus {
             negative: false,
             overflow: false,
-            break_flag: false,
+            break_flag: true,
             decimal: false,
             interrupt_disable: false,
             zero: false,
@@ -50,7 +50,7 @@ impl ProcessorStatus {
         ProcessorStatus {
             negative: (byte & 0x80) > 0,
             overflow: (byte & 0x40) > 0,
-            break_flag: (byte & 0x10) > 0,
+            break_flag: true,
             decimal: (byte & 0x08) > 0,
             interrupt_disable: (byte & 0x04) > 0,
             zero: (byte & 0x02) > 0,
@@ -62,7 +62,7 @@ impl ProcessorStatus {
         ((self.negative as u8) << 7) |
             ((self.overflow as u8) << 6) |
             0x20 |
-            ((self.break_flag as u8) << 4) |
+            0x10 |
             ((self.decimal as u8) << 3) |
             ((self.interrupt_disable as u8) << 2) |
             ((self.zero as u8) << 1) |
