@@ -380,7 +380,7 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
     }
 
     fn is_done(&self) -> bool {
-        self.registers.pc >= AVAILABLE_MEMORY as u16
+        self.registers.pc as usize >= AVAILABLE_MEMORY
     }
 
     fn increase_pc(&mut self, steps: u8) {

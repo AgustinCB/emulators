@@ -32,6 +32,6 @@ fn main() {
     if args.len() != 2 {
         panic!(USAGE);
     }
-    let memory = read_file(&args[2]).unwrap();
+    let memory = read_file(&args[1]).unwrap();
     test(memory).unwrap();
 }
