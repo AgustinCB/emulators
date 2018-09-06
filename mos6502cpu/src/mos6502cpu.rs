@@ -373,6 +373,10 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
         Ok(())
     }
 
+    fn get_pc(&self) -> u16 {
+        self.registers.pc
+    }
+
     fn get_next_instruction_bytes(&self) -> &[u8] {
         let from = self.registers.pc as usize;
         let to = min(from+3, self.memory.len());

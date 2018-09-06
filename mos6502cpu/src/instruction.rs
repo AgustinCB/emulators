@@ -37,7 +37,7 @@ impl fmt::Display for AddressingMode {
             AddressingMode::ZeroPage { byte } => format!("${:x}", byte),
             AddressingMode::Absolute { high_byte, low_byte } =>
                 format!("${:x}{:x}", high_byte, low_byte),
-            AddressingMode::Relative { byte } => format!("*{:x}", byte),
+            AddressingMode::Relative { byte } => format!("${:x}", byte),
             AddressingMode::Indirect { high_byte, low_byte } =>
                 format!("(${:x}{:x})", high_byte, low_byte),
             AddressingMode::ZeroPageIndexedX { byte } => format!("${:x},x", byte),

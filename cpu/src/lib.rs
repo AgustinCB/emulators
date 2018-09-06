@@ -64,7 +64,7 @@ pub trait Cpu<W, I, F>
         if !self.can_run(&instruction) {
             return Ok(0);
         }
-        println!("{}", instruction.to_string());
+        println!("0x{:04x} {}", self.get_pc(), instruction.to_string());
         self.increase_pc(instruction.size()?);
         self.execute_instruction(&instruction)?;
         let cycles = self.get_cycles_for_instruction(&instruction)?;
@@ -83,6 +83,7 @@ pub trait Cpu<W, I, F>
     }
 
     fn execute_instruction(&mut self, instruction: &I) -> Result<(), Error>;
+    fn get_pc(&self) -> u16;
     fn get_next_instruction_bytes(&self) -> &[W];
     fn can_run(&self, instruction: &I) -> bool;
     fn is_done(&self) -> bool;

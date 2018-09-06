@@ -138,6 +138,10 @@ impl<'a> Cpu<u8, Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
         Ok(())
     }
 
+    fn get_pc(&self) -> u16 {
+        self.pc
+    }
+
     #[inline]
     fn get_next_instruction_bytes(&self) -> &[u8] {
         let from = self.pc as usize;
