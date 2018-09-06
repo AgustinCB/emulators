@@ -108,7 +108,11 @@ impl Mos6502Cpu {
     }
 
     #[inline]
-    fn execute_nop(&self) {
+    fn execute_nop(&self) {}
+
+    #[inline]
+    pub fn set_pc(&mut self, address: u16) {
+        self.registers.pc = address;
     }
 
     pub fn get_memory_slice(&mut self, from: usize, to: usize) -> Result<&[u8], CpuError> {

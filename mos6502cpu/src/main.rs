@@ -7,9 +7,11 @@ use std::env::args;
 use std::fs::File;
 use std::io::Read;
 
-const USAGE: &'static str = "Usage: mos6502cpu [file]
+const USAGE: &'static str = "Usage: mos6502cpu [file] [starting address]
 
-Runs [file], a MOS 6502 compatible binary file, in the emulator.";
+Runs [file], a MOS 6502 compatible binary file, in the emulator.
+
+It starts at [starting address].";
 
 fn read_file(file_name: &str) -> std::io::Result<[u8; AVAILABLE_MEMORY]> {
     let mut f = File::open(file_name)?;
@@ -18,9 +20,9 @@ fn read_file(file_name: &str) -> std::io::Result<[u8; AVAILABLE_MEMORY]> {
     Ok(memory)
 }
 
-fn test(memory: [u8; AVAILABLE_MEMORY]) -> Result<(), Error> {
+fn test(memory: [u8; AVAILABLE_MEMORY], starting_address: u16) -> Result<(), Error> {
     let mut cpu = Mos6502Cpu::new(memory);
-
+    cpu.set_pc(starting_address);
     while !cpu.is_done() {
         cpu.execute()?;
     }
@@ -29,9 +31,10 @@ fn test(memory: [u8; AVAILABLE_MEMORY]) -> Result<(), Error> {
 
 fn main() {
     let args: Vec<String> = args().collect();
-    if args.len() != 2 {
+    if args.len() != 3 {
         panic!(USAGE);
     }
     let memory = read_file(&args[1]).unwrap();
-    test(memory).unwrap();
+    let starting_address = args[2].parse::<u16>().unwrap();
+    test(memory, starting_address).unwrap();
 }
