@@ -33,21 +33,21 @@ impl fmt::Display for AddressingMode {
         let s = match self {
             AddressingMode::Implicit => String::from(""),
             AddressingMode::Accumulator => String::from("A"),
-            AddressingMode::Immediate { byte } => format!("#{:x}", byte),
-            AddressingMode::ZeroPage { byte } => format!("${:x}", byte),
+            AddressingMode::Immediate { byte } => format!("#{:02x}", byte),
+            AddressingMode::ZeroPage { byte } => format!("${:02x}", byte),
             AddressingMode::Absolute { high_byte, low_byte } =>
-                format!("${:x}{:x}", high_byte, low_byte),
-            AddressingMode::Relative { byte } => format!("${:x}", byte),
+                format!("${:02x}{:02x}", high_byte, low_byte),
+            AddressingMode::Relative { byte } => format!("${:02x}", byte),
             AddressingMode::Indirect { high_byte, low_byte } =>
-                format!("(${:x}{:x})", high_byte, low_byte),
-            AddressingMode::ZeroPageIndexedX { byte } => format!("${:x},x", byte),
-            AddressingMode::ZeroPageIndexedY  { byte } => format!("${:x},y", byte),
+                format!("(${:02x}{:02x})", high_byte, low_byte),
+            AddressingMode::ZeroPageIndexedX { byte } => format!("${:02x},x", byte),
+            AddressingMode::ZeroPageIndexedY  { byte } => format!("${:02x},y", byte),
             AddressingMode::AbsoluteIndexedX { high_byte, low_byte } =>
-                format!("${:x}{:x},x", high_byte, low_byte),
+                format!("${:02x}{:02x},x", high_byte, low_byte),
             AddressingMode::AbsoluteIndexedY { high_byte, low_byte } =>
-                format!("${:x}{:x},y", high_byte, low_byte),
-            AddressingMode::IndexedIndirect { byte } => format!("(${},x)", byte),
-            AddressingMode::IndirectIndexed { byte } => format!("(${}),y", byte),
+                format!("${:02x}{:02x},y", high_byte, low_byte),
+            AddressingMode::IndexedIndirect { byte } => format!("(${:02x},x)", byte),
+            AddressingMode::IndirectIndexed { byte } => format!("(${:02x}),y", byte),
         };
         write!(f, "{}", s)
     }
