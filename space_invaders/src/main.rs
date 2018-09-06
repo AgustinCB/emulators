@@ -53,13 +53,6 @@ fn test(memory: [u8; ROM_MEMORY_LIMIT]) -> Result<(), Error> {
     Ok(())
 }
 
-fn handle_result(r: Result<(), Error>) {
-    match r {
-        Ok(()) => {},
-        Err(err) => panic!(err),
-    };
-}
-
 fn main() {
     let args: Vec<String> = args().collect();
     if args.len() != 3 && args.len() != 4 {
@@ -72,10 +65,10 @@ fn main() {
         } else {
             true
         };
-        handle_result(start_game(&args[2], has_audio));
+        start_game(&args[2], has_audio).unwrap();
     } else if args[1] == "test" {
         let memory = read_file(&args[2]).unwrap();
-        handle_result(test(memory));
+        test(memory).unwrap();
     } else {
         panic!(USAGE);
     }

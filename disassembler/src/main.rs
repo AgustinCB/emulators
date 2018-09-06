@@ -81,8 +81,5 @@ fn main() {
 
     let memory = read_file(&args[2]).unwrap();
     let cpu = &args[1];
-    match disassemble(cpu, memory) {
-        Ok(()) => {},
-        Err(err) => panic!(err),
-    };
+    disassemble(cpu, memory).unwrap();
 }
