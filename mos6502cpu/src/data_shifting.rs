@@ -98,7 +98,7 @@ impl Mos6502Cpu {
     pub(crate) fn execute_lsr_unchecked(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         let value = self.get_value_from_addressing_mode(addressing_mode)?;
         let answer = value >> 1;
-        self.registers.p.zero = answer == 0;
+        self.update_zero_flag(answer);
         self.registers.p.carry = value & 0x01 > 0;
         self.registers.p.negative = false;
         self.set_value_to_addressing_mode(addressing_mode, answer)
@@ -114,9 +114,9 @@ impl Mos6502Cpu {
         let carry_mask = self.registers.p.carry as u8;
         let value = self.get_value_from_addressing_mode(addressing_mode)?;
         let answer = (value << 1) | carry_mask;
-        self.registers.p.zero = answer == 0;
+        self.update_zero_flag(answer);
+        self.update_negative_flag(answer);
         self.registers.p.carry = value & 0x80 > 0;
-        self.registers.p.negative = false;
         self.set_value_to_addressing_mode(addressing_mode, answer)
     }
 
@@ -130,7 +130,7 @@ impl Mos6502Cpu {
         let carry_mask = (self.registers.p.carry as u8) << 7;
         let value = self.get_value_from_addressing_mode(addressing_mode)?;
         let answer = (value >> 1) | carry_mask;
-        self.registers.p.zero = answer == 0;
+        self.update_zero_flag(answer);
         self.registers.p.carry = value & 0x01 > 0;
         self.registers.p.negative = false;
         self.set_value_to_addressing_mode(addressing_mode, answer)
@@ -139,16 +139,16 @@ impl Mos6502Cpu {
     #[inline]
     fn increment(&mut self, value: u8) -> u8 {
         let answer = (value as u16 + 1) as u8;
-        self.registers.p.zero = answer == 0;
-        self.registers.p.negative = answer & 0x80 > 0;
+        self.update_zero_flag(answer);
+        self.update_negative_flag(answer);
         answer
     }
 
     #[inline]
     fn decrement(&mut self, value: u8) -> u8 {
         let answer = (value as u16 + ONE_TWO_COMPLEMENT as u16) as u8;
-        self.registers.p.zero = answer == 0;
-        self.registers.p.negative = answer & 0x80 > 0;
+        self.update_zero_flag(answer);
+        self.update_negative_flag(answer);
         answer
     }
 
@@ -531,7 +531,7 @@ mod tests {
     }
 
     #[test]
-    fn it_should_rotate_left_setting_carry() {
+    fn it_should_rotate_left_setting_carry_and_negative() {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.a = 0xC0;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -540,7 +540,7 @@ mod tests {
         }).unwrap();
         assert_eq!(cpu.registers.a, 0x80);
         assert!(cpu.registers.p.carry);
-        assert!(!cpu.registers.p.negative);
+        assert!(cpu.registers.p.negative);
         assert!(!cpu.registers.p.zero);
     }
 
