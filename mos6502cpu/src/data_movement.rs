@@ -17,7 +17,7 @@ impl Mos6502Cpu {
     }
 
     pub(crate) fn execute_ldx(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
-        self.check_data_load_address(addressing_mode)?;
+        self.check_data_load_address_y(addressing_mode)?;
         self.execute_ldx_unchecked(addressing_mode)
     }
 
@@ -31,7 +31,7 @@ impl Mos6502Cpu {
     }
 
     pub(crate) fn execute_ldy(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
-        self.check_data_load_address(addressing_mode)?;
+        self.check_data_load_address_x(addressing_mode)?;
         let value = self.get_value_from_addressing_mode(addressing_mode)?;
         self.registers.y = value;
         self.update_zero_flag(value);
@@ -141,7 +141,19 @@ impl Mos6502Cpu {
     }
 
     #[inline]
-    fn check_data_load_address(&self, addressing_mode: &AddressingMode) -> CpuResult {
+    fn check_data_load_address_y(&self, addressing_mode: &AddressingMode) -> CpuResult {
+        match addressing_mode {
+            AddressingMode::Immediate { byte: _ } => Ok(()),
+            AddressingMode::ZeroPage { byte: _ } => Ok(()),
+            AddressingMode::ZeroPageIndexedY { byte: _ } => Ok(()),
+            AddressingMode::Absolute { low_byte: _, high_byte: _ } => Ok(()),
+            AddressingMode::AbsoluteIndexedY { low_byte: _, high_byte: _ } => Ok(()),
+            _ => Err(CpuError::InvalidAddressingMode)
+        }
+    }
+
+    #[inline]
+    fn check_data_load_address_x(&self, addressing_mode: &AddressingMode) -> CpuResult {
         match addressing_mode {
             AddressingMode::Immediate { byte: _ } => Ok(()),
             AddressingMode::ZeroPage { byte: _ } => Ok(()),
