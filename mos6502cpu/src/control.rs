@@ -1,7 +1,5 @@
 use {Mos6502Cpu, CpuError, CpuResult};
-use bit_utils::{two_bytes_to_word, word_to_two_bytes};
 use instruction::AddressingMode;
-use mos6502cpu::INTERRUPT_HANDLERS_START;
 
 impl Mos6502Cpu {
     pub(crate) fn execute_bit(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
@@ -12,25 +10,6 @@ impl Mos6502Cpu {
         self.registers.p.overflow = value & 0x40 > 0;
         self.registers.p.carry = value & 0x80 > 0;
         Ok(())
-    }
-
-    pub(crate) fn execute_brk(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
-        if let AddressingMode::Implicit = addressing_mode {
-            self.registers.p.break_flag = true;
-            let p_byte = self.registers.p.to_byte();
-            let (low_byte, high_byte) = word_to_two_bytes(self.registers.pc);
-            self.push(high_byte);
-            self.push(low_byte);
-            self.push(p_byte);
-            let high_byte = self.memory[INTERRUPT_HANDLERS_START + 2 * 2 + 1];
-            let low_byte = self.memory[INTERRUPT_HANDLERS_START + 2 * 2];
-            let handler = two_bytes_to_word(high_byte, low_byte);
-            self.registers.pc = handler;
-            self.registers.p.interrupt_disable = true;
-            Ok(())
-        } else {
-            Err(CpuError::InvalidAddressingMode)
-        }
     }
 
     pub(crate) fn execute_clc(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
@@ -152,36 +131,6 @@ mod tests {
         }).unwrap();
         assert!(cpu.registers.p.overflow);
         assert!(!cpu.registers.p.carry);
-    }
-
-    #[test]
-    fn it_should_change_program_counter_to_fffe_on_break() {
-        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
-        cpu.memory[0xfffe] = 0x24;
-        cpu.memory[0xffff] = 0x42;
-        cpu.registers.p.break_flag = false;
-        cpu.execute_instruction(&Mos6502Instruction {
-            instruction: Mos6502InstructionCode::Brk,
-            addressing_mode: AddressingMode::Implicit,
-        }).unwrap();
-        assert!(cpu.registers.p.break_flag);
-        assert!(cpu.registers.p.interrupt_disable);
-        assert_eq!(cpu.registers.pc, 0x4224);
-    }
-
-    #[test]
-    fn it_should_save_in_stack_status_on_break() {
-        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
-        cpu.registers.s = 3;
-        cpu.registers.pc = 0x4224;
-        cpu.execute_instruction(&Mos6502Instruction {
-            instruction: Mos6502InstructionCode::Brk,
-            addressing_mode: AddressingMode::Implicit,
-        }).unwrap();
-        assert_eq!(cpu.registers.s, 0);
-        assert_eq!(cpu.memory[0x103], 0x42);
-        assert_eq!(cpu.memory[0x102], 0x24);
-        assert_eq!(cpu.memory[0x101], 0x30);
     }
 
     #[test]
