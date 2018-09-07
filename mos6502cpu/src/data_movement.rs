@@ -122,8 +122,6 @@ impl Mos6502Cpu {
         if let AddressingMode::Implicit = addressing_mode {
             let x_value = self.registers.x;
             self.registers.s = x_value;
-            self.update_zero_flag(x_value);
-            self.update_negative_flag(x_value);
             Ok(())
         } else {
             Err(CpuError::InvalidAddressingMode)
@@ -511,7 +509,7 @@ mod tests {
     }
 
     #[test]
-    fn it_should_move_x_to_s_setting_zero() {
+    fn it_should_move_x_to_s_without_setting_zero() {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.s = 0x42;
         cpu.registers.x = 0;
@@ -520,12 +518,12 @@ mod tests {
             addressing_mode: AddressingMode::Implicit,
         }).unwrap();
         assert_eq!(cpu.registers.s, 0);
-        assert!(cpu.registers.p.zero);
+        assert!(!cpu.registers.p.zero);
         assert!(!cpu.registers.p.negative);
     }
 
     #[test]
-    fn it_should_move_x_to_s_setting_negative() {
+    fn it_should_move_x_to_s_without_setting_negative() {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
         cpu.registers.s = 0;
         cpu.registers.x = 0x80;
@@ -535,7 +533,7 @@ mod tests {
         }).unwrap();
         assert_eq!(cpu.registers.s, 0x80);
         assert!(!cpu.registers.p.zero);
-        assert!(cpu.registers.p.negative);
+        assert!(!cpu.registers.p.negative);
     }
 
     #[test]
