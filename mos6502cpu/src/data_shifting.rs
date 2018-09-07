@@ -131,8 +131,8 @@ impl Mos6502Cpu {
         let value = self.get_value_from_addressing_mode(addressing_mode)?;
         let answer = (value >> 1) | carry_mask;
         self.update_zero_flag(answer);
+        self.update_negative_flag(answer);
         self.registers.p.carry = value & 0x01 > 0;
-        self.registers.p.negative = false;
         self.set_value_to_addressing_mode(addressing_mode, answer)
     }
 
@@ -583,7 +583,7 @@ mod tests {
         }).unwrap();
         assert_eq!(cpu.registers.a, 0x81);
         assert!(!cpu.registers.p.carry);
-        assert!(!cpu.registers.p.negative);
+        assert!(cpu.registers.p.negative);
         assert!(!cpu.registers.p.zero);
     }
 
