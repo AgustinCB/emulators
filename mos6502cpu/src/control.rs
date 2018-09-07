@@ -26,6 +26,7 @@ impl Mos6502Cpu {
             let low_byte = self.memory[INTERRUPT_HANDLERS_START + 2 * 2];
             let handler = two_bytes_to_word(high_byte, low_byte);
             self.registers.pc = handler;
+            self.registers.p.interrupt_disable = true;
             Ok(())
         } else {
             Err(CpuError::InvalidAddressingMode)
@@ -164,6 +165,7 @@ mod tests {
             addressing_mode: AddressingMode::Implicit,
         }).unwrap();
         assert!(cpu.registers.p.break_flag);
+        assert!(cpu.registers.p.interrupt_disable);
         assert_eq!(cpu.registers.pc, 0x4224);
     }
 
