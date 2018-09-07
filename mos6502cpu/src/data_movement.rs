@@ -47,17 +47,29 @@ impl Mos6502Cpu {
     }
 
     pub(crate) fn execute_stx(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
-        self.check_data_store_address(addressing_mode)?;
-        let address = self.get_address_from_addressing_mode(addressing_mode)? as usize;
-        self.memory[address] = self.registers.x;
-        Ok(())
+        match addressing_mode {
+            AddressingMode::ZeroPage { byte: _ } |
+            AddressingMode::ZeroPageIndexedY { byte: _ } |
+            AddressingMode::Absolute { low_byte: _, high_byte: _ } => {
+                let address = self.get_address_from_addressing_mode(addressing_mode)? as usize;
+                self.memory[address] = self.registers.x;
+                Ok(())
+            },
+            _ => Err(CpuError::InvalidAddressingMode),
+        }
     }
 
     pub(crate) fn execute_sty(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
-        self.check_data_store_address(addressing_mode)?;
-        let address = self.get_address_from_addressing_mode(addressing_mode)? as usize;
-        self.memory[address] = self.registers.y;
-        Ok(())
+        match addressing_mode {
+            AddressingMode::ZeroPage { byte: _ } |
+            AddressingMode::ZeroPageIndexedX { byte: _ } |
+            AddressingMode::Absolute { low_byte: _, high_byte: _ } => {
+                let address = self.get_address_from_addressing_mode(addressing_mode)? as usize;
+                self.memory[address] = self.registers.y;
+                Ok(())
+            },
+            _ => Err(CpuError::InvalidAddressingMode),
+        }
     }
 
     pub(crate) fn execute_tax(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
