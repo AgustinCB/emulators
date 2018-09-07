@@ -8,7 +8,7 @@ impl Mos6502Cpu {
         let answer = value & self.registers.a;
         self.update_zero_flag(answer);
         self.registers.p.overflow = value & 0x40 > 0;
-        self.registers.p.carry = value & 0x80 > 0;
+        self.registers.p.negative = value & 0x80 > 0;
         Ok(())
     }
 
@@ -119,18 +119,18 @@ mod tests {
     }
 
     #[test]
-    fn it_should_set_overflow_and_carry_from_memory() {
+    fn it_should_set_overflow_and_negative_from_memory() {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
-        cpu.memory[0] = 0x42;
+        cpu.memory[0] = 0xc0;
         cpu.registers.a = 0x0;
         cpu.registers.p.overflow = false;
-        cpu.registers.p.carry = true;
+        cpu.registers.p.negative = false;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Bit,
             addressing_mode: AddressingMode::Absolute { high_byte: 0, low_byte: 0 },
         }).unwrap();
         assert!(cpu.registers.p.overflow);
-        assert!(!cpu.registers.p.carry);
+        assert!(cpu.registers.p.negative);
     }
 
     #[test]
