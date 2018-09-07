@@ -1,4 +1,4 @@
-use helpers::{bit_count, two_bytes_to_word};
+use helpers::two_bytes_to_word;
 use std::boxed::Box;
 use std::fmt;
 use super::cpu::{InputDevice, OutputDevice};
@@ -172,7 +172,7 @@ impl<'a> Intel8080Cpu<'a> {
         if with_carry {
             self.flags.carry = answer > 0xff;
         }
-        self.flags.parity = bit_count(answer as u8) % 2 == 0;
+        self.flags.parity = (answer as u8).count_ones() % 2 == 0;
     }
 
     #[inline]
