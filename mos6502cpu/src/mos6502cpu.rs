@@ -155,12 +155,10 @@ impl Mos6502Cpu {
             },
             AddressingMode::ZeroPage { byte } => Ok(*byte as u16),
             AddressingMode::ZeroPageIndexedX { byte } => {
-                let x = self.registers.x as u16;
-                Ok((x + *byte as u16) & 0x00ff)
+                Ok(self.registers.x.wrapping_add(*byte) as u16)
             },
             AddressingMode::ZeroPageIndexedY { byte } => {
-                let y = self.registers.y as u16;
-                Ok((y + *byte as u16) & 0x00ff)
+                Ok(self.registers.y.wrapping_add(*byte) as u16)
             },
             AddressingMode::IndexedIndirect { byte } => {
                 let indirect_address = ((*byte as u16 + self.registers.x as u16) as u8) as usize;
