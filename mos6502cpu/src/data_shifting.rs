@@ -138,7 +138,7 @@ impl Mos6502Cpu {
 
     #[inline]
     fn increment(&mut self, value: u8) -> u8 {
-        let answer = (value as u16 + 1) as u8;
+        let answer = value.wrapping_add(1);
         self.update_zero_flag(answer);
         self.update_negative_flag(answer);
         answer
@@ -146,7 +146,7 @@ impl Mos6502Cpu {
 
     #[inline]
     fn decrement(&mut self, value: u8) -> u8 {
-        let answer = (value as u16 + ONE_TWO_COMPLEMENT as u16) as u8;
+        let answer = value.wrapping_add(ONE_TWO_COMPLEMENT);
         self.update_zero_flag(answer);
         self.update_negative_flag(answer);
         answer
