@@ -408,6 +408,7 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
             Mos6502InstructionCode::Adc => page_crossed_condition!(),
             Mos6502InstructionCode::And => page_crossed_condition!(),
             Mos6502InstructionCode::Cmp => page_crossed_condition!(),
+            Mos6502InstructionCode::Eor => page_crossed_condition!(),
             Mos6502InstructionCode::Lax => page_crossed_condition!(),
             Mos6502InstructionCode::Lda => page_crossed_condition!(),
             Mos6502InstructionCode::Ldx => page_crossed_condition!(),
