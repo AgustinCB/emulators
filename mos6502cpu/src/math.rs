@@ -9,15 +9,15 @@ impl Mos6502Cpu {
 
     #[inline]
     pub(crate) fn execute_adc_unchecked(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
-        let value = self.get_value_from_addressing_mode(addressing_mode)? as u16;
-        let carry_as_u16 = self.registers.p.carry as u16;
-        let answer = self.registers.a as u16 + value + carry_as_u16;
-        self.update_zero_flag(answer as u8);
-        self.update_negative_flag(answer as u8);
-        self.update_carry_flag(answer);
+        let value = self.get_value_from_addressing_mode(addressing_mode)?;
+        let (tmp, first_carry) = self.registers.a.overflowing_add(value);
+        let (answer, second_carry) = tmp.overflowing_add(self.registers.p.carry as u8);
+        self.update_zero_flag(answer);
+        self.update_negative_flag(answer);
+        self.registers.p.carry = first_carry || second_carry;
         self.registers.p.overflow =
-            self.calculate_overflow(self.registers.a, value as u8, answer as u8);
-        self.registers.a = answer as u8;
+            self.calculate_overflow(self.registers.a, value, answer);
+        self.registers.a = answer;
         Ok(())
     }
 
