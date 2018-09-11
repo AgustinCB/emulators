@@ -32,7 +32,7 @@ impl Mos6502Cpu {
         let a = self.registers.a;
         let carry_as_u8 = self.registers.p.carry as u8;
         let mut al = (a & 0x0f) + (value & 0x0f) + carry_as_u8;
-        let mut ah = (a >> 4) + (value >> 4) + (al > 0x0f) as u8;
+        let mut ah = (a >> 4) + (value >> 4) + (al > 0x09) as u8;
         if al > 9 { al += 6 };
         self.update_zero_flag(a.wrapping_add(value).wrapping_add(carry_as_u8));
         self.registers.p.negative = (ah & 0x08) > 0;

@@ -582,7 +582,7 @@ the instruction:
 
         AL = (A & 15) + (s & 15) + C;         /* Calculate the lower nybble. */
 
-        AH = (A >> 4) + (s >> 4) + (AL > 15); /* Calculate the upper nybble. */
+        AH = (A >> 4) + (s >> 4) + (AL > 9); /* Calculate the upper nybble. */
 
         if (AL > 9) AL += 6;                  /* BCD fixup for lower nybble. */
 
