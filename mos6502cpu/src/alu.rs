@@ -1,6 +1,8 @@
 use {Mos6502Cpu, CpuError, CpuResult};
 use instruction::AddressingMode;
 
+pub(crate) const ONE_TWO_COMPLEMENT: u8 = 0xff;
+
 impl Mos6502Cpu {
     #[inline]
     pub(crate) fn check_alu_address(&self, addressing_mode: &AddressingMode) -> CpuResult {

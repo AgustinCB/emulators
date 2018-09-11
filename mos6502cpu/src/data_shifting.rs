@@ -1,7 +1,6 @@
 use {Mos6502Cpu, CpuResult, CpuError};
+use alu::ONE_TWO_COMPLEMENT;
 use instruction::AddressingMode;
-
-const ONE_TWO_COMPLEMENT: u8 = 0xff;
 
 impl Mos6502Cpu {
     pub(crate) fn execute_asl(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
