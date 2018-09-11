@@ -4,7 +4,11 @@ use instruction::AddressingMode;
 impl Mos6502Cpu {
     pub(crate) fn execute_adc(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_alu_address(addressing_mode)?;
-        self.execute_adc_unchecked(addressing_mode)
+        if self.registers.p.decimal {
+            self.execute_adc_decimal_unchecked(addressing_mode)
+        } else {
+            self.execute_adc_unchecked(addressing_mode)
+        }
     }
 
     #[inline]
@@ -18,6 +22,24 @@ impl Mos6502Cpu {
         self.registers.p.overflow =
             self.calculate_overflow(self.registers.a, value, answer);
         self.registers.a = answer;
+        Ok(())
+    }
+
+    #[inline]
+    pub(crate) fn execute_adc_decimal_unchecked(&mut self, addressing_mode: &AddressingMode)
+        -> CpuResult {
+        let value = self.get_value_from_addressing_mode(addressing_mode)?;
+        let a = self.registers.a;
+        let carry_as_u8 = self.registers.p.carry as u8;
+        let mut al = (a & 0x0f) + (value & 0x0f) + carry_as_u8;
+        let mut ah = (a >> 4) + (value >> 4) + (al > 0x0f) as u8;
+        if al > 9 { al += 6 };
+        self.update_zero_flag(a.wrapping_add(value).wrapping_add(carry_as_u8));
+        self.registers.p.negative = (ah & 0x08) > 0;
+        self.registers.p.overflow = (((ah << 4) ^ a) & 0x80) > 0 && ((a ^ value) & 0x80) == 0;
+        if ah > 9 { ah += 6 };
+        self.registers.p.carry = ah > 15;
+        self.registers.a = (ah << 4) | (al & 0x0f);
         Ok(())
     }
 
@@ -52,12 +74,36 @@ impl Mos6502Cpu {
 
     pub(crate) fn execute_sbc(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_alu_address(addressing_mode)?;
-        self.execute_sbc_unchecked(addressing_mode)
+        if self.registers.p.decimal {
+            self.execute_sbc_decimal_unchecked(addressing_mode)
+        } else {
+            self.execute_sbc_unchecked(addressing_mode)
+        }
     }
 
     #[inline]
     pub(crate) fn execute_sbc_unchecked(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         let value = self.get_value_from_addressing_mode(addressing_mode)?;
+        self.registers.a = self.sbc_logic(value);
+        Ok(())
+    }
+
+    #[inline]
+    pub(crate) fn execute_sbc_decimal_unchecked(&mut self, addressing_mode: &AddressingMode)
+        -> CpuResult {
+        let value = self.get_value_from_addressing_mode(addressing_mode)?;
+        let a = self.registers.a;
+        let mut al = (a & 0x0f).wrapping_sub(value & 0x0f).wrapping_sub(!self.registers.p.carry as u8);
+        if (al & 0x10) > 0 { al -= 6 };
+        let mut ah = (a >> 4).wrapping_sub(value >> 4).wrapping_sub(al & 0x10);
+        if (ah & 0x10) > 0 { ah -= 6 };
+        self.registers.a = (ah << 4) | (al & 0x0f);
+        self.sbc_logic(value);
+        Ok(())
+    }
+
+    #[inline]
+    fn sbc_logic(&mut self, value: u8) -> u8 {
         let (tmp, first_carry) = self.registers.a.overflowing_sub(value);
         let (answer, second_carry) = tmp.overflowing_sub(!self.registers.p.carry as u8);
         self.update_zero_flag(answer);
@@ -65,8 +111,7 @@ impl Mos6502Cpu {
         self.registers.p.carry = !(first_carry || second_carry);
         self.registers.p.overflow =
             ((self.registers.a ^ answer) & 0x80) > 0 && ((self.registers.a ^ value) & 0x80) > 0;
-        self.registers.a = answer;
-        Ok(())
+        answer
     }
 
     #[inline]
