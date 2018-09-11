@@ -17,7 +17,7 @@ impl Mos6502Cpu {
         self.update_negative_flag(answer as u8);
         self.update_carry_flag(answer);
         self.registers.p.overflow =
-            self.calculate_overflow(self.registers.a, (value + carry_as_u16) as u8, answer as u8);
+            self.calculate_overflow(self.registers.a, value as u8, answer as u8);
         self.registers.a = answer as u8;
         Ok(())
     }
@@ -74,8 +74,8 @@ impl Mos6502Cpu {
 
     #[inline]
     fn calculate_overflow(&self, op1: u8, op2: u8, result: u8) -> bool {
-        ((op1 & 0x80) > 0 && (op2 & 0x80) > 0 && (result & 0x80) == 0) ||
-            ((op1 & 0x80) == 0 && (op2 & 0x80) == 0 && (result & 0x80) > 0)
+        ((op1 & 0x80) > 0 && (op2 & 0x80) > 0 && (result & 0x80) == 0)
+            || ((op1 & 0x80) == 0 && (op2 & 0x80) == 0 && (result & 0x80) > 0)
     }
 
     #[inline]
@@ -439,16 +439,16 @@ mod tests {
     #[test]
     fn it_should_subtract_setting_overflow() {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
-        cpu.registers.a = 0x80;
-        cpu.registers.p.carry = false;
+        cpu.registers.a = 0x7f;
+        cpu.registers.p.carry = true;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Sbc,
-            addressing_mode: AddressingMode::Immediate { byte: 0x7f },
+            addressing_mode: AddressingMode::Immediate { byte: 0xff },
         }).unwrap();
-        assert_eq!(cpu.registers.a, 0x0);
-        assert!(cpu.registers.p.zero);
-        assert!(cpu.registers.p.carry);
-        assert!(!cpu.registers.p.negative);
+        assert_eq!(cpu.registers.a, 0x80);
+        assert!(!cpu.registers.p.zero);
+        assert!(!cpu.registers.p.carry);
+        assert!(cpu.registers.p.negative);
         assert!(cpu.registers.p.overflow);
     }
 }
