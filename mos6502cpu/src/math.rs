@@ -60,14 +60,14 @@ impl Mos6502Cpu {
     #[inline]
     pub(crate) fn execute_sbc_unchecked(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         let value = self.get_value_from_addressing_mode(addressing_mode)?;
-        let carry_as_u16 = if !self.registers.p.carry {
+        let carry_as_u16 = !self.registers.p.carry as u16;
+        let a_as_u16 = self.registers.a as u16;
+        let tmp = a_as_u16 + two_complement(value) as u16;
+        let answer = if tmp == 0 && !self.registers.p.carry {
             ONE_TWO_COMPLEMENT as u16
         } else {
-            0
+            tmp - carry_as_u16
         };
-        let a_as_u16 = self.registers.a as u16;
-        let operand = two_complement(value) as u16;
-        let answer = a_as_u16 + operand + carry_as_u16;
         self.update_zero_flag(answer as u8);
         self.update_negative_flag(answer as u8);
         self.update_carry_flag(answer);
@@ -487,6 +487,22 @@ mod tests {
         assert!(!cpu.registers.p.zero);
         assert!(!cpu.registers.p.carry);
         assert!(cpu.registers.p.negative);
+        assert!(!cpu.registers.p.overflow);
+    }
+
+    #[test]
+    fn it_should_subtract_without_wrapping_around() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.a = 0x01;
+        cpu.registers.p.carry = false;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Sbc,
+            addressing_mode: AddressingMode::Immediate { byte: 0x00 },
+        }).unwrap();
+        assert_eq!(cpu.registers.a, 0x0);
+        assert!(cpu.registers.p.zero);
+        assert!(!cpu.registers.p.carry);
+        assert!(!cpu.registers.p.negative);
         assert!(!cpu.registers.p.overflow);
     }
 }
