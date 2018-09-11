@@ -493,8 +493,24 @@ mod tests {
     #[test]
     fn it_should_subtract_without_wrapping_around() {
         let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
-        cpu.registers.a = 0x01;
+        cpu.registers.a = 0x00;
         cpu.registers.p.carry = false;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Sbc,
+            addressing_mode: AddressingMode::Immediate { byte: 0x00 },
+        }).unwrap();
+        assert_eq!(cpu.registers.a, 0xff);
+        assert!(!cpu.registers.p.zero);
+        assert!(!cpu.registers.p.carry);
+        assert!(cpu.registers.p.negative);
+        assert!(!cpu.registers.p.overflow);
+    }
+
+    #[test]
+    fn it_should_subtract_doing_nothing() {
+        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        cpu.registers.a = 0x00;
+        cpu.registers.p.carry = true;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Sbc,
             addressing_mode: AddressingMode::Immediate { byte: 0x00 },
