@@ -1,5 +1,4 @@
 use {Mos6502Cpu, CpuError, CpuResult};
-use bit_utils::two_complement;
 use instruction::AddressingMode;
 
 impl Mos6502Cpu {
@@ -77,11 +76,11 @@ impl Mos6502Cpu {
     }
 
     #[inline]
-    pub(crate) fn compare(&mut self, register: u8, value: u8) -> u16 {
-        let answer = register as u16 + two_complement(value) as u16;
-        self.update_zero_flag(answer as u8);
-        self.update_negative_flag(answer as u8);
-        self.registers.p.carry = register >= value;
+    pub(crate) fn compare(&mut self, register: u8, value: u8) -> u8 {
+        let (answer, carry) = register.overflowing_sub(value);
+        self.update_zero_flag(answer);
+        self.update_negative_flag(answer);
+        self.registers.p.carry = !carry;
         answer
     }
 
