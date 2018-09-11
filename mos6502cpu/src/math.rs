@@ -1,5 +1,4 @@
 use {Mos6502Cpu, CpuError, CpuResult};
-use alu::ONE_TWO_COMPLEMENT;
 use bit_utils::two_complement;
 use instruction::AddressingMode;
 
@@ -62,18 +61,14 @@ impl Mos6502Cpu {
         let value = self.get_value_from_addressing_mode(addressing_mode)?;
         let carry_as_u16 = !self.registers.p.carry as u16;
         let a_as_u16 = self.registers.a as u16;
-        let tmp = a_as_u16 + two_complement(value) as u16;
-        let answer = if tmp == 0 && !self.registers.p.carry {
-            ONE_TWO_COMPLEMENT as u16
-        } else {
-            tmp - carry_as_u16
-        };
+        let (tmp, first_carry) = a_as_u16.overflowing_sub(value as u16);
+        let (answer, second_carry) = tmp.overflowing_sub(carry_as_u16);
         self.update_zero_flag(answer as u8);
         self.update_negative_flag(answer as u8);
-        self.update_carry_flag(answer);
+        self.registers.p.carry = !(first_carry || second_carry);
         self.registers.p.overflow =
             ((self.registers.a ^ (answer as u8)) & 0x80) > 0 &&
-                ((self.registers.a ^ (value as u8)) & 0x80) > 0;
+                ((self.registers.a ^ value) & 0x80) > 0;
         self.registers.a = answer as u8;
         Ok(())
     }
@@ -517,7 +512,7 @@ mod tests {
         }).unwrap();
         assert_eq!(cpu.registers.a, 0x0);
         assert!(cpu.registers.p.zero);
-        assert!(!cpu.registers.p.carry);
+        assert!(cpu.registers.p.carry);
         assert!(!cpu.registers.p.negative);
         assert!(!cpu.registers.p.overflow);
     }
