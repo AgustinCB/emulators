@@ -59,10 +59,8 @@ impl Mos6502Cpu {
     #[inline]
     pub(crate) fn execute_sbc_unchecked(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         let value = self.get_value_from_addressing_mode(addressing_mode)?;
-        let carry_as_u16 = !self.registers.p.carry as u16;
-        let a_as_u16 = self.registers.a as u16;
-        let (tmp, first_carry) = a_as_u16.overflowing_sub(value as u16);
-        let (answer, second_carry) = tmp.overflowing_sub(carry_as_u16);
+        let (tmp, first_carry) = (self.registers.a as u16).overflowing_sub(value as u16);
+        let (answer, second_carry) = tmp.overflowing_sub(!self.registers.p.carry as u16);
         self.update_zero_flag(answer as u8);
         self.update_negative_flag(answer as u8);
         self.registers.p.carry = !(first_carry || second_carry);
