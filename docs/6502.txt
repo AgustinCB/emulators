@@ -653,13 +653,13 @@ is the result-fixup:
 
            s;  /* value to be added to Accumulator */
 
-        AL = (A & 15) - (s & 15) - !C;        /* Calculate the lower nybble. */
+        AL = (A & 15) - (s & 15) - !C;            /* Calculate the lower nybble. */
 
-        if (AL & 16) AL -= 6;                 /* BCD fixup for lower nybble. */
+        if (AL & 16) AL -= 6;                     /* BCD fixup for lower nybble. */
 
-        AH = (A >> 4) - (s >> 4) - (AL & 16); /* Calculate the upper nybble. */
+        AH = (A >> 4) - (s >> 4) - (AL & 16) > 0; /* Calculate the upper nybble. */
 
-        if (AH & 16) AH -= 6;                 /* BCD fixup for upper nybble. */
+        if (AH & 16) AH -= 6;                     /* BCD fixup for upper nybble. */
 
         /* The flags are set just like in Binary mode. */
 

@@ -95,10 +95,10 @@ impl Mos6502Cpu {
         let a = self.registers.a;
         let mut al = (a & 0x0f).wrapping_sub(value & 0x0f).wrapping_sub(!self.registers.p.carry as u8);
         if (al & 0x10) > 0 { al -= 6 };
-        let mut ah = (a >> 4).wrapping_sub(value >> 4).wrapping_sub(al & 0x10);
+        let mut ah = (a >> 4).wrapping_sub(value >> 4).wrapping_sub(((al & 0x10) > 0) as u8);
         if (ah & 0x10) > 0 { ah -= 6 };
-        self.registers.a = (ah << 4) | (al & 0x0f);
         self.sbc_logic(value);
+        self.registers.a = (ah << 4) | (al & 0x0f);
         Ok(())
     }
 
