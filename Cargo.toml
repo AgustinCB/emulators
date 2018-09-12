@@ -4,5 +4,6 @@ members = [
     "disassembler",
     "intel8080cpu",
     "mos6502cpu",
+    "nes",
     "space_invaders",
 ]

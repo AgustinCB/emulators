@@ -9,7 +9,7 @@ use std::env::args;
 use std::fs::File;
 use std::io::Read;
 
-const USAGE: &'static str = "Usage: disassembler-8080 [game|test] [file] [--no-audio]
+const USAGE: &'static str = "Usage: space-invaders [game|test] [file] [--no-audio]
 
 If running either test, [file] should be a hex file with Intel 8080 instructions.
 
