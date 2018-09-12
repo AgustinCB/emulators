@@ -17,8 +17,8 @@ fn read_file(file_name: &str) -> std::io::Result<[u8; AVAILABLE_MEMORY]> {
 }
 
 fn start_game(game: &str) -> Result<(), Error> {
-    let memory = read_file(game)?;
-    let _cpu = Mos6502Cpu::new(memory);
+    let mut memory = read_file(game)?;
+    let _cpu = Mos6502Cpu::new(&mut memory);
     Ok(())
 }
 

@@ -1,7 +1,7 @@
-use {Mos6502Cpu, CpuError, CpuResult};
+use {Memory, Mos6502Cpu, CpuError, CpuResult};
 use instruction::AddressingMode;
 
-impl Mos6502Cpu {
+impl<'a> Mos6502Cpu<'a> {
     pub(crate) fn execute_lda(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_alu_address(addressing_mode)?;
         self.execute_lda_unchecked(addressing_mode)
@@ -41,8 +41,8 @@ impl Mos6502Cpu {
 
     pub(crate) fn execute_sta(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_data_store_address(addressing_mode)?;
-        let address = self.get_address_from_addressing_mode(addressing_mode)? as usize;
-        self.memory[address] = self.registers.a;
+        let address = self.get_address_from_addressing_mode(addressing_mode)?;
+        self.memory.set(address, self.registers.a);
         Ok(())
     }
 
@@ -51,8 +51,8 @@ impl Mos6502Cpu {
             AddressingMode::ZeroPage { byte: _ } |
             AddressingMode::ZeroPageIndexedY { byte: _ } |
             AddressingMode::Absolute { low_byte: _, high_byte: _ } => {
-                let address = self.get_address_from_addressing_mode(addressing_mode)? as usize;
-                self.memory[address] = self.registers.x;
+                let address = self.get_address_from_addressing_mode(addressing_mode)?;
+                self.memory.set(address, self.registers.x);
                 Ok(())
             },
             _ => Err(CpuError::InvalidAddressingMode),
@@ -64,8 +64,8 @@ impl Mos6502Cpu {
             AddressingMode::ZeroPage { byte: _ } |
             AddressingMode::ZeroPageIndexedX { byte: _ } |
             AddressingMode::Absolute { low_byte: _, high_byte: _ } => {
-                let address = self.get_address_from_addressing_mode(addressing_mode)? as usize;
-                self.memory[address] = self.registers.y;
+                let address = self.get_address_from_addressing_mode(addressing_mode)?;
+                self.memory.set(address, self.registers.y);
                 Ok(())
             },
             _ => Err(CpuError::InvalidAddressingMode),
@@ -195,11 +195,12 @@ impl Mos6502Cpu {
 mod tests {
     use cpu::Cpu;
     use instruction::{AddressingMode, Mos6502Instruction, Mos6502InstructionCode};
-    use {AVAILABLE_MEMORY, Mos6502Cpu};
+    use {AVAILABLE_MEMORY, Memory, Mos6502Cpu};
 
     #[test]
     fn it_should_load_into_accumulator_and_not_set_anything() {
-        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
         cpu.registers.a = 0;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Lda,
@@ -212,7 +213,8 @@ mod tests {
 
     #[test]
     fn it_should_load_into_accumulator_and_set_zero() {
-        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
         cpu.registers.a = 0x42;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Lda,
@@ -225,7 +227,8 @@ mod tests {
 
     #[test]
     fn it_should_load_into_accumulator_and_set_negative() {
-        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
         cpu.registers.a = 0;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Lda,
@@ -238,7 +241,8 @@ mod tests {
 
     #[test]
     fn it_should_load_into_x_and_not_set_anything() {
-        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
         cpu.registers.x = 0;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Ldx,
@@ -251,7 +255,8 @@ mod tests {
 
     #[test]
     fn it_should_load_into_x_and_set_zero() {
-        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
         cpu.registers.x = 0x42;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Ldx,
@@ -264,7 +269,8 @@ mod tests {
 
     #[test]
     fn it_should_load_into_x_and_set_negative() {
-        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
         cpu.registers.x = 0;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Ldx,
@@ -277,7 +283,8 @@ mod tests {
 
     #[test]
     fn it_should_load_into_y_and_not_set_anything() {
-        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
         cpu.registers.y = 0;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Ldy,
@@ -290,7 +297,8 @@ mod tests {
 
     #[test]
     fn it_should_load_into_y_and_set_zero() {
-        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
         cpu.registers.y = 0x42;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Ldy,
@@ -303,7 +311,8 @@ mod tests {
 
     #[test]
     fn it_should_load_into_y_and_set_negative() {
-        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
         cpu.registers.y = 0;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Ldy,
@@ -316,43 +325,47 @@ mod tests {
 
     #[test]
     fn it_should_store_the_accumulator() {
-        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
-        cpu.memory[0] = 0;
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
+        cpu.memory.set(0, 0);
         cpu.registers.a = 0x42;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Sta,
             addressing_mode: AddressingMode::Absolute { high_byte: 0, low_byte: 0 },
         }).unwrap();
-        assert_eq!(cpu.memory[0], 0x42);
+        assert_eq!(cpu.memory.get(0), 0x42);
     }
 
     #[test]
     fn it_should_store_x() {
-        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
-        cpu.memory[0] = 0;
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
+        cpu.memory.set(0, 0);
         cpu.registers.x = 0x42;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Stx,
             addressing_mode: AddressingMode::Absolute { high_byte: 0, low_byte: 0 },
         }).unwrap();
-        assert_eq!(cpu.memory[0], 0x42);
+        assert_eq!(cpu.memory.get(0), 0x42);
     }
 
     #[test]
     fn it_should_store_y() {
-        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
-        cpu.memory[0] = 0;
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
+        cpu.memory.set(0, 0);
         cpu.registers.y = 0x42;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Sty,
             addressing_mode: AddressingMode::Absolute { high_byte: 0, low_byte: 0 },
         }).unwrap();
-        assert_eq!(cpu.memory[0], 0x42);
+        assert_eq!(cpu.memory.get(0), 0x42);
     }
 
     #[test]
     fn it_should_move_a_to_x() {
-        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
         cpu.registers.x = 0;
         cpu.registers.a = 0x42;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -366,7 +379,8 @@ mod tests {
 
     #[test]
     fn it_should_move_a_to_x_setting_zero() {
-        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
         cpu.registers.x = 0x42;
         cpu.registers.a = 0;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -380,7 +394,8 @@ mod tests {
 
     #[test]
     fn it_should_move_a_to_x_setting_negative() {
-        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
         cpu.registers.x = 0;
         cpu.registers.a = 0x80;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -394,7 +409,8 @@ mod tests {
 
     #[test]
     fn it_should_move_a_to_y() {
-        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
         cpu.registers.y = 0;
         cpu.registers.a = 0x42;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -408,7 +424,8 @@ mod tests {
 
     #[test]
     fn it_should_move_a_to_y_setting_zero() {
-        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
         cpu.registers.y = 0x42;
         cpu.registers.a = 0;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -422,7 +439,8 @@ mod tests {
 
     #[test]
     fn it_should_move_a_to_y_setting_negative() {
-        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
         cpu.registers.y = 0;
         cpu.registers.a = 0x80;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -436,7 +454,8 @@ mod tests {
 
     #[test]
     fn it_should_move_s_to_x() {
-        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
         cpu.registers.x = 0;
         cpu.registers.s = 0x42;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -450,7 +469,8 @@ mod tests {
 
     #[test]
     fn it_should_move_s_to_x_setting_zero() {
-        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
         cpu.registers.x = 0x42;
         cpu.registers.s = 0;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -464,7 +484,8 @@ mod tests {
 
     #[test]
     fn it_should_move_s_to_x_setting_negative() {
-        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
         cpu.registers.x = 0;
         cpu.registers.s = 0x80;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -478,7 +499,8 @@ mod tests {
 
     #[test]
     fn it_should_move_x_to_a() {
-        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
         cpu.registers.a = 0;
         cpu.registers.x = 0x42;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -492,7 +514,8 @@ mod tests {
 
     #[test]
     fn it_should_move_x_to_a_setting_zero() {
-        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
         cpu.registers.a = 0x42;
         cpu.registers.x = 0;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -506,7 +529,8 @@ mod tests {
 
     #[test]
     fn it_should_move_x_to_a_setting_negative() {
-        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
         cpu.registers.a = 0;
         cpu.registers.x = 0x80;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -520,7 +544,8 @@ mod tests {
 
     #[test]
     fn it_should_move_x_to_s() {
-        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
         cpu.registers.s = 0;
         cpu.registers.x = 0x42;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -534,7 +559,8 @@ mod tests {
 
     #[test]
     fn it_should_move_x_to_s_without_setting_zero() {
-        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
         cpu.registers.s = 0x42;
         cpu.registers.x = 0;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -548,7 +574,8 @@ mod tests {
 
     #[test]
     fn it_should_move_x_to_s_without_setting_negative() {
-        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
         cpu.registers.s = 0;
         cpu.registers.x = 0x80;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -562,7 +589,8 @@ mod tests {
 
     #[test]
     fn it_should_move_y_to_a() {
-        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
         cpu.registers.a = 0;
         cpu.registers.y = 0x42;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -576,7 +604,8 @@ mod tests {
 
     #[test]
     fn it_should_move_y_to_a_setting_zero() {
-        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
         cpu.registers.a = 0x42;
         cpu.registers.y = 0;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -590,7 +619,8 @@ mod tests {
 
     #[test]
     fn it_should_move_y_to_a_setting_negative() {
-        let mut cpu = Mos6502Cpu::new([0; AVAILABLE_MEMORY]);
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
         cpu.registers.a = 0;
         cpu.registers.y = 0x80;
         cpu.execute_instruction(&Mos6502Instruction {

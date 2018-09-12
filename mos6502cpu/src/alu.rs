@@ -3,7 +3,7 @@ use instruction::AddressingMode;
 
 pub(crate) const ONE_TWO_COMPLEMENT: u8 = 0xff;
 
-impl Mos6502Cpu {
+impl<'a> Mos6502Cpu<'a> {
     #[inline]
     pub(crate) fn check_alu_address(&self, addressing_mode: &AddressingMode) -> CpuResult {
         match addressing_mode {
