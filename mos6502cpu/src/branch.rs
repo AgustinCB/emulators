@@ -54,17 +54,9 @@ impl<'a> Mos6502Cpu<'a> {
 
     pub(crate) fn execute_brk(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         if let AddressingMode::Implicit = addressing_mode {
-            self.registers.p.break_flag = true;
-            let p_byte = self.registers.p.to_byte();
-            let (low_byte, high_byte) = word_to_two_bytes(self.registers.pc + 1);
-            self.push(high_byte);
-            self.push(low_byte);
-            self.push(p_byte);
-            let high_byte = self.memory.get(INTERRUPT_HANDLERS_START as u16 + 2 * 2 + 1);
-            let low_byte = self.memory.get(INTERRUPT_HANDLERS_START as u16 + 2 * 2);
-            let handler = two_bytes_to_word(high_byte, low_byte);
-            self.registers.pc = handler;
-            self.registers.p.interrupt_disable = true;
+            if !self.registers.p.interrupt_disable {
+                self.execute_interruption(2);
+            }
             Ok(())
         } else {
             Err(CpuError::InvalidAddressingMode)
@@ -107,6 +99,26 @@ impl<'a> Mos6502Cpu<'a> {
         }
     }
 
+    pub(crate) fn execute_nmi(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        if let AddressingMode::Implicit = addressing_mode {
+            self.execute_interruption(0);
+            Ok(())
+        } else {
+            Err(CpuError::InvalidAddressingMode)
+        }
+    }
+
+    pub(crate) fn execute_rst(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
+        if let AddressingMode::Implicit = addressing_mode {
+            if !self.registers.p.interrupt_disable {
+                self.execute_interruption(1);
+            }
+            Ok(())
+        } else {
+            Err(CpuError::InvalidAddressingMode)
+        }
+    }
+
     pub(crate) fn execute_rti(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         if let AddressingMode::Implicit = addressing_mode {
             self.registers.p = ProcessorStatus::from_byte(self.pull());
@@ -126,6 +138,21 @@ impl<'a> Mos6502Cpu<'a> {
         } else {
             Err(CpuError::InvalidAddressingMode)
         }
+    }
+
+    #[inline]
+    fn execute_interruption(&mut self, index: u16) {
+        self.registers.p.break_flag = true;
+        let p_byte = self.registers.p.to_byte();
+        let (low_byte, high_byte) = word_to_two_bytes(self.registers.pc + 1);
+        self.push(high_byte);
+        self.push(low_byte);
+        self.push(p_byte);
+        let high_byte = self.memory.get(INTERRUPT_HANDLERS_START as u16 + index * 2 + 1);
+        let low_byte = self.memory.get(INTERRUPT_HANDLERS_START as u16 + index * 2);
+        let handler = two_bytes_to_word(high_byte, low_byte);
+        self.registers.pc = handler;
+        self.registers.p.interrupt_disable = true;
     }
 
     #[inline]
@@ -419,6 +446,39 @@ mod tests {
     }
 
     #[test]
+    fn it_should_change_program_counter_to_fffe_on_irq() {
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
+        cpu.memory.set(0xfffe, 0x24);
+        cpu.memory.set(0xffff, 0x42);
+        cpu.registers.p.break_flag = false;
+        cpu.registers.pc = 2;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Irq,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert!(cpu.registers.p.break_flag);
+        assert!(cpu.registers.p.interrupt_disable);
+        assert_eq!(cpu.registers.pc, 0x4224);
+    }
+
+    #[test]
+    fn it_should_save_in_stack_status_on_irq() {
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
+        cpu.registers.s = 3;
+        cpu.registers.pc = 0x4224;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Irq,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert_eq!(cpu.registers.s, 0);
+        assert_eq!(cpu.memory.get(0x103), 0x42);
+        assert_eq!(cpu.memory.get(0x102), 0x25);
+        assert_eq!(cpu.memory.get(0x101), 0x30);
+    }
+
+    #[test]
     fn it_should_jump() {
         let mut m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(&mut m);
@@ -449,6 +509,90 @@ mod tests {
         assert_eq!(cpu.registers.pc, 0x4224);
         assert_eq!(cpu.memory.get(0x1ff), 0x00);
         assert_eq!(cpu.memory.get(0x1fe), 0x41);
+    }
+
+    #[test]
+    fn it_should_change_program_counter_to_fffe_on_nmi() {
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
+        cpu.memory.set(0xfffa, 0x24);
+        cpu.memory.set(0xfffb, 0x42);
+        cpu.registers.p.break_flag = false;
+        cpu.registers.pc = 2;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Nmi,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert!(cpu.registers.p.break_flag);
+        assert!(cpu.registers.p.interrupt_disable);
+        assert_eq!(cpu.registers.pc, 0x4224);
+    }
+
+    #[test]
+    fn it_should_save_in_stack_status_on_nmi() {
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
+        cpu.registers.s = 3;
+        cpu.registers.pc = 0x4224;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Nmi,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert_eq!(cpu.registers.s, 0);
+        assert_eq!(cpu.memory.get(0x103), 0x42);
+        assert_eq!(cpu.memory.get(0x102), 0x25);
+        assert_eq!(cpu.memory.get(0x101), 0x30);
+    }
+
+    #[test]
+    fn it_should_ignore_interrupt_disable_on_nmi() {
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
+        cpu.registers.p.break_flag = false;
+        cpu.registers.p.interrupt_disable = true;
+        cpu.memory.set(0xfffa, 0x24);
+        cpu.memory.set(0xfffb, 0x42);
+        cpu.registers.pc = 2;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Nmi,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert!(cpu.registers.p.break_flag);
+        assert!(cpu.registers.p.interrupt_disable);
+        assert_eq!(cpu.registers.pc, 0x4224);
+    }
+
+    #[test]
+    fn it_should_change_program_counter_to_fffe_on_rst() {
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
+        cpu.memory.set(0xfffc, 0x24);
+        cpu.memory.set(0xfffd, 0x42);
+        cpu.registers.p.break_flag = false;
+        cpu.registers.pc = 2;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Rst,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert!(cpu.registers.p.break_flag);
+        assert!(cpu.registers.p.interrupt_disable);
+        assert_eq!(cpu.registers.pc, 0x4224);
+    }
+
+    #[test]
+    fn it_should_save_in_stack_status_on_rst() {
+        let mut m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(&mut m);
+        cpu.registers.s = 3;
+        cpu.registers.pc = 0x4224;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Rst,
+            addressing_mode: AddressingMode::Implicit,
+        }).unwrap();
+        assert_eq!(cpu.registers.s, 0);
+        assert_eq!(cpu.memory.get(0x103), 0x42);
+        assert_eq!(cpu.memory.get(0x102), 0x25);
+        assert_eq!(cpu.memory.get(0x101), 0x30);
     }
 
     #[test]

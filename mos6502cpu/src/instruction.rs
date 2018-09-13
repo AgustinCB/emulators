@@ -9,6 +9,10 @@ pub enum Mos6502InstructionError {
         addressing_mode: AddressingMode,
         instruction_code: Mos6502InstructionCode,
     },
+    #[fail(display = "Instruction {} doesn't have size", instruction_code)]
+    NoSize { instruction_code: Mos6502InstructionCode },
+    #[fail(display = "Instruction {} doesn't have cycles", instruction_code)]
+    NoCycles { instruction_code: Mos6502InstructionCode },
 }
 
 #[derive(Clone, Debug)]
@@ -88,6 +92,7 @@ pub enum Mos6502InstructionCode {
     Inc,
     Inx,
     Iny,
+    Irq,
     Isc,
     Jmp,
     Jsr,
@@ -97,6 +102,7 @@ pub enum Mos6502InstructionCode {
     Ldx,
     Ldy,
     Lsr,
+    Nmi,
     Nop,
     Ora,
     Pha,
@@ -107,6 +113,7 @@ pub enum Mos6502InstructionCode {
     Rol,
     Ror,
     Rra,
+    Rst,
     Rti,
     Rts,
     Sax,
@@ -167,6 +174,7 @@ impl fmt::Display for Mos6502InstructionCode {
             Mos6502InstructionCode::Inc => String::from("INC"),
             Mos6502InstructionCode::Inx => String::from("INX"),
             Mos6502InstructionCode::Iny => String::from("INY"),
+            Mos6502InstructionCode::Irq => String::from("IRQ"),
             Mos6502InstructionCode::Isc => String::from("ISC"),
             Mos6502InstructionCode::Jmp => String::from("JMP"),
             Mos6502InstructionCode::Jsr => String::from("JSR"),
@@ -176,6 +184,7 @@ impl fmt::Display for Mos6502InstructionCode {
             Mos6502InstructionCode::Ldx => String::from("LDX"),
             Mos6502InstructionCode::Ldy => String::from("LDY"),
             Mos6502InstructionCode::Lsr => String::from("LSR"),
+            Mos6502InstructionCode::Nmi => String::from("NMI"),
             Mos6502InstructionCode::Nop => String::from("NOP"),
             Mos6502InstructionCode::Ora => String::from("ORA"),
             Mos6502InstructionCode::Pha => String::from("PHA"),
@@ -186,6 +195,7 @@ impl fmt::Display for Mos6502InstructionCode {
             Mos6502InstructionCode::Rol => String::from("ROL"),
             Mos6502InstructionCode::Ror => String::from("ROR"),
             Mos6502InstructionCode::Rra => String::from("RRA"),
+            Mos6502InstructionCode::Rst => String::from("RST"),
             Mos6502InstructionCode::Rti => String::from("RTI"),
             Mos6502InstructionCode::Rts => String::from("RTS"),
             Mos6502InstructionCode::Sax => String::from("SAX"),
@@ -385,6 +395,9 @@ impl Instruction for Mos6502Instruction {
             },
             Mos6502InstructionCode::Inx => Ok(1),
             Mos6502InstructionCode::Iny => Ok(1),
+            Mos6502InstructionCode::Irq => Err(Error::from(Mos6502InstructionError::NoSize {
+                instruction_code: Mos6502InstructionCode::Irq,
+            })),
             Mos6502InstructionCode::Isc => self.alu_accumulator_size(),
             Mos6502InstructionCode::Jmp => match self.addressing_mode {
                 AddressingMode::Indirect { low_byte: _, high_byte: _ } => Ok(3),
@@ -421,6 +434,9 @@ impl Instruction for Mos6502Instruction {
                 _ => Err(self.invalid_addressing_mode()),
             },
             Mos6502InstructionCode::Lsr => self.data_movement_size(),
+            Mos6502InstructionCode::Nmi => Err(Error::from(Mos6502InstructionError::NoSize {
+                instruction_code: Mos6502InstructionCode::Nmi,
+            })),
             Mos6502InstructionCode::Nop => Ok(1),
             Mos6502InstructionCode::Ora => self.alu_size(),
             Mos6502InstructionCode::Pha => Ok(1),
@@ -431,6 +447,9 @@ impl Instruction for Mos6502Instruction {
             Mos6502InstructionCode::Rol => self.data_movement_size(),
             Mos6502InstructionCode::Ror => self.data_movement_size(),
             Mos6502InstructionCode::Rra => self.alu_accumulator_size(),
+            Mos6502InstructionCode::Rst => Err(Error::from(Mos6502InstructionError::NoSize {
+                instruction_code: Mos6502InstructionCode::Rst,
+            })),
             Mos6502InstructionCode::Rti => Ok(1),
             Mos6502InstructionCode::Rts => Ok(1),
             Mos6502InstructionCode::Sax => match self.addressing_mode {
@@ -533,6 +552,9 @@ impl Instruction for Mos6502Instruction {
             },
             Mos6502InstructionCode::Inx => Ok(single!(2)),
             Mos6502InstructionCode::Iny => Ok(single!(2)),
+            Mos6502InstructionCode::Irq => Err(Error::from(Mos6502InstructionError::NoCycles {
+                instruction_code: Mos6502InstructionCode::Irq,
+            })),
             Mos6502InstructionCode::Isc => self.unofficial_alu_accumulator_cycles(),
             Mos6502InstructionCode::Jmp => match self.addressing_mode {
                 AddressingMode::Indirect { low_byte: _, high_byte: _ } => Ok(single!(5)),
@@ -571,6 +593,9 @@ impl Instruction for Mos6502Instruction {
                 _ => Err(self.invalid_addressing_mode()),
             },
             Mos6502InstructionCode::Lsr => self.data_movement_cycles(),
+            Mos6502InstructionCode::Nmi => Err(Error::from(Mos6502InstructionError::NoCycles {
+                instruction_code: Mos6502InstructionCode::Nmi,
+            })),
             Mos6502InstructionCode::Nop => match self.addressing_mode {
                 AddressingMode::Immediate { byte: _ } => Ok(single!(2)),
                 AddressingMode::Implicit => Ok(single!(2)),
@@ -590,6 +615,9 @@ impl Instruction for Mos6502Instruction {
             Mos6502InstructionCode::Rol => self.data_movement_cycles(),
             Mos6502InstructionCode::Ror => self.data_movement_cycles(),
             Mos6502InstructionCode::Rra => self.unofficial_alu_accumulator_cycles(),
+            Mos6502InstructionCode::Rst => Err(Error::from(Mos6502InstructionError::NoCycles {
+                instruction_code: Mos6502InstructionCode::Rst,
+            })),
             Mos6502InstructionCode::Rti => Ok(single!(6)),
             Mos6502InstructionCode::Rts => Ok(single!(6)),
             Mos6502InstructionCode::Sax => match self.addressing_mode {
