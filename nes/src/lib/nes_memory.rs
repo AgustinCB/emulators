@@ -4,9 +4,22 @@ use mos6502cpu::{AVAILABLE_MEMORY, Memory};
 
 pub const ROM_SIZE: usize = 0x8000;
 
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct IORegister {
+    pub(crate) previous: u8,
+    pub(crate) current: u8,
+}
+
+impl IORegister {
+    pub(crate) fn update(&mut self, new_current: u8) {
+        self.previous = self.current;
+        self.current = new_current;
+    }
+}
+
 pub struct NesMemory {
     ram: [u8; 0x800],
-    io_registers: [u8; 0x28],
+    io_registers: [IORegister; 0x28],
     expansion_rom: [u8; 0x1E00],
     sram: [u8; 0x2000],
     rom: [u8; ROM_SIZE],
@@ -16,7 +29,7 @@ impl NesMemory {
     pub fn new(rom: [u8; ROM_SIZE]) -> NesMemory {
         NesMemory {
             ram: [0; 0x800],
-            io_registers: [0; 0x28],
+            io_registers: [IORegister { current: 0, previous: 0 }; 0x28],
             expansion_rom: [0; 0x1E00],
             sram: [0; 0x2000],
             rom
@@ -30,9 +43,9 @@ impl NesMemory {
     fn set_in_io(&mut self, index: u16, new_value: u8) {
         if index < 0x4000 {
             let io_index = index - 0x2000;
-            self.io_registers[io_index as usize % 8] = new_value;
+            self.io_registers[io_index as usize % 8].update(new_value);
         } else {
-            self.io_registers[index as usize - 0x4000 + 0x8] = new_value;
+            self.io_registers[index as usize - 0x4000 + 0x8].update(new_value);
         }
     }
 
@@ -51,9 +64,9 @@ impl NesMemory {
     fn get_from_io(&self, index: u16) -> u8 {
         if index < 0x4000 {
             let io_index = index - 0x2000;
-            self.io_registers[io_index as usize % 8]
+            self.io_registers[io_index as usize % 8].current
         } else {
-            self.io_registers[index as usize - 0x4000 + 0x8]
+            self.io_registers[index as usize - 0x4000 + 0x8].current
         }
     }
 
@@ -127,16 +140,16 @@ mod tests {
     fn it_should_set_in_io_registers() {
         let mut memory = NesMemory::new([0; ROM_SIZE]);
         memory.set(0x2000, 0x42);
-        assert_eq!(memory.io_registers[0x0], 0x42);
+        assert_eq!(memory.io_registers[0x0].current, 0x42);
         memory.set(0x4001, 0x42);
-        assert_eq!(memory.io_registers[0x9], 0x42);
+        assert_eq!(memory.io_registers[0x9].current, 0x42);
     }
 
     #[test]
     fn it_should_set_in_io_registers_mirroring() {
         let mut memory = NesMemory::new([0; ROM_SIZE]);
         memory.set(0x2008, 0x42);
-        assert_eq!(memory.io_registers[0x0], 0x42);
+        assert_eq!(memory.io_registers[0x0].current, 0x42);
     }
 
     #[test]
@@ -180,16 +193,16 @@ mod tests {
     #[test]
     fn it_should_get_from_io_registers() {
         let mut memory = NesMemory::new([0; ROM_SIZE]);
-        memory.io_registers[0x0] = 0x42;
+        memory.io_registers[0x0].update(0x42);
         assert_eq!(memory.get(0x2000), 0x42);
-        memory.io_registers[0x9] = 0x42;
+        memory.io_registers[0x9].update(0x42);
         assert_eq!(memory.get(0x4001), 0x42);
     }
 
     #[test]
     fn it_should_get_from_io_registers_mirroring() {
         let mut memory = NesMemory::new([0; ROM_SIZE]);
-        memory.io_registers[0x0] = 0x42;
+        memory.io_registers[0x0].update(0x42);
         assert_eq!(memory.get(0x2000), 0x42);
         assert_eq!(memory.get(0x2008), 0x42);
         assert_eq!(memory.get(0x2010), 0x42);
