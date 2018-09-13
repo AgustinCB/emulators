@@ -3,6 +3,9 @@ name = "nes"
 version = "0.1.0"
 authors = ["AgustinCB <jnieve@gmail.com>"]
 
+[lib]
+path = "src/lib/mod.rs"
+
 [dependencies]
 mos6502cpu = { path = "../mos6502cpu" }
 failure = "0.1"

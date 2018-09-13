@@ -6,12 +6,7 @@ use {CpuResult, Mos6502Instruction};
 use super::instruction::{Mos6502InstructionCode, AddressingMode};
 
 pub const AVAILABLE_MEMORY: usize = 0x10000;
-const ZERO_PAGE_START: usize = 0;
-const ZERO_PAGE_END: usize = 0x100;
-const STACK_PAGE_START: usize = 0x100;
-const STACK_PAGE_END: usize = 0x200;
 pub(crate) const INTERRUPT_HANDLERS_START: usize = 0xFFFA;
-const INTERRUPT_HANDLERS_END: usize = 0x10000;
 
 #[derive(Debug, Fail)]
 pub enum CpuError {
@@ -135,24 +130,6 @@ impl<'a> Mos6502Cpu<'a> {
     #[inline]
     pub fn set_pc(&mut self, address: u16) {
         self.registers.pc = address;
-    }
-
-    pub fn get_memory_slice(&mut self, from: usize, to: usize) -> Result<&[u8], CpuError> {
-        if (from >= ZERO_PAGE_START && from < ZERO_PAGE_END) ||
-            (from >= STACK_PAGE_START && from < STACK_PAGE_END) ||
-            (from >= INTERRUPT_HANDLERS_START && from < INTERRUPT_HANDLERS_END) {
-            Err(CpuError::ReservedMemory)
-        } else if (to >= ZERO_PAGE_START && to < ZERO_PAGE_END) ||
-            (to >= STACK_PAGE_START && to < STACK_PAGE_END) ||
-            (to >= INTERRUPT_HANDLERS_START && to < INTERRUPT_HANDLERS_END) {
-            Err(CpuError::ReservedMemory)
-        } else if (from < ZERO_PAGE_START && to >= ZERO_PAGE_END) ||
-            (from < STACK_PAGE_START && to >= STACK_PAGE_END) ||
-            (from < INTERRUPT_HANDLERS_START && to >= INTERRUPT_HANDLERS_END) {
-            Err(CpuError::ReservedMemory)
-        } else {
-            Ok(&mut self.memory.slice(from, to))
-        }
     }
 
     pub(crate) fn get_address_from_addressing_mode(
@@ -473,64 +450,6 @@ impl<'a> Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu<'a> {
 mod tests {
     use instruction::AddressingMode;
     use mos6502cpu::{AVAILABLE_MEMORY, Memory, Mos6502Cpu};
-
-    #[test]
-    fn it_shouldnt_access_zero_page_memory() {
-        let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
-        {
-            let mem = cpu.get_memory_slice(0, 0x200);
-            assert!(mem.is_err());
-        }
-        {
-            let mem = cpu.get_memory_slice(0x20, 0x200);
-            assert!(mem.is_err());
-        }
-        {
-            let mem = cpu.get_memory_slice(0x20, 0x1FF);
-            assert!(mem.is_err());
-        }
-    }
-
-    #[test]
-    fn it_shouldnt_access_stack_memory() {
-        let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
-        {
-            let mem = cpu.get_memory_slice(0x100, 0x300);
-            assert!(mem.is_err());
-        }
-        {
-            let mem = cpu.get_memory_slice(0xFF, 0x1FA);
-            assert!(mem.is_err());
-        }
-        {
-            let mem = cpu.get_memory_slice(0x101, 0x1FA);
-            assert!(mem.is_err());
-        }
-    }
-
-    #[test]
-    fn it_shouldnt_access_interrupt_handlers_memory() {
-        let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
-        {
-            let mem = cpu.get_memory_slice(0x100, 0xFFFB);
-            assert!(mem.is_err());
-        }
-        {
-            let mem = cpu.get_memory_slice(0xFFFA, 0x10001);
-            assert!(mem.is_err());
-        }
-        {
-            let mem = cpu.get_memory_slice(0xFFF5, 0x10001);
-            assert!(mem.is_err());
-        }
-        {
-            let mem = cpu.get_memory_slice(0xFFFB, 0xFFFC);
-            assert!(mem.is_err());
-        }
-    }
 
     #[test]
     fn it_should_get_value_from_addressing_mode_for_accumulator() {

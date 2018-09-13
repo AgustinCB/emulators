@@ -1,23 +1,26 @@
-extern crate mos6502cpu;
 extern crate failure;
+extern crate mos6502cpu;
+extern crate nes;
 
-use mos6502cpu::*;
 use failure::Error;
+use mos6502cpu::*;
+use nes::nes_memory::{NesMemory, ROM_SIZE};
 use std::env::args;
 use std::fs::File;
 use std::io::Read;
 
 const USAGE: &'static str = "Usage: nes [game file]";
 
-fn read_file(file_name: &str) -> std::io::Result<[u8; AVAILABLE_MEMORY]> {
+fn read_file(file_name: &str) -> std::io::Result<[u8; ROM_SIZE]> {
     let mut f = File::open(file_name)?;
-    let mut memory = [0; AVAILABLE_MEMORY];
+    let mut memory = [0; ROM_SIZE];
     f.read(&mut memory)?;
     Ok(memory)
 }
 
 fn start_game(game: &str) -> Result<(), Error> {
-    let mut memory = read_file(game)?;
+    let rom = read_file(game)?;
+    let mut memory = NesMemory::new(rom);
     let _cpu = Mos6502Cpu::new(&mut memory);
     Ok(())
 }
