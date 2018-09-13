@@ -6,7 +6,7 @@ pub const ROM_SIZE: usize = 0x8000;
 
 pub struct NesMemory {
     ram: [u8; 0x800],
-    io_registers: [u8; 28],
+    io_registers: [u8; 0x28],
     expansion_rom: [u8; 0x1E00],
     sram: [u8; 0x2000],
     rom: [u8; ROM_SIZE],
@@ -16,7 +16,7 @@ impl NesMemory {
     pub fn new(rom: [u8; ROM_SIZE]) -> NesMemory {
         NesMemory {
             ram: [0; 0x800],
-            io_registers: [0; 28],
+            io_registers: [0; 0x28],
             expansion_rom: [0; 0x1E00],
             sram: [0; 0x2000],
             rom
@@ -32,7 +32,7 @@ impl NesMemory {
             let io_index = index - 0x2000;
             self.io_registers[io_index as usize % 8] = new_value;
         } else {
-            self.io_registers[index as usize - 0x4000] = new_value;
+            self.io_registers[index as usize - 0x4000 + 0x8] = new_value;
         }
     }
 
@@ -53,7 +53,7 @@ impl NesMemory {
             let io_index = index - 0x2000;
             self.io_registers[io_index as usize % 8]
         } else {
-            self.io_registers[index as usize - 0x4000]
+            self.io_registers[index as usize - 0x4000 + 0x8]
         }
     }
 
@@ -101,5 +101,123 @@ impl Memory for NesMemory {
     }
     fn len(&self) -> usize {
         AVAILABLE_MEMORY
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use mos6502cpu::Memory;
+    use nes_memory::{NesMemory, ROM_SIZE};
+
+    #[test]
+    fn it_should_set_in_ram() {
+        let mut memory = NesMemory::new([0; ROM_SIZE]);
+        memory.set(0x0, 0x42);
+        assert_eq!(memory.ram[0x0], 0x42);
+    }
+
+    #[test]
+    fn it_should_set_in_ram_mirroring() {
+        let mut memory = NesMemory::new([0; ROM_SIZE]);
+        memory.set(0x800, 0x42);
+        assert_eq!(memory.ram[0x0], 0x42);
+    }
+
+    #[test]
+    fn it_should_set_in_io_registers() {
+        let mut memory = NesMemory::new([0; ROM_SIZE]);
+        memory.set(0x2000, 0x42);
+        assert_eq!(memory.io_registers[0x0], 0x42);
+        memory.set(0x4001, 0x42);
+        assert_eq!(memory.io_registers[0x9], 0x42);
+    }
+
+    #[test]
+    fn it_should_set_in_io_registers_mirroring() {
+        let mut memory = NesMemory::new([0; ROM_SIZE]);
+        memory.set(0x2008, 0x42);
+        assert_eq!(memory.io_registers[0x0], 0x42);
+    }
+
+    #[test]
+    fn it_should_set_in_expansion_rom() {
+        let mut memory = NesMemory::new([0; ROM_SIZE]);
+        memory.set(0x4020, 0x42);
+        assert_eq!(memory.expansion_rom[0x0], 0x42);
+    }
+
+    #[test]
+    fn it_should_set_in_sram() {
+        let mut memory = NesMemory::new([0; ROM_SIZE]);
+        memory.set(0x6000, 0x42);
+        assert_eq!(memory.sram[0x0], 0x42);
+    }
+
+    #[test]
+    fn it_shouldnt_set_in_rom() {
+        let mut memory = NesMemory::new([0; ROM_SIZE]);
+        memory.set(0x8000, 0x42);
+        assert_eq!(memory.sram[0x0], 0x0);
+    }
+
+    #[test]
+    fn it_should_get_from_ram() {
+        let mut memory = NesMemory::new([0; ROM_SIZE]);
+        memory.ram[0x0] = 0x42;
+        assert_eq!(memory.get(0), 0x42);
+    }
+
+    #[test]
+    fn it_should_get_from_ram_with_mirroring() {
+        let mut memory = NesMemory::new([0; ROM_SIZE]);
+        memory.ram[0x0] = 0x42;
+        assert_eq!(memory.get(0), 0x42);
+        assert_eq!(memory.get(0x0800), 0x42);
+        assert_eq!(memory.get(0x1000), 0x42);
+        assert_eq!(memory.get(0x1800), 0x42);
+    }
+
+    #[test]
+    fn it_should_get_from_io_registers() {
+        let mut memory = NesMemory::new([0; ROM_SIZE]);
+        memory.io_registers[0x0] = 0x42;
+        assert_eq!(memory.get(0x2000), 0x42);
+        memory.io_registers[0x9] = 0x42;
+        assert_eq!(memory.get(0x4001), 0x42);
+    }
+
+    #[test]
+    fn it_should_get_from_io_registers_mirroring() {
+        let mut memory = NesMemory::new([0; ROM_SIZE]);
+        memory.io_registers[0x0] = 0x42;
+        assert_eq!(memory.get(0x2000), 0x42);
+        assert_eq!(memory.get(0x2008), 0x42);
+        assert_eq!(memory.get(0x2010), 0x42);
+    }
+
+    #[test]
+    fn it_should_get_from_expansion_rom() {
+        let mut memory = NesMemory::new([0; ROM_SIZE]);
+        memory.expansion_rom[0x0] = 0x42;
+        assert_eq!(memory.get(0x4020), 0x42);
+    }
+
+    #[test]
+    fn it_should_get_from_sram() {
+        let mut memory = NesMemory::new([0; ROM_SIZE]);
+        memory.sram[0x0] = 0x42;
+        assert_eq!(memory.get(0x6000), 0x42);
+    }
+
+    #[test]
+    fn it_should_get_from_rom() {
+        let memory = NesMemory::new([0x42; ROM_SIZE]);
+        assert_eq!(memory.get(0x8000), 0x42);
+    }
+
+    #[test]
+    fn it_should_slice_from_rom() {
+        let memory = NesMemory::new([1; ROM_SIZE]);
+        assert_eq!(memory.slice(0x8000, 0x8002), &vec![1, 1][..]);
     }
 }
