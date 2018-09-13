@@ -4,8 +4,8 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 pub(crate) trait InputOutputDevice {
-    fn read(&self, index: usize) -> u8;
-    fn write(&mut self, index: usize, value: u8);
+    fn read(&self) -> u8;
+    fn write(&mut self, value: u8) -> u8;
 }
 
 pub struct Nes {

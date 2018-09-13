@@ -1,21 +1,37 @@
 extern crate mos6502cpu;
 
 use mos6502cpu::{AVAILABLE_MEMORY, Memory};
+use nes::InputOutputDevice;
 use std::cell::RefCell;
 use std::rc::Rc;
 
 pub const ROM_SIZE: usize = 0x8000;
 
-#[derive(Clone, Copy, Debug)]
 pub(crate) struct IORegister {
-    pub(crate) previous: u8,
     pub(crate) current: u8,
+    pub(crate) device: Option<Box<InputOutputDevice>>,
 }
 
 impl IORegister {
+    pub(crate) fn new() -> IORegister {
+        IORegister {
+            current: 0,
+            device: None,
+        }
+    }
     pub(crate) fn update(&mut self, new_current: u8) {
-        self.previous = self.current;
-        self.current = new_current;
+        if let Some(ref mut device) = self.device {
+            self.current = device.write(new_current);
+        } else {
+            self.current = new_current;
+        }
+    }
+    pub(crate) fn current(&self) -> u8 {
+        if let Some(ref device) = self.device {
+            device.read()
+        } else {
+            self.current
+        }
     }
 }
 
@@ -31,7 +47,7 @@ impl Ram {
     pub fn new(rom: [u8; ROM_SIZE]) -> Ram {
         let mut io_registers = Vec::with_capacity(0x28);
         for _ in 0..0x28 {
-            io_registers.push(Rc::new(RefCell::new(IORegister { current: 0, previous: 0 })));
+            io_registers.push(Rc::new(RefCell::new(IORegister::new())));
         }
         Ram {
             ram: [0; 0x800],
@@ -70,9 +86,9 @@ impl Ram {
     fn get_from_io(&self, index: u16) -> u8 {
         if index < 0x4000 {
             let io_index = index - 0x2000;
-            self.io_registers[io_index as usize % 8].borrow().current
+            self.io_registers[io_index as usize % 8].borrow().current()
         } else {
-            self.io_registers[index as usize - 0x4000 + 0x8].borrow().current
+            self.io_registers[index as usize - 0x4000 + 0x8].borrow().current()
         }
     }
 
