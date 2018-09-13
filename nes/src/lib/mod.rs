@@ -1,3 +1,4 @@
 extern crate mos6502cpu;
 
-pub mod nes_memory;
+pub mod ram;
+mod video_ram;
