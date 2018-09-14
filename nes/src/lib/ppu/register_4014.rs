@@ -52,6 +52,10 @@ impl InputOutputDevice for Register4014Connector {
     #[inline]
     fn write(&mut self, value: u8) -> u8 {
         (*self.register.borrow_mut()).value = value;
+        // TODO: This should keep the CPU busy for 512 cycles.
+        // I'm not really sure how to express that right now. Possible ideas:
+        // 1. Let the user pass a possible delay to the execute_instruction method.
+        // 2. Make the Memory trait somehow express the delays in reading to it.
         self.save_to_sprite_memory((value as u16).wrapping_mul(0x100));
         value
     }
