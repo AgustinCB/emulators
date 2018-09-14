@@ -1,5 +1,4 @@
 use nes::InputOutputDevice;
-use ppu::SpriteMode;
 use std::cell::RefCell;
 use std::rc::Rc;
 

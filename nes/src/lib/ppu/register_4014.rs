@@ -1,6 +1,5 @@
 use mos6502cpu::Memory;
 use nes::InputOutputDevice;
-use ppu::SpriteMode;
 use ram::Ram;
 use std::cell::RefCell;
 use std::rc::Rc;

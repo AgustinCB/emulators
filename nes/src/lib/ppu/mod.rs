@@ -14,4 +14,9 @@ pub(crate) enum PpuMode {
     Slave,
 }
 
+pub(crate) enum ColorMode {
+    Color,
+    Monochrome,
+}
+
 pub use self::ppu::Ppu;

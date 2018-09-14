@@ -1,5 +1,5 @@
 use nes::InputOutputDevice;
-use ppu::SpriteMode;
+use ppu::ColorMode;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -8,7 +8,7 @@ pub(crate) struct Register2001 {
 }
 
 /**
- * See page 18 of https://nesdev.com/NESDoc.pdf
+ * See page 34 of https://nesdev.com/NESDoc.pdf
  */
 impl Register2001 {
     pub(crate) fn new() -> Register2001 {
@@ -17,12 +17,32 @@ impl Register2001 {
         }
     }
     #[inline]
+    pub(crate) fn get_color_mode(&self) -> ColorMode {
+        if (self.value & 0x01) > 0 {
+            ColorMode::Monochrome
+        } else {
+            ColorMode::Color
+        }
+    }
+    #[inline]
+    pub(crate) fn is_background_clipped(&self) -> bool {
+        (self.value & 0x02) > 0
+    }
+    #[inline]
+    pub(crate) fn are_sprites_clipped(&self) -> bool {
+        (self.value & 0x04) > 0
+    }
+    #[inline]
     pub(crate) fn is_background_shown(&self) -> bool {
         (self.value & 0x08) > 0
     }
     #[inline]
     pub(crate) fn are_sprites_shown(&self) -> bool {
         (self.value & 0x10) > 0
+    }
+    #[inline]
+    pub(crate) fn get_color(&self) -> u8 {
+        (self.value & 0xe0) >> 5
     }
 }
 
