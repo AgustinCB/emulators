@@ -3,7 +3,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 pub(crate) struct AddressRegister {
-    pub(crate) value: u8
+    pub(crate) value: u8,
 }
 
 /**
