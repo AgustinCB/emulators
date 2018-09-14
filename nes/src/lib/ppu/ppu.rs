@@ -15,7 +15,7 @@ impl Ppu {
         let register2000 = Rc::new(RefCell::new(Register2000::new()));
         {
             let mut m = ram.borrow_mut();
-            m.io_registers[0].borrow_mut().device =
+            m.io_registers[0].device =
                 Some(Box::new(Register2000Connector::new(&register2000)));
         }
         Ppu {

@@ -37,7 +37,7 @@ impl IORegister {
 
 pub struct Ram {
     ram: [u8; 0x800],
-    pub(crate) io_registers: Vec<Rc<RefCell<IORegister>>>,
+    pub(crate) io_registers: Vec<IORegister>,
     expansion_rom: [u8; 0x1E00],
     sram: [u8; 0x2000],
     rom: [u8; ROM_SIZE],
@@ -47,7 +47,7 @@ impl Ram {
     pub fn new(rom: [u8; ROM_SIZE]) -> Ram {
         let mut io_registers = Vec::with_capacity(0x28);
         for _ in 0..0x28 {
-            io_registers.push(Rc::new(RefCell::new(IORegister::new())));
+            io_registers.push(IORegister::new());
         }
         Ram {
             ram: [0; 0x800],
@@ -65,9 +65,9 @@ impl Ram {
     fn set_in_io(&mut self, index: u16, new_current: u8) {
         if index < 0x4000 {
             let io_index = index - 0x2000;
-            self.io_registers[io_index as usize % 8].borrow_mut().update(new_current);
+            self.io_registers[io_index as usize % 8].update(new_current);
         } else {
-            self.io_registers[index as usize - 0x4000 + 0x8].borrow_mut().update(new_current);
+            self.io_registers[index as usize - 0x4000 + 0x8].update(new_current);
         }
     }
 
@@ -86,9 +86,9 @@ impl Ram {
     fn get_from_io(&self, index: u16) -> u8 {
         if index < 0x4000 {
             let io_index = index - 0x2000;
-            self.io_registers[io_index as usize % 8].borrow().current()
+            self.io_registers[io_index as usize % 8].current()
         } else {
-            self.io_registers[index as usize - 0x4000 + 0x8].borrow().current()
+            self.io_registers[index as usize - 0x4000 + 0x8].current()
         }
     }
 
@@ -162,16 +162,16 @@ mod tests {
     fn it_should_set_in_io_registers() {
         let mut memory = Ram::new([0; ROM_SIZE]);
         memory.set(0x2000, 0x42);
-        assert_eq!(memory.io_registers[0x0].borrow().current, 0x42);
+        assert_eq!(memory.io_registers[0x0].current, 0x42);
         memory.set(0x4001, 0x42);
-        assert_eq!(memory.io_registers[0x9].borrow().current, 0x42);
+        assert_eq!(memory.io_registers[0x9].current, 0x42);
     }
 
     #[test]
     fn it_should_set_in_io_registers_mirroring() {
         let mut memory = Ram::new([0; ROM_SIZE]);
         memory.set(0x2008, 0x42);
-        assert_eq!(memory.io_registers[0x0].borrow().current, 0x42);
+        assert_eq!(memory.io_registers[0x0].current, 0x42);
     }
 
     #[test]
@@ -214,17 +214,17 @@ mod tests {
 
     #[test]
     fn it_should_get_from_io_registers() {
-        let memory = Ram::new([0; ROM_SIZE]);
-        memory.io_registers[0x0].borrow_mut().update(0x42);
+        let mut memory = Ram::new([0; ROM_SIZE]);
+        memory.io_registers[0x0].update(0x42);
         assert_eq!(memory.get(0x2000), 0x42);
-        memory.io_registers[0x9].borrow_mut().update(0x42);
+        memory.io_registers[0x9].update(0x42);
         assert_eq!(memory.get(0x4001), 0x42);
     }
 
     #[test]
     fn it_should_get_from_io_registers_mirroring() {
-        let memory = Ram::new([0; ROM_SIZE]);
-        memory.io_registers[0x0].borrow_mut().update(0x42);
+        let mut memory = Ram::new([0; ROM_SIZE]);
+        memory.io_registers[0x0].update(0x42);
         assert_eq!(memory.get(0x2000), 0x42);
         assert_eq!(memory.get(0x2008), 0x42);
         assert_eq!(memory.get(0x2010), 0x42);
