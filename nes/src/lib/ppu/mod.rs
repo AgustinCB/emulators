@@ -2,7 +2,7 @@ mod ppu;
 mod register_2000;
 mod register_2001;
 mod register_2002;
-mod register_2003;
+mod address_register;
 mod register_4014;
 
 pub(crate) enum SpriteMode {
