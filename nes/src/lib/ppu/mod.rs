@@ -9,4 +9,9 @@ pub(crate) enum SpriteMode {
     EightSixteen,
 }
 
+pub(crate) enum PpuMode {
+    Master,
+    Slave,
+}
+
 pub use self::ppu::Ppu;
