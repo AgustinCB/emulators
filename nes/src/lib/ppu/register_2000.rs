@@ -16,9 +16,11 @@ impl Register2000 {
             value: 0
         }
     }
+    #[inline]
     pub(crate) fn is_nmi_enabled(&self) -> bool {
         (self.value & 0x80) > 0
     }
+    #[inline]
     pub(crate) fn get_sprint_mode(&self) -> SpriteMode {
         if (self.value & 0x20) > 0 {
             SpriteMode::EightSixteen
@@ -26,6 +28,7 @@ impl Register2000 {
             SpriteMode::EightEight
         }
     }
+    #[inline]
     pub(crate) fn get_memory_read_offset(&self) -> u8 {
         if (self.value & 0x04) > 0 {
             32 // vertical
@@ -48,9 +51,11 @@ impl Register2000Connector {
 }
 
 impl InputOutputDevice for Register2000Connector {
+    #[inline]
     fn read(&self) -> u8 {
         (*self.register.borrow()).value
     }
+    #[inline]
     fn write(&mut self, value: u8) -> u8 {
         (*self.register.borrow_mut()).value = value;
         value
