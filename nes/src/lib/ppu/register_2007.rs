@@ -17,8 +17,7 @@ pub(crate) struct Register2007 {
 }
 
 /**
- * See page 34 asnd 35 of https://nesdev.com/NESDoc.pdf
- * This is for registers 2003, 2005 and 2006.
+ * See page 35 of https://nesdev.com/NESDoc.pdf
  */
 impl Register2007 {
     pub(crate) fn new(

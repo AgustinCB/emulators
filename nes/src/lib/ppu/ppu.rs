@@ -1,10 +1,12 @@
 use ram::Ram;
 use std::cell::RefCell;
 use std::rc::Rc;
+use ppu::SpriteMemory;
 use ppu::address_register::{AddressRegister, AddressRegisterConnector};
 use ppu::register_2000::{Register2000, Register2000Connector};
 use ppu::register_2001::{Register2001, Register2001Connector};
 use ppu::register_2002::{Register2002, Register2002Connector};
+use ppu::register_2004::{Register2004, Register2004Connector};
 use ppu::register_2007::{Register2007, Register2007Connector};
 use ppu::register_4014::{Register4014, Register4014Connector};
 use video_ram::VideoRam;
@@ -15,37 +17,45 @@ pub struct Ppu {
     register2001: Rc<RefCell<Register2001>>,
     register2002: Rc<RefCell<Register2002>>,
     register2003: Rc<RefCell<AddressRegister>>,
+    register2004: Rc<RefCell<Register2004>>,
     register2005: Rc<RefCell<AddressRegister>>,
     register2006: Rc<RefCell<AddressRegister>>,
     register2007: Rc<RefCell<Register2007>>,
     register4014: Rc<RefCell<Register4014>>,
+    sprite_memory: Rc<RefCell<SpriteMemory>>,
     video_ram: Rc<RefCell<VideoRam>>,
 }
 
 impl Ppu {
     pub fn new(ram: Rc<RefCell<Ram>>) -> Ppu {
+        let sprite_memory = Rc::new(RefCell::new([0; 256]));
         let video_ram = Rc::new(RefCell::new(VideoRam::new()));
         let register2000= Rc::new(RefCell::new(Register2000::new()));
         let register2001= Rc::new(RefCell::new(Register2001::new()));
         let register2002= Rc::new(RefCell::new(Register2002::new()));
         let register2003= Rc::new(RefCell::new(AddressRegister::new()));
+        let register2004= Rc::new(RefCell::new(
+            Register2004::new(&register2003, &sprite_memory)));
         let register2005= Rc::new(RefCell::new(AddressRegister::new()));
         let register2006= Rc::new(RefCell::new(AddressRegister::new()));
         let register2007= Rc::new(RefCell::new(
             Register2007::new(&register2005, &register2006, &video_ram)));
-        let register4014= Rc::new(RefCell::new(Register4014::new(&ram)));
+        let register4014= Rc::new(
+            RefCell::new(Register4014::new(&ram, &sprite_memory)));
         Ppu::set_connectors(&ram, &register2000, &register2001, &register2002, &register2003,
-                            &register2005, &register2006, &register2007, &register4014);
+                            &register2004, &register2005, &register2006, &register2007, &register4014);
         Ppu {
             ram,
             register2000,
             register2001,
             register2002,
             register2003,
+            register2004,
             register2005,
             register2006,
             register2007,
             register4014,
+            sprite_memory,
             video_ram,
         }
     }
@@ -56,6 +66,7 @@ impl Ppu {
         register2001: &Rc<RefCell<Register2001>>,
         register2002: &Rc<RefCell<Register2002>>,
         register2003: &Rc<RefCell<AddressRegister>>,
+        register2004: &Rc<RefCell<Register2004>>,
         register2005: &Rc<RefCell<AddressRegister>>,
         register2006: &Rc<RefCell<AddressRegister>>,
         register2007: &Rc<RefCell<Register2007>>,
@@ -69,6 +80,8 @@ impl Ppu {
             Some(Box::new(Register2002Connector::new(register2002)));
         m.io_registers[3].device =
             Some(Box::new(AddressRegisterConnector::new(register2003)));
+        m.io_registers[4].device =
+            Some(Box::new(Register2004Connector::new(register2004)));
         m.io_registers[5].device =
             Some(Box::new(AddressRegisterConnector::new(register2005)));
         m.io_registers[6].device =
