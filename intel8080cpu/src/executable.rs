@@ -143,10 +143,14 @@ impl<'a> Cpu<u8, Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
     }
 
     #[inline]
-    fn get_next_instruction_bytes(&self) -> &[u8] {
+    fn get_next_instruction_bytes(&self) -> Vec<u8> {
+        let mut res = Vec::with_capacity(3);
         let from = self.pc as usize;
         let to = min(from+3, self.memory.len());
-        &self.memory[from..to]
+        for i in from..to {
+            res.push(self.memory[i]);
+        }
+        res
     }
 
     #[inline]

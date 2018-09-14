@@ -1,7 +1,7 @@
 use {Mos6502Cpu, CpuResult};
 use instruction::AddressingMode;
 
-impl<'a> Mos6502Cpu<'a> {
+impl Mos6502Cpu {
     pub(crate) fn execute_and(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_alu_address(&addressing_mode)?;
         self.execute_and_unchecked(addressing_mode)
@@ -57,7 +57,7 @@ mod tests {
     #[test]
     fn it_should_execute_and_not_set_anything() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x03;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::And,
@@ -71,7 +71,7 @@ mod tests {
     #[test]
     fn it_should_execute_and_set_zero() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x03;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::And,
@@ -85,7 +85,7 @@ mod tests {
     #[test]
     fn it_should_execute_and_set_negative() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x80;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::And,
@@ -99,7 +99,7 @@ mod tests {
     #[test]
     fn it_should_perform_exclusive_or() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x02;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Eor,
@@ -113,7 +113,7 @@ mod tests {
     #[test]
     fn it_should_perform_exclusive_or_and_set_zero() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x02;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Eor,
@@ -127,7 +127,7 @@ mod tests {
     #[test]
     fn it_should_perform_exclusive_or_and_set_negative() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x0;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Eor,
@@ -141,7 +141,7 @@ mod tests {
     #[test]
     fn it_should_execute_inclusive_or_and_set_nothing() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x0;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Ora,
@@ -155,7 +155,7 @@ mod tests {
     #[test]
     fn it_should_execute_inclusive_or_and_set_zero() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x0;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Ora,
@@ -169,7 +169,7 @@ mod tests {
     #[test]
     fn it_should_execute_inclusive_or_and_set_negative() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x80;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Ora,

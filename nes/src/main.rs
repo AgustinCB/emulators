@@ -20,9 +20,7 @@ fn read_file(file_name: &str) -> std::io::Result<[u8; ROM_SIZE]> {
 
 fn start_game(game: &str) -> Result<(), Error> {
     let rom = read_file(game)?;
-    let nes = Nes::new(rom);
-    let ram = &mut *(nes.ram.borrow_mut());
-    let _cpu = Mos6502Cpu::new(ram);
+    let _nes = Nes::new(rom);
     Ok(())
 }
 

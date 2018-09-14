@@ -1,7 +1,7 @@
 use {Mos6502Cpu, CpuError, CpuResult};
 use instruction::AddressingMode;
 
-impl<'a> Mos6502Cpu<'a> {
+impl Mos6502Cpu {
     pub(crate) fn execute_adc(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_alu_address(addressing_mode)?;
         if self.registers.p.decimal {
@@ -149,7 +149,7 @@ mod tests {
     #[test]
     fn it_should_adc_without_prev_carry_overflow_carry_negative_nor_zero() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x21;
         cpu.registers.p.carry = false;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -166,7 +166,7 @@ mod tests {
     #[test]
     fn it_should_adc_with_prev_carry_without_overflow_carry_negative_nor_zero() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x21;
         cpu.registers.p.carry = true;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -183,7 +183,7 @@ mod tests {
     #[test]
     fn it_should_adc_with_overflow_without_prev_carry_carry_negative_nor_zero() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x42;
         cpu.registers.p.carry = false;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -200,7 +200,7 @@ mod tests {
     #[test]
     fn it_should_adc_with_prev_carry_overflow_without_carry_negative_nor_zero() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x42;
         cpu.registers.p.carry = true;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -217,7 +217,7 @@ mod tests {
     #[test]
     fn it_should_adc_with_carry_without_prev_carry_overflow_negative_nor_zero() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x84;
         cpu.registers.p.carry = false;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -234,7 +234,7 @@ mod tests {
     #[test]
     fn it_should_adc_with_prev_carry_carry_without_overflow_negative_nor_zero() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x84;
         cpu.registers.p.carry = true;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -251,7 +251,7 @@ mod tests {
     #[test]
     fn it_should_adc_with_zero_without_prev_carry_overflow_carry_nor_negative() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x42;
         cpu.registers.p.carry = false;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -268,7 +268,7 @@ mod tests {
     #[test]
     fn it_should_adc_with_prev_carry_zero_without_overflow_carry_nor_negative() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x41;
         cpu.registers.p.carry = true;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -285,7 +285,7 @@ mod tests {
     #[test]
     fn it_should_set_zero_and_carry_on_cmp_on_same_values_but_not_negative() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x42;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Cmp,
@@ -300,7 +300,7 @@ mod tests {
     #[test]
     fn it_should_set_zero_and_carry_on_cmp_on_with_zeroes_but_not_negative() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x0;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Cmp,
@@ -315,7 +315,7 @@ mod tests {
     #[test]
     fn it_should_set_carry_on_cmp_with_smaller_value() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x42;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Cmp,
@@ -330,7 +330,7 @@ mod tests {
     #[test]
     fn it_should_set_negative_on_cmp_with_bigger_value() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x42;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Cmp,
@@ -345,7 +345,7 @@ mod tests {
     #[test]
     fn it_should_set_zero_and_carry_on_cpx_on_same_values_but_not_negative() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.x = 0x42;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Cpx,
@@ -360,7 +360,7 @@ mod tests {
     #[test]
     fn it_should_set_carry_on_cpx_with_smaller_value() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.x = 0x42;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Cpx,
@@ -375,7 +375,7 @@ mod tests {
     #[test]
     fn it_should_set_negative_on_cpx_with_bigger_value() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.x = 0x42;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Cpx,
@@ -390,7 +390,7 @@ mod tests {
     #[test]
     fn it_should_set_zero_and_carry_on_cpy_on_same_values_but_not_negative() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.y = 0x42;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Cpy,
@@ -405,7 +405,7 @@ mod tests {
     #[test]
     fn it_should_set_carry_on_cpy_with_smaller_value() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.y = 0x42;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Cpy,
@@ -420,7 +420,7 @@ mod tests {
     #[test]
     fn it_should_set_negative_on_cpy_with_bigger_value() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.y = 0x42;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Cpy,
@@ -435,7 +435,7 @@ mod tests {
     #[test]
     fn it_should_subtract_with_carry_set() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x42;
         cpu.registers.p.carry = true;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -452,7 +452,7 @@ mod tests {
     #[test]
     fn it_should_subtract_with_carry_clear() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x42;
         cpu.registers.p.carry = false;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -469,7 +469,7 @@ mod tests {
     #[test]
     fn it_should_subtract_setting_zero() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x42;
         cpu.registers.p.carry = true;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -486,7 +486,7 @@ mod tests {
     #[test]
     fn it_should_subtract_setting_carry_and_negative() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0xc0;
         cpu.registers.p.carry = true;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -503,7 +503,7 @@ mod tests {
     #[test]
     fn it_should_subtract_setting_overflow() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x7f;
         cpu.registers.p.carry = true;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -520,7 +520,7 @@ mod tests {
     #[test]
     fn it_should_subtract_setting_overflow_on_frontier() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x0;
         cpu.registers.p.carry = true;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -537,7 +537,7 @@ mod tests {
     #[test]
     fn it_should_subtract_wrapping_around() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x0;
         cpu.registers.p.carry = false;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -554,7 +554,7 @@ mod tests {
     #[test]
     fn it_should_subtract_without_wrapping_around() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x00;
         cpu.registers.p.carry = false;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -571,7 +571,7 @@ mod tests {
     #[test]
     fn it_should_subtract_doing_nothing() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x00;
         cpu.registers.p.carry = true;
         cpu.execute_instruction(&Mos6502Instruction {

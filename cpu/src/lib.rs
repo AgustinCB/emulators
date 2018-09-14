@@ -60,7 +60,7 @@ pub trait Cpu<W, I, F>
           I: Instruction + ToString + From<Vec<W>>,
           F: Fail {
     fn execute(&mut self) -> Result<u8, Error> {
-        let instruction = I::from(self.get_next_instruction_bytes().to_vec());
+        let instruction = I::from(self.get_next_instruction_bytes());
         if !self.can_run(&instruction) {
             return Ok(0);
         }
@@ -84,7 +84,7 @@ pub trait Cpu<W, I, F>
 
     fn execute_instruction(&mut self, instruction: &I) -> Result<(), Error>;
     fn get_pc(&self) -> u16;
-    fn get_next_instruction_bytes(&self) -> &[W];
+    fn get_next_instruction_bytes(&self) -> Vec<W>;
     fn can_run(&self, instruction: &I) -> bool;
     fn is_done(&self) -> bool;
     fn increase_pc(&mut self, steps: u8);

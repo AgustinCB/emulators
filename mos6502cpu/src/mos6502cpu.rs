@@ -2,6 +2,8 @@ use bit_utils::two_bytes_to_word;
 use cpu::{Cpu, Cycles, Instruction};
 use failure::{Error, Fail};
 use std::cmp::min;
+use std::cell::RefCell;
+use std::rc::Rc;
 use {CpuResult, Mos6502Instruction};
 use super::instruction::{Mos6502InstructionCode, AddressingMode};
 
@@ -90,7 +92,6 @@ impl RegisterSet {
 pub trait Memory {
     fn set(&mut self, index: u16, new_value: u8);
     fn get(&self, index: u16) -> u8;
-    fn slice(&self, from: usize, to: usize) -> &[u8];
     fn len(&self) -> usize;
 }
 
@@ -101,22 +102,31 @@ impl Memory for [u8; AVAILABLE_MEMORY] {
     fn get(&self, index: u16) -> u8 {
         self[index as usize]
     }
-    fn slice(&self, from: usize, to: usize) -> &[u8] {
-        &self[from..to]
-    }
     fn len(&self) -> usize {
         AVAILABLE_MEMORY
     }
 }
 
-pub struct Mos6502Cpu<'a> {
-    pub(crate) memory: &'a mut Memory,
+impl<T: Memory> Memory for Rc<RefCell<T>> {
+    fn set(&mut self, index: u16, new_value: u8) {
+        self.borrow_mut().set(index, new_value);
+    }
+    fn get(&self, index: u16) -> u8 {
+        self.borrow().get(index)
+    }
+    fn len(&self) -> usize {
+        self.borrow().len()
+    }
+}
+
+pub struct Mos6502Cpu {
+    pub(crate) memory: Box<Memory>,
     pub(crate) registers: RegisterSet,
     pub(crate) page_crossed: bool,
 }
 
-impl<'a> Mos6502Cpu<'a> {
-    pub fn new(memory: &mut Memory) -> Mos6502Cpu {
+impl Mos6502Cpu {
+    pub fn new(memory: Box<Memory>) -> Mos6502Cpu {
         Mos6502Cpu {
             memory,
             registers: RegisterSet::new(),
@@ -271,7 +281,7 @@ impl<'a> Mos6502Cpu<'a> {
     }
 }
 
-impl<'a> Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu<'a> {
+impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
     fn get_cycles_for_instruction(&mut self, instruction: &Mos6502Instruction) -> Result<u8, Error> {
         let cycles = match instruction.get_cycles()? {
             Cycles::Single(cycles) => cycles,
@@ -374,10 +384,14 @@ impl<'a> Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu<'a> {
         self.registers.pc
     }
 
-    fn get_next_instruction_bytes(&self) -> &[u8] {
+    fn get_next_instruction_bytes(&self) -> Vec<u8> {
+        let mut res = Vec::with_capacity(3);
         let from = self.registers.pc as usize;
         let to = min(from+3, self.memory.len());
-        self.memory.slice(from, to)
+        for i in from..to {
+            res.push(self.memory.get(i as u16));
+        }
+        res
     }
 
     fn can_run(&self, _: &Mos6502Instruction) -> bool {
@@ -457,7 +471,7 @@ mod tests {
     #[test]
     fn it_should_get_value_from_addressing_mode_for_accumulator() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x42;
         assert_eq!(
             cpu.get_value_from_addressing_mode(&AddressingMode::Accumulator).unwrap(),
@@ -467,7 +481,7 @@ mod tests {
     #[test]
     fn it_should_get_value_from_addressing_mode_for_immediate() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let cpu = Mos6502Cpu::new(&mut m);
+        let cpu = Mos6502Cpu::new(Box::new(m));
         assert_eq!(
             cpu.get_value_from_addressing_mode(&AddressingMode::Immediate { byte: 0x42 }).unwrap(),
             0x42);
@@ -476,7 +490,7 @@ mod tests {
     #[test]
     fn it_should_get_value_from_addressing_mode_for_zero_page() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.memory.set(0x35, 0x42);
         assert_eq!(
             cpu.get_value_from_addressing_mode(&AddressingMode::ZeroPage { byte: 0x35 }).unwrap(),
@@ -486,7 +500,7 @@ mod tests {
     #[test]
     fn it_should_get_value_from_addressing_mode_for_zero_page_indexed_by_x() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.memory.set(0x20, 0x42);
         cpu.registers.x = 0x60;
         assert_eq!(
@@ -497,7 +511,7 @@ mod tests {
     #[test]
     fn it_should_get_value_from_addressing_mode_for_zero_page_indexed_by_y() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.memory.set(0x20, 0x42);
         cpu.registers.y = 0x60;
         assert_eq!(
@@ -508,7 +522,7 @@ mod tests {
     #[test]
     fn it_should_get_value_from_addressing_mode_for_absolute() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.memory.set(0x2442, 0x42);
         assert_eq!(
             cpu.get_value_from_addressing_mode(&AddressingMode::Absolute {
@@ -521,7 +535,7 @@ mod tests {
     #[test]
     fn it_should_get_value_from_addressing_mode_for_absolute_indexed_by_x() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.memory.set(0x2443, 0x42);
         cpu.registers.x = 1;
         assert_eq!(
@@ -535,7 +549,7 @@ mod tests {
     #[test]
     fn it_should_get_value_from_addressing_mode_for_absolute_indexed_by_y() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.memory.set(0x2443, 0x42);
         cpu.registers.y = 1;
         assert_eq!(
@@ -549,7 +563,7 @@ mod tests {
     #[test]
     fn it_should_get_value_from_addressing_mode_for_indexed_indirect() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.memory.set(0x24, 0x74);
         cpu.memory.set(0x25, 0x20);
         cpu.memory.set(0x2074, 0x42);
@@ -564,7 +578,7 @@ mod tests {
     #[test]
     fn it_should_get_value_from_addressing_mode_for_indirect_indexed() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.memory.set(0x86, 0x28);
         cpu.memory.set(0x87, 0x40);
         cpu.memory.set(0x4028, 0x42);
@@ -579,7 +593,7 @@ mod tests {
     #[test]
     fn it_should_set_value_to_addressing_mode_for_accumulator() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0;
         cpu.set_value_to_addressing_mode(&AddressingMode::Accumulator, 0x42)
             .unwrap();
@@ -589,7 +603,7 @@ mod tests {
     #[test]
     fn it_should_set_value_to_addressing_mode_for_zero_page() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.set_value_to_addressing_mode(
             &AddressingMode::ZeroPage { byte: 0x35 }, 0x42).unwrap();
         assert_eq!(cpu.memory.get(0x35), 0x42);
@@ -598,7 +612,7 @@ mod tests {
     #[test]
     fn it_should_set_value_to_addressing_mode_for_zero_page_indexed_by_x() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.x = 0x60;
         cpu.set_value_to_addressing_mode(
             &AddressingMode::ZeroPageIndexedX { byte: 0xC0 }, 0x42).unwrap();
@@ -608,7 +622,7 @@ mod tests {
     #[test]
     fn it_should_set_value_to_addressing_mode_for_zero_page_indexed_by_y() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.y = 0x60;
         cpu.set_value_to_addressing_mode(
             &AddressingMode::ZeroPageIndexedY { byte: 0xC0 }, 0x42).unwrap();
@@ -618,7 +632,7 @@ mod tests {
     #[test]
     fn it_should_set_value_to_addressing_mode_for_absolute() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.set_value_to_addressing_mode(&AddressingMode::Absolute {
                 high_byte: 0x24,
                 low_byte: 0x42,
@@ -629,7 +643,7 @@ mod tests {
     #[test]
     fn it_should_set_value_to_addressing_mode_for_absolute_indexed_by_x() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.x = 1;
         cpu.set_value_to_addressing_mode(&AddressingMode::AbsoluteIndexedX {
             high_byte: 0x24,
@@ -641,7 +655,7 @@ mod tests {
     #[test]
     fn it_should_set_value_to_addressing_mode_for_absolute_indexed_by_y() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.y = 1;
         cpu.set_value_to_addressing_mode(&AddressingMode::AbsoluteIndexedY {
             high_byte: 0x24,
@@ -653,7 +667,7 @@ mod tests {
     #[test]
     fn it_should_set_value_to_addressing_mode_for_indexed_indirect() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.memory.set(0x24, 0x74);
         cpu.memory.set(0x25, 0x20);
         cpu.registers.x = 0x04;
@@ -666,7 +680,7 @@ mod tests {
     #[test]
     fn it_should_set_value_to_addressing_mode_for_indirect_indexed() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.memory.set(0x86, 0x28);
         cpu.memory.set(0x87, 0x40);
         cpu.registers.y = 0x10;
@@ -679,7 +693,7 @@ mod tests {
     #[test]
     fn it_should_get_address_from_addressing_mode_for_absolute() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let cpu = Mos6502Cpu::new(&mut m);
+        let cpu = Mos6502Cpu::new(Box::new(m));
         let address = cpu.get_address_from_addressing_mode(&AddressingMode::Absolute {
             high_byte: 0x42,
             low_byte: 0x24,
@@ -690,7 +704,7 @@ mod tests {
     #[test]
     fn it_should_get_address_from_addressing_mode_for_indirect() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.memory.set(0x0120, 0xFC);
         cpu.memory.set(0x0121, 0xBA);
         let address = cpu.get_address_from_addressing_mode(&AddressingMode::Indirect {
@@ -703,7 +717,7 @@ mod tests {
     #[test]
     fn it_should_get_address_from_addressing_mode_for_zero_page() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let cpu = Mos6502Cpu::new(&mut m);
+        let cpu = Mos6502Cpu::new(Box::new(m));
         let address = cpu.get_address_from_addressing_mode(&AddressingMode::ZeroPage {
             byte: 0x42,
         }).unwrap();
@@ -713,7 +727,7 @@ mod tests {
     #[test]
     fn it_should_get_address_from_addressing_mode_for_zero_page_indexed_by_x() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.x = 0x80;
         let address = cpu.get_address_from_addressing_mode(&AddressingMode::ZeroPageIndexedX {
             byte: 0xff,
@@ -724,7 +738,7 @@ mod tests {
     #[test]
     fn it_should_get_address_from_addressing_mode_for_absolute_indexed_by_x() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.x = 0x80;
         let address = cpu.get_address_from_addressing_mode(&AddressingMode::AbsoluteIndexedX {
             low_byte: 0xff,
@@ -736,7 +750,7 @@ mod tests {
     #[test]
     fn it_should_get_address_from_addressing_mode_for_absolute_indexed_by_y() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.y = 0x80;
         let address = cpu.get_address_from_addressing_mode(&AddressingMode::AbsoluteIndexedY {
             low_byte: 0xff,
@@ -748,7 +762,7 @@ mod tests {
     #[test]
     fn it_should_get_address_from_addressing_mode_for_indexed_indirect() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.memory.set(0x24, 0x74);
         cpu.memory.set(0x25, 0x20);
         cpu.registers.x = 0x04;
@@ -761,7 +775,7 @@ mod tests {
     #[test]
     fn it_should_get_address_from_addressing_mode_for_indirect_indexed() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.memory.set(0x86, 0x28);
         cpu.memory.set(0x87, 0x40);
         cpu.registers.y = 0x10;

@@ -1,7 +1,7 @@
 use {Memory, Mos6502Cpu, CpuError, CpuResult};
 use instruction::AddressingMode;
 
-impl<'a> Mos6502Cpu<'a> {
+impl Mos6502Cpu {
     pub(crate) fn execute_bit(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_bit_address(addressing_mode)?;
         let value = self.get_value_from_addressing_mode(addressing_mode)?;
@@ -95,7 +95,7 @@ mod tests {
     #[test]
     fn it_shouldnt_set_zero_when_bit_on_same_value() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.memory.set(0, 0x42);
         cpu.registers.a = 0x42;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -109,7 +109,7 @@ mod tests {
     #[test]
     fn it_should_set_zero_when_bit_on_different_value() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.memory.set(0, 0x42);
         cpu.registers.a = 0x0;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -123,7 +123,7 @@ mod tests {
     #[test]
     fn it_should_set_overflow_and_negative_from_memory() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.memory.set(0, 0xc0);
         cpu.registers.a = 0x0;
         cpu.registers.p.overflow = false;
@@ -139,7 +139,7 @@ mod tests {
     #[test]
     fn it_should_set_carry_to_zero_on_clc() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.p.carry = true;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Clc,
@@ -151,7 +151,7 @@ mod tests {
     #[test]
     fn it_should_set_decimal_to_zero_on_cld() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.p.decimal = true;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Cld,
@@ -163,7 +163,7 @@ mod tests {
     #[test]
     fn it_should_set_interrupt_to_zero_on_cli() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.p.interrupt_disable = true;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Cli,
@@ -175,7 +175,7 @@ mod tests {
     #[test]
     fn it_should_set_overflow_to_zero_on_clv() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.p.overflow = true;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Clv,
@@ -187,7 +187,7 @@ mod tests {
     #[test]
     fn it_should_set_carry_on_sec() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.p.carry = false;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Sec,
@@ -199,7 +199,7 @@ mod tests {
     #[test]
     fn it_should_set_decimal_on_sed() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.p.decimal = false;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Sed,
@@ -211,7 +211,7 @@ mod tests {
     #[test]
     fn it_should_set_interrupt_on_sei() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.p.interrupt_disable = false;
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Sei,

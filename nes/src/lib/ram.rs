@@ -2,8 +2,6 @@ extern crate mos6502cpu;
 
 use mos6502cpu::{AVAILABLE_MEMORY, Memory};
 use nes::InputOutputDevice;
-use std::cell::RefCell;
-use std::rc::Rc;
 
 pub const ROM_SIZE: usize = 0x8000;
 
@@ -130,10 +128,6 @@ impl Memory for Ram {
             self.get_from_rom(index)
         }
     }
-    // Slice can only happen in the ROM
-    fn slice(&self, from: usize, to: usize) -> &[u8] {
-        &self.rom[(from - 0x8000)..(to - 0x8000)]
-    }
     fn len(&self) -> usize {
         AVAILABLE_MEMORY
     }
@@ -248,11 +242,5 @@ mod tests {
     fn it_should_get_from_rom() {
         let memory = Ram::new([0x42; ROM_SIZE]);
         assert_eq!(memory.get(0x8000), 0x42);
-    }
-
-    #[test]
-    fn it_should_slice_from_rom() {
-        let memory = Ram::new([1; ROM_SIZE]);
-        assert_eq!(memory.slice(0x8000, 0x8002), &vec![1, 1][..]);
     }
 }

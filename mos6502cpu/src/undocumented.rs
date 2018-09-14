@@ -4,7 +4,7 @@ use instruction::AddressingMode;
 use mos6502cpu::ProcessorStatus;
 
 // Implementation based on http://www.oxyron.de/html/opcodes02.html
-impl<'a> Mos6502Cpu<'a> {
+impl Mos6502Cpu {
     pub(crate) fn execute_ahx(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         match addressing_mode {
             AddressingMode::IndirectIndexed { byte: _ } |

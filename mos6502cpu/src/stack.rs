@@ -2,7 +2,7 @@ use {Memory, Mos6502Cpu, CpuError, CpuResult};
 use instruction::AddressingMode;
 use mos6502cpu::ProcessorStatus;
 
-impl<'a> Mos6502Cpu<'a> {
+impl Mos6502Cpu {
     pub(crate) fn execute_pha(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         if let AddressingMode::Implicit = addressing_mode {
             let a = self.registers.a;
@@ -55,7 +55,7 @@ mod tests {
     #[test]
     fn it_should_push_accumulator_onto_stack() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.s = 0xff;
         cpu.registers.a = 0x42;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -69,7 +69,7 @@ mod tests {
     #[test]
     fn it_should_push_status_onto_stack() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.s = 0xff;
         cpu.registers.p.carry = true;
         let expected = cpu.registers.p.to_byte();
@@ -84,7 +84,7 @@ mod tests {
     #[test]
     fn it_should_pull_accumulator_without_setting_anything() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.s = 0xfe;
         cpu.registers.a = 0;
         cpu.memory.set(0x1ff, 0x42);
@@ -101,7 +101,7 @@ mod tests {
     #[test]
     fn it_should_pull_accumulator_setting_zero() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.s = 0xfe;
         cpu.registers.a = 0x42;
         cpu.memory.set(0xff, 0x0);
@@ -118,7 +118,7 @@ mod tests {
     #[test]
     fn it_should_pull_accumulator_setting_negative() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.s = 0xfe;
         cpu.registers.a = 0x42;
         cpu.memory.set(0x1ff, 0x80);
@@ -135,7 +135,7 @@ mod tests {
     #[test]
     fn it_should_pull_status() {
         let mut m = [0; AVAILABLE_MEMORY];
-        let mut cpu = Mos6502Cpu::new(&mut m);
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.s = 0xfe;
         cpu.registers.p.carry = true;
         cpu.memory.set(0x1ff, cpu.registers.p.to_byte());
