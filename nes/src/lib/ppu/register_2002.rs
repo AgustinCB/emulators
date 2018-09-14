@@ -7,7 +7,7 @@ pub(crate) struct Register2002 {
 }
 
 /**
- * See page 18 of https://nesdev.com/NESDoc.pdf
+ * See page 34 of https://nesdev.com/NESDoc.pdf
  */
 impl Register2002 {
     pub(crate) fn new() -> Register2002 {
