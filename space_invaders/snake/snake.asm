@@ -24,7 +24,7 @@ PUSH B
 PUSH D
 PUSH H
 MOV A, B
-CPI 0x04 ; Did initialization finished?
+CPI 0x08 ; Did initialization finished?
 JNZ RETURN_TO_WORK ; No! Come back to work!
 CALL UPDATE_TAIL
 CALL DRAW_NEW_STEP
@@ -42,9 +42,9 @@ ORG 100H
 INIT:
 ; Current step will be stored in B
 ; 0x01 -> Saving status
-; 0x02 -> Init snake
-; 0x03 -> Clearing screen
-; 0x04 -> All done! Game running!
+; 0x02 -> Clearing screen
+; 0x04 -> Init snake
+; 0x08 -> All done! Game running!
 MVI B, 1
 
 ; Initialize the status
@@ -59,25 +59,25 @@ LXI H, STATUS
 MVI D, 08H
 MOV M, D
 
+; Initialize the screen
+CALL CLEAR_SCREEN
+
 ; Starting position of the snake
 ; Snake array.
 ; First byte is the size of the structure.
 ; Then each couple of bytes is the location of a node, starting from the head.
 ; Each node are the vertices of the snake.
-ADD B, B
 LXI H, SNAKE
 MVI M, 2
 INX H
 LXI D, MID_SCREEN
 CALL SAVE_SNAKE_POINT
+CALL DRAW_NODE
 INX D
 CALL SAVE_SNAKE_POINT
-
-; Initialize the screen
-ADD B, B
-CALL CLEAR_SCREEN
 CALL DRAW_NODE
-ADD B, B
+
+MVI 0x08
 CALL GAME_LOOP
 
 SAVE_SNAKE_POINT:
@@ -205,9 +205,10 @@ MOV M, A
 RET
 
 GET_BIT:
-; This method will get in HL the address of the byte in which that contains the bit in the frame buffer
-; That affects the position at DE
-; It will also set C to contain a mask that refers to that pixel.
+; This method will get in HL the address in the frame buffer of the byte in the position DE
+; PARAMETERS: DE -> The coordinates of the pixel in the screen.
+; RETURNS: HL -> The address in the frame buffer for DE
+;          C  -> A mask for that pixel
 MOV C, E
 ; Multiply the x coordinate by 0x20
 MVI A, 5
