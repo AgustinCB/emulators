@@ -58,6 +58,8 @@ MVI SP, FFFFH
 LXI H, STATUS
 MVI D, 08H
 MOV M, D
+INX H
+MVI M, D
 
 ; Initialize the screen
 CALL CLEAR_SCREEN
