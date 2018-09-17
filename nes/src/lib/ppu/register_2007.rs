@@ -2,7 +2,7 @@ use ppu::address_register::AddressRegister;
 use nes::InputOutputDevice;
 use std::cell::RefCell;
 use std::rc::Rc;
-use video_ram::VideoRam;
+use ppu::video_ram::VideoRam;
 
 #[inline]
 fn two_bytes_to_word(high_byte: u8, low_byte: u8) -> u16 {

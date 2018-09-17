@@ -6,6 +6,7 @@ mod register_2002;
 mod register_2004;
 mod register_2007;
 mod register_4014;
+mod video_ram;
 
 pub(crate) type SpriteMemory = [u8; 256];
 

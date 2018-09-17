@@ -48,7 +48,7 @@ impl VideoRam {
 
 #[cfg(test)]
 mod tests {
-    use video_ram::VideoRam;
+    use ppu::video_ram::VideoRam;
 
     #[test]
     fn it_should_get_from_pattern_tables() {

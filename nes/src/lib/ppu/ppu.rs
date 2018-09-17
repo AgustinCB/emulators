@@ -9,7 +9,7 @@ use ppu::register_2002::{Register2002, Register2002Connector};
 use ppu::register_2004::{Register2004, Register2004Connector};
 use ppu::register_2007::{Register2007, Register2007Connector};
 use ppu::register_4014::{Register4014, Register4014Connector};
-use video_ram::VideoRam;
+use ppu::video_ram::VideoRam;
 
 pub struct Ppu {
     ram: Rc<RefCell<Ram>>,
