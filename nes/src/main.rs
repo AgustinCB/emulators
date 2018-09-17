@@ -3,7 +3,6 @@ extern crate mos6502cpu;
 extern crate nes;
 
 use failure::Error;
-use mos6502cpu::*;
 use nes::{Nes, ROM_SIZE};
 use std::env::args;
 use std::fs::File;

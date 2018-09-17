@@ -1,4 +1,5 @@
 extern crate mos6502cpu;
+extern crate failure;
 
 mod nes;
 mod ppu;

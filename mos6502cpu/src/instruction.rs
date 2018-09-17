@@ -229,6 +229,10 @@ pub struct Mos6502Instruction {
 }
 
 impl Mos6502Instruction {
+    pub fn new(instruction: Mos6502InstructionCode, addressing_mode: AddressingMode)
+        -> Mos6502Instruction {
+        Mos6502Instruction { instruction, addressing_mode }
+    }
     fn alu_size(&self) -> Result<u8, Error> {
         match self.addressing_mode {
             AddressingMode::Immediate { byte: _ } => Ok(2),

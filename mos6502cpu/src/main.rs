@@ -20,7 +20,7 @@ fn read_file(file_name: &str) -> std::io::Result<[u8; AVAILABLE_MEMORY]> {
     Ok(memory)
 }
 
-fn test(mut memory: [u8; AVAILABLE_MEMORY], starting_address: u16) -> Result<(), Error> {
+fn test(memory: [u8; AVAILABLE_MEMORY], starting_address: u16) -> Result<(), Error> {
     let mut cpu = Mos6502Cpu::new(Box::new(memory));
     cpu.set_pc(starting_address);
     while !cpu.is_done() {

@@ -184,7 +184,7 @@ mod tests {
 
     #[test]
     fn it_should_execut_asl_with_no_flag() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x03;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -199,7 +199,7 @@ mod tests {
 
     #[test]
     fn it_should_execut_asl_setting_carry() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0xc0;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -214,7 +214,7 @@ mod tests {
 
     #[test]
     fn it_should_execut_asl_setting_zero() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x80;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -229,7 +229,7 @@ mod tests {
 
     #[test]
     fn it_should_substract_one_and_not_set_anything() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.memory.set(0, 0x42);
         cpu.execute_instruction(&Mos6502Instruction {
@@ -243,7 +243,7 @@ mod tests {
 
     #[test]
     fn it_should_substract_one_and_set_zero() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.memory.set(0, 0x01);
         cpu.execute_instruction(&Mos6502Instruction {
@@ -257,7 +257,7 @@ mod tests {
 
     #[test]
     fn it_should_substract_one_and_set_negative() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.memory.set(0, 0x0);
         cpu.execute_instruction(&Mos6502Instruction {
@@ -271,7 +271,7 @@ mod tests {
 
     #[test]
     fn it_should_substract_one_from_x_and_not_set_anything() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.x = 0x42;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -285,7 +285,7 @@ mod tests {
 
     #[test]
     fn it_should_substract_one_from_x_and_set_zero() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.x = 0x01;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -299,7 +299,7 @@ mod tests {
 
     #[test]
     fn it_should_substract_one_from_x_and_set_negative() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.x = 0x0;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -313,7 +313,7 @@ mod tests {
 
     #[test]
     fn it_should_substract_one_from_y_and_not_set_anything() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.y = 0x42;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -327,7 +327,7 @@ mod tests {
 
     #[test]
     fn it_should_substract_one_from_y_and_set_zero() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.y = 0x01;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -341,7 +341,7 @@ mod tests {
 
     #[test]
     fn it_should_substract_one_from_y_and_set_negative() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.y = 0x0;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -355,7 +355,7 @@ mod tests {
 
     #[test]
     fn it_should_increment_one_and_not_set_anything() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.memory.set(0, 0x42);
         cpu.execute_instruction(&Mos6502Instruction {
@@ -369,7 +369,7 @@ mod tests {
 
     #[test]
     fn it_should_increment_one_and_set_zero() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.memory.set(0, 0xff);
         cpu.execute_instruction(&Mos6502Instruction {
@@ -383,7 +383,7 @@ mod tests {
 
     #[test]
     fn it_should_increment_one_and_set_negative() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.memory.set(0, 0xfe);
         cpu.execute_instruction(&Mos6502Instruction {
@@ -397,7 +397,7 @@ mod tests {
 
     #[test]
     fn it_should_increment_one_from_x_and_not_set_anything() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.x = 0x42;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -411,7 +411,7 @@ mod tests {
 
     #[test]
     fn it_should_increment_one_from_x_and_set_zero() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.x = 0xff;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -425,7 +425,7 @@ mod tests {
 
     #[test]
     fn it_should_increment_one_from_x_and_set_negative() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.x = 0xfe;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -439,7 +439,7 @@ mod tests {
 
     #[test]
     fn it_should_increment_one_from_y_and_not_set_anything() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.y = 0x42;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -453,7 +453,7 @@ mod tests {
 
     #[test]
     fn it_should_increment_one_from_y_and_set_zero() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.y = 0xff;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -467,7 +467,7 @@ mod tests {
 
     #[test]
     fn it_should_increment_one_from_y_and_set_negative() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.y = 0xfe;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -481,7 +481,7 @@ mod tests {
 
     #[test]
     fn it_should_shift_right_without_setting_anything() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x02;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -496,7 +496,7 @@ mod tests {
 
     #[test]
     fn it_should_shift_right_setting_carry() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x03;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -511,7 +511,7 @@ mod tests {
 
     #[test]
     fn it_should_shift_right_setting_zero() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x00;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -526,7 +526,7 @@ mod tests {
 
     #[test]
     fn it_should_rotate_left_without_setting_anything() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x02;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -541,7 +541,7 @@ mod tests {
 
     #[test]
     fn it_should_rotate_left_with_carry_without_setting_anything() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.p.carry = true;
         cpu.registers.a = 0x02;
@@ -557,7 +557,7 @@ mod tests {
 
     #[test]
     fn it_should_rotate_left_setting_carry_and_negative() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0xC0;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -572,7 +572,7 @@ mod tests {
 
     #[test]
     fn it_should_rotate_left_setting_zero() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x00;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -587,7 +587,7 @@ mod tests {
 
     #[test]
     fn it_should_rotate_right_without_setting_anything() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x02;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -602,7 +602,7 @@ mod tests {
 
     #[test]
     fn it_should_rotate_right_with_carry_without_setting_anything() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.p.carry = true;
         cpu.registers.a = 0x02;
@@ -618,7 +618,7 @@ mod tests {
 
     #[test]
     fn it_should_rotate_right_setting_carry() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x03;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -633,7 +633,7 @@ mod tests {
 
     #[test]
     fn it_should_rotate_right_setting_zero() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.a = 0x00;
         cpu.execute_instruction(&Mos6502Instruction {

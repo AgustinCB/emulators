@@ -193,7 +193,7 @@ mod tests {
 
     #[test]
     fn it_should_branch_if_carry_is_clear_on_bcc() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.p.carry = false;
         cpu.registers.pc = 0;
@@ -206,7 +206,7 @@ mod tests {
 
     #[test]
     fn it_should_branch_back_if_carry_is_clear_on_bcc_and_argument_is_negative() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.p.carry = false;
         cpu.registers.pc = 1;
@@ -219,7 +219,7 @@ mod tests {
 
     #[test]
     fn it_shouldnt_branch_if_carry_is_set_on_bcc() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.p.carry = true;
         cpu.registers.pc = 0;
@@ -232,7 +232,7 @@ mod tests {
 
     #[test]
     fn it_shouldnt_branch_if_carry_is_clear_on_bcs() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.p.carry = false;
         cpu.registers.pc = 0;
@@ -245,7 +245,7 @@ mod tests {
 
     #[test]
     fn it_should_branch_if_carry_is_set_on_bcs() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.p.carry = true;
         cpu.registers.pc = 0;
@@ -258,7 +258,7 @@ mod tests {
 
     #[test]
     fn it_shouldnt_branch_if_zero_is_clear_on_beq() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.p.zero = false;
         cpu.registers.pc = 0;
@@ -271,7 +271,7 @@ mod tests {
 
     #[test]
     fn it_should_branch_if_zero_is_set_on_beq() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.p.zero = true;
         cpu.registers.pc = 0;
@@ -284,7 +284,7 @@ mod tests {
 
     #[test]
     fn it_shouldnt_branch_if_negative_is_clear_on_bmi() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.p.negative = false;
         cpu.registers.pc = 0;
@@ -297,7 +297,7 @@ mod tests {
 
     #[test]
     fn it_should_branch_if_negative_is_set_on_bmi() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.p.negative = true;
         cpu.registers.pc = 0;
@@ -310,7 +310,7 @@ mod tests {
 
     #[test]
     fn it_should_branch_if_zero_is_clear_on_bne() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.p.zero = false;
         cpu.registers.pc = 0;
@@ -323,7 +323,7 @@ mod tests {
 
     #[test]
     fn it_shouldnt_branch_if_zero_is_set_on_bne() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.p.zero = true;
         cpu.registers.pc = 0;
@@ -336,7 +336,7 @@ mod tests {
 
     #[test]
     fn it_should_branch_if_negative_is_clear_on_bpl() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.p.negative = false;
         cpu.registers.pc = 0;
@@ -349,7 +349,7 @@ mod tests {
 
     #[test]
     fn it_shouldnt_branch_if_negative_is_set_on_bpl() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.p.negative = true;
         cpu.registers.pc = 0;
@@ -362,7 +362,7 @@ mod tests {
 
     #[test]
     fn it_should_change_program_counter_to_fffe_on_break() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.memory.set(0xfffe, 0x24);
         cpu.memory.set(0xffff, 0x42);
@@ -379,7 +379,7 @@ mod tests {
 
     #[test]
     fn it_should_save_in_stack_status_on_break() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.s = 3;
         cpu.registers.pc = 0x4224;
@@ -395,7 +395,7 @@ mod tests {
 
     #[test]
     fn it_should_branch_if_overflow_is_clear_on_bvc() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.p.overflow = false;
         cpu.registers.pc = 0;
@@ -408,7 +408,7 @@ mod tests {
 
     #[test]
     fn it_shouldnt_branch_if_overflow_is_set_on_bvc() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.p.overflow = true;
         cpu.registers.pc = 0;
@@ -421,7 +421,7 @@ mod tests {
 
     #[test]
     fn it_shouldnt_branch_if_overflow_is_clear_on_bvs() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.p.overflow = false;
         cpu.registers.pc = 0;
@@ -434,7 +434,7 @@ mod tests {
 
     #[test]
     fn it_should_branch_if_overflow_is_set_on_bvs() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.p.overflow = true;
         cpu.registers.pc = 0;
@@ -447,7 +447,7 @@ mod tests {
 
     #[test]
     fn it_should_change_program_counter_to_fffe_on_irq() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.memory.set(0xfffe, 0x24);
         cpu.memory.set(0xffff, 0x42);
@@ -464,7 +464,7 @@ mod tests {
 
     #[test]
     fn it_should_save_in_stack_status_on_irq() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.s = 3;
         cpu.registers.pc = 0x4224;
@@ -480,7 +480,7 @@ mod tests {
 
     #[test]
     fn it_should_jump() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.pc = 0;
         cpu.execute_instruction(&Mos6502Instruction {
@@ -495,7 +495,7 @@ mod tests {
 
     #[test]
     fn it_should_jump_and_push_pc_to_stack() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.pc = 0x0042;
         cpu.registers.s = 0xff;
@@ -513,7 +513,7 @@ mod tests {
 
     #[test]
     fn it_should_change_program_counter_to_fffe_on_nmi() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.memory.set(0xfffa, 0x24);
         cpu.memory.set(0xfffb, 0x42);
@@ -530,7 +530,7 @@ mod tests {
 
     #[test]
     fn it_should_save_in_stack_status_on_nmi() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.s = 3;
         cpu.registers.pc = 0x4224;
@@ -546,7 +546,7 @@ mod tests {
 
     #[test]
     fn it_should_ignore_interrupt_disable_on_nmi() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.p.break_flag = false;
         cpu.registers.p.interrupt_disable = true;
@@ -564,7 +564,7 @@ mod tests {
 
     #[test]
     fn it_should_change_program_counter_to_fffe_on_rst() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.memory.set(0xfffc, 0x24);
         cpu.memory.set(0xfffd, 0x42);
@@ -581,7 +581,7 @@ mod tests {
 
     #[test]
     fn it_should_save_in_stack_status_on_rst() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.s = 3;
         cpu.registers.pc = 0x4224;
@@ -597,7 +597,7 @@ mod tests {
 
     #[test]
     fn it_should_return_from_interrupt() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.pc = 0x0042;
         cpu.registers.s = 0xfc;
@@ -616,7 +616,7 @@ mod tests {
 
     #[test]
     fn it_should_return_from_subroutine() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.pc = 0x0042;
         cpu.registers.s = 0xfd;

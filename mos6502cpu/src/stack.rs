@@ -54,7 +54,7 @@ mod tests {
 
     #[test]
     fn it_should_push_accumulator_onto_stack() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.s = 0xff;
         cpu.registers.a = 0x42;
@@ -68,7 +68,7 @@ mod tests {
 
     #[test]
     fn it_should_push_status_onto_stack() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.s = 0xff;
         cpu.registers.p.carry = true;
@@ -83,7 +83,7 @@ mod tests {
 
     #[test]
     fn it_should_pull_accumulator_without_setting_anything() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.s = 0xfe;
         cpu.registers.a = 0;
@@ -100,7 +100,7 @@ mod tests {
 
     #[test]
     fn it_should_pull_accumulator_setting_zero() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.s = 0xfe;
         cpu.registers.a = 0x42;
@@ -117,7 +117,7 @@ mod tests {
 
     #[test]
     fn it_should_pull_accumulator_setting_negative() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.s = 0xfe;
         cpu.registers.a = 0x42;
@@ -134,7 +134,7 @@ mod tests {
 
     #[test]
     fn it_should_pull_status() {
-        let mut m = [0; AVAILABLE_MEMORY];
+        let m = [0; AVAILABLE_MEMORY];
         let mut cpu = Mos6502Cpu::new(Box::new(m));
         cpu.registers.s = 0xfe;
         cpu.registers.p.carry = true;
