@@ -123,11 +123,22 @@ pub struct Mos6502Cpu {
     pub(crate) memory: Box<Memory>,
     pub(crate) registers: RegisterSet,
     pub(crate) page_crossed: bool,
+    pub(crate) decimal_enabled: bool,
 }
 
 impl Mos6502Cpu {
     pub fn new(memory: Box<Memory>) -> Mos6502Cpu {
         Mos6502Cpu {
+            decimal_enabled: true,
+            memory,
+            registers: RegisterSet::new(),
+            page_crossed: false,
+        }
+    }
+
+    pub fn without_decimal(memory: Box<Memory>) -> Mos6502Cpu {
+        Mos6502Cpu {
+            decimal_enabled: false,
             memory,
             registers: RegisterSet::new(),
             page_crossed: false,

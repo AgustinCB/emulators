@@ -4,7 +4,7 @@ use instruction::AddressingMode;
 impl Mos6502Cpu {
     pub(crate) fn execute_adc(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_alu_address(addressing_mode)?;
-        if self.registers.p.decimal {
+        if self.decimal_enabled && self.registers.p.decimal {
             self.execute_adc_decimal_unchecked(addressing_mode)
         } else {
             self.execute_adc_unchecked(addressing_mode)
@@ -74,7 +74,7 @@ impl Mos6502Cpu {
 
     pub(crate) fn execute_sbc(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         self.check_alu_address(addressing_mode)?;
-        if self.registers.p.decimal {
+        if self.decimal_enabled && self.registers.p.decimal {
             self.execute_sbc_decimal_unchecked(addressing_mode)
         } else {
             self.execute_sbc_unchecked(addressing_mode)
@@ -278,6 +278,24 @@ mod tests {
         assert_eq!(cpu.registers.a, 0);
         assert!(cpu.registers.p.carry);
         assert!(cpu.registers.p.zero);
+        assert!(!cpu.registers.p.overflow);
+        assert!(!cpu.registers.p.negative);
+    }
+
+    #[test]
+    fn it_should_adc_normally_when_decimal_is_disabled() {
+        let m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::without_decimal(Box::new(m));
+        cpu.registers.a = 0x61;
+        cpu.registers.p.carry = false;
+        cpu.registers.p.decimal = true;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Adc,
+            addressing_mode: AddressingMode::Immediate { byte: 0xb0 },
+        }).unwrap();
+        assert_eq!(cpu.registers.a, 0x11);
+        assert!(cpu.registers.p.carry);
+        assert!(!cpu.registers.p.zero);
         assert!(!cpu.registers.p.overflow);
         assert!(!cpu.registers.p.negative);
     }
@@ -580,6 +598,24 @@ mod tests {
         }).unwrap();
         assert_eq!(cpu.registers.a, 0x0);
         assert!(cpu.registers.p.zero);
+        assert!(cpu.registers.p.carry);
+        assert!(!cpu.registers.p.negative);
+        assert!(!cpu.registers.p.overflow);
+    }
+
+    #[test]
+    fn it_should_subtract_normally_when_decimal_is_disabled() {
+        let m = [0; AVAILABLE_MEMORY];
+        let mut cpu = Mos6502Cpu::new(Box::new(m));
+        cpu.registers.a = 0x4F;
+        cpu.registers.p.carry = true;
+        cpu.registers.p.decimal = true;
+        cpu.execute_instruction(&Mos6502Instruction {
+            instruction: Mos6502InstructionCode::Sbc,
+            addressing_mode: AddressingMode::Immediate { byte: 0x01 },
+        }).unwrap();
+        assert_eq!(cpu.registers.a, 0x4E);
+        assert!(!cpu.registers.p.zero);
         assert!(cpu.registers.p.carry);
         assert!(!cpu.registers.p.negative);
         assert!(!cpu.registers.p.overflow);

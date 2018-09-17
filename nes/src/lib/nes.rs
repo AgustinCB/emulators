@@ -19,7 +19,7 @@ pub struct Nes {
 impl Nes {
     pub fn new(rom: [u8; ROM_SIZE]) -> Nes {
         let ram = Rc::new(RefCell::new(Ram::new(rom)));
-        let cpu = Mos6502Cpu::new(Box::new(ram.clone()));
+        let cpu = Mos6502Cpu::without_decimal(Box::new(ram.clone()));
         let ppu = Ppu::new(ram.clone());
         Nes {
             cpu,

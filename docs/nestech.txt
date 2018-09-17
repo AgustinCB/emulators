@@ -298,7 +298,7 @@
     ating the stack by hand, and then doing an RTS. This is technically
     valid, but morally shunned.
 
-    The aforementioned nterrupts have the following vector addresses,
+    The aforementioned interrupts have the following vector addresses,
     mapped to areas of ROM:
 
       $FFFA = NMI
