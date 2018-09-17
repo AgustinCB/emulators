@@ -55,6 +55,7 @@ impl Mos6502Cpu {
     pub(crate) fn execute_brk(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         if let AddressingMode::Implicit = addressing_mode {
             if !self.registers.p.interrupt_disable {
+                self.registers.p.break_flag = true;
                 self.execute_interruption(2);
             }
             Ok(())
@@ -142,7 +143,6 @@ impl Mos6502Cpu {
 
     #[inline]
     fn execute_interruption(&mut self, index: u16) {
-        self.registers.p.break_flag = true;
         let p_byte = self.registers.p.to_byte();
         let (low_byte, high_byte) = word_to_two_bytes(self.registers.pc + 1);
         self.push(high_byte);
@@ -523,7 +523,7 @@ mod tests {
             instruction: Mos6502InstructionCode::Nmi,
             addressing_mode: AddressingMode::Implicit,
         }).unwrap();
-        assert!(cpu.registers.p.break_flag);
+        assert!(!cpu.registers.p.break_flag);
         assert!(cpu.registers.p.interrupt_disable);
         assert_eq!(cpu.registers.pc, 0x4224);
     }
@@ -557,7 +557,7 @@ mod tests {
             instruction: Mos6502InstructionCode::Nmi,
             addressing_mode: AddressingMode::Implicit,
         }).unwrap();
-        assert!(cpu.registers.p.break_flag);
+        assert!(!cpu.registers.p.break_flag);
         assert!(cpu.registers.p.interrupt_disable);
         assert_eq!(cpu.registers.pc, 0x4224);
     }
@@ -574,7 +574,7 @@ mod tests {
             instruction: Mos6502InstructionCode::Rst,
             addressing_mode: AddressingMode::Implicit,
         }).unwrap();
-        assert!(cpu.registers.p.break_flag);
+        assert!(!cpu.registers.p.break_flag);
         assert!(cpu.registers.p.interrupt_disable);
         assert_eq!(cpu.registers.pc, 0x4224);
     }
