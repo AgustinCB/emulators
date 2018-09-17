@@ -100,6 +100,9 @@ JNZ CLEAR_SCREEN_LOOP
 RET
 
 GAME_LOOP:
+; Wait half a second.
+; Then update the direction of the snake according to user input.
+; This basically means that the snake will move one position in the screen by half a second.
 CALL WAIT_HALF_SECOND
 CALL UPDATE_STATUS
 JMP GAME_LOOP
