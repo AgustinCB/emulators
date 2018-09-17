@@ -36,7 +36,7 @@ impl IORegister {
 pub struct Ram {
     ram: [u8; 0x800],
     pub(crate) io_registers: Vec<IORegister>,
-    expansion_rom: [u8; 0x1E00],
+    expansion_rom: [u8; 0x1FE0],
     sram: [u8; 0x2000],
     rom: [u8; ROM_SIZE],
 }
