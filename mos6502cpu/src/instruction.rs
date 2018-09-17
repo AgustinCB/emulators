@@ -556,9 +556,7 @@ impl Instruction for Mos6502Instruction {
             },
             Mos6502InstructionCode::Inx => Ok(single!(2)),
             Mos6502InstructionCode::Iny => Ok(single!(2)),
-            Mos6502InstructionCode::Irq => Err(Error::from(Mos6502InstructionError::NoCycles {
-                instruction_code: Mos6502InstructionCode::Irq,
-            })),
+            Mos6502InstructionCode::Irq => Ok(single!(7)),
             Mos6502InstructionCode::Isc => self.unofficial_alu_accumulator_cycles(),
             Mos6502InstructionCode::Jmp => match self.addressing_mode {
                 AddressingMode::Indirect { low_byte: _, high_byte: _ } => Ok(single!(5)),
@@ -597,9 +595,7 @@ impl Instruction for Mos6502Instruction {
                 _ => Err(self.invalid_addressing_mode()),
             },
             Mos6502InstructionCode::Lsr => self.data_movement_cycles(),
-            Mos6502InstructionCode::Nmi => Err(Error::from(Mos6502InstructionError::NoCycles {
-                instruction_code: Mos6502InstructionCode::Nmi,
-            })),
+            Mos6502InstructionCode::Nmi => Ok(single!(7)),
             Mos6502InstructionCode::Nop => match self.addressing_mode {
                 AddressingMode::Immediate { byte: _ } => Ok(single!(2)),
                 AddressingMode::Implicit => Ok(single!(2)),
@@ -619,9 +615,7 @@ impl Instruction for Mos6502Instruction {
             Mos6502InstructionCode::Rol => self.data_movement_cycles(),
             Mos6502InstructionCode::Ror => self.data_movement_cycles(),
             Mos6502InstructionCode::Rra => self.unofficial_alu_accumulator_cycles(),
-            Mos6502InstructionCode::Rst => Err(Error::from(Mos6502InstructionError::NoCycles {
-                instruction_code: Mos6502InstructionCode::Rst,
-            })),
+            Mos6502InstructionCode::Rst => Ok(single!(7)),
             Mos6502InstructionCode::Rti => Ok(single!(6)),
             Mos6502InstructionCode::Rts => Ok(single!(6)),
             Mos6502InstructionCode::Sax => match self.addressing_mode {
