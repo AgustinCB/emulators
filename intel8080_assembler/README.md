@@ -18,5 +18,5 @@ number          → numberLiteral
 instructionCode → [A-Z]{2,3} ;
 label           → [A-Z_]+ ;
 numberLiteral   → [0-9]+ ( "H" )? ;
-dataStore       → "A" | "B" | "C" | "D" | "E" | "H" | "L" | "M" | "PSW" | "SP" ;
+dataStore       → "A" | "B" | "C" | "D" | "E" | "H" | "L" | "M" | "P" | "SP" ;
 ```

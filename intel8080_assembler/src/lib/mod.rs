@@ -58,14 +58,8 @@ impl<R: Read> Lexer<R> {
     fn scan_token(&mut self, input: char) -> Result<(), Error> {
         let token = match input {
             c if c.is_whitespace() => Ok(None),
-            'A' | 'B' | 'C' | 'D' | 'E' | 'H' | 'L' | 'M' => self.maybe_scan_location(input),
-            'S' => {
-                let res = self.maybe_scan_sp_register()?;
-                if let Some(_) = res {
-                    self.source.next();
-                }
-                Ok(res)
-            },
+            'A' | 'B' | 'C' | 'D' | 'E' | 'H' | 'L' | 'M' | 'P' => self.maybe_scan_location(input),
+            'S' => self.maybe_scan_sp_register(),
             ':' => Ok(Some(Intel8080AssemblerToken::Colon)),
             ',' => Ok(Some(Intel8080AssemblerToken::Comma)),
             '+' => Ok(Some(Intel8080AssemblerToken::Plus)),
@@ -94,12 +88,22 @@ impl<R: Read> Lexer<R> {
 
     #[inline]
     fn maybe_scan_sp_register(&mut self) -> Result<Option<Intel8080AssemblerToken>, Error> {
+        if let Some(()) = self.maybe_scan_letter('P')? {
+            self.source.next();
+            Ok(Some(Intel8080AssemblerToken::DataStore(Location::Register {
+                register: RegisterType::Sp,
+            })))
+        } else {
+            Ok(None)
+        }
+    }
+
+    #[inline]
+    fn maybe_scan_letter(&mut self, needle: char) -> Result<Option<()>, Error> {
         let future = self.source.peek();
         if let Some(Ok(ref c)) = future {
-            if (*c as char) == 'P' {
-                Ok(Some(Intel8080AssemblerToken::DataStore(Location::Register {
-                    register: RegisterType::Sp,
-                })))
+            if (*c as char) == needle {
+                Ok(Some(()))
             } else {
                 Ok(None)
             }

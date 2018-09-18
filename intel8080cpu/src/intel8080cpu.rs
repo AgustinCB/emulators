@@ -33,7 +33,7 @@ impl fmt::Display for RegisterType {
             RegisterType::H => String::from("H"),
             RegisterType::L => String::from("L"),
             RegisterType::Sp => String::from("SP"),
-            RegisterType::Psw => String::from("PSW"),
+            RegisterType::Psw => String::from("P"),
         };
         write!(f, "{}", s)
     }
@@ -74,7 +74,7 @@ impl Location {
             "L" => Ok(Location::Register { register: RegisterType::L }),
             "M" => Ok(Location::Memory),
             "SP" => Ok(Location::Register { register: RegisterType::Sp }),
-            "PSW" => Ok(Location::Register { register: RegisterType::Psw }),
+            "P" => Ok(Location::Register { register: RegisterType::Psw }),
             _ => Err(LocationParsingError { register: String::from(location) }),
         }
     }
