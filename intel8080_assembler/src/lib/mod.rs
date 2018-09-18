@@ -1,12 +1,20 @@
-extern crate failure;
+#[macro_use] extern crate failure;
 extern crate intel8080cpu;
 
-use failure::Error;
+use failure::{Error, Fail};
 use intel8080cpu::{Intel8080Instruction, Location, RegisterType};
 use std::io::{Bytes, Read};
 use std::iter::Peekable;
 
 struct Label(String);
+
+#[derive(Debug, Fail)]
+pub enum AssemblerError {
+    #[fail(display = "Unexpected character: {}", c)]
+    UnexpectedCharacter {
+        c: char,
+    },
+}
 
 pub(crate) enum Intel8080AssemblerToken {
     Colon,
@@ -49,21 +57,21 @@ impl<R: Read> Lexer<R> {
 
     fn scan_token(&mut self, input: char) -> Result<(), Error> {
         let token = match input {
-            c if c.is_whitespace() => None,
-            'A' | 'B' | 'C' | 'D' | 'E' | 'H' | 'L' | 'M' => self.maybe_scan_location(input)?,
+            c if c.is_whitespace() => Ok(None),
+            'A' | 'B' | 'C' | 'D' | 'E' | 'H' | 'L' | 'M' => self.maybe_scan_location(input),
             'S' => {
                 let res = self.maybe_scan_sp_register()?;
                 if let Some(_) = res {
                     self.source.next();
                 }
-                res
+                Ok(res)
             },
-            ':' => Some(Intel8080AssemblerToken::Colon),
-            ',' => Some(Intel8080AssemblerToken::Comma),
-            '+' => Some(Intel8080AssemblerToken::Plus),
-            '-' => Some(Intel8080AssemblerToken::Minus),
-            _ => panic!("Meh"),
-        };
+            ':' => Ok(Some(Intel8080AssemblerToken::Colon)),
+            ',' => Ok(Some(Intel8080AssemblerToken::Comma)),
+            '+' => Ok(Some(Intel8080AssemblerToken::Plus)),
+            '-' => Ok(Some(Intel8080AssemblerToken::Minus)),
+            _ => Err(Error::from(AssemblerError::UnexpectedCharacter { c: input })),
+        }?;
         if let Some(t) = token {
             self.tokens.push(t);
         }
