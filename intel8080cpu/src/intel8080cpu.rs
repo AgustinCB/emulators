@@ -1,3 +1,4 @@
+use failure::Error;
 use helpers::two_bytes_to_word;
 use std::boxed::Box;
 use std::fmt;
@@ -31,14 +32,20 @@ impl fmt::Display for RegisterType {
             RegisterType::E => String::from("E"),
             RegisterType::H => String::from("H"),
             RegisterType::L => String::from("L"),
-            RegisterType::Sp => String::from("Sp"),
-            RegisterType::Psw => String::from("Psw"),
+            RegisterType::Sp => String::from("SP"),
+            RegisterType::Psw => String::from("PSW"),
         };
         write!(f, "{}", s)
     }
 }
 
 pub type Address = [u8; 2];
+
+#[derive(Debug, Fail)]
+#[fail(display = "{} isn't a valid register.", register)]
+pub struct LocationParsingError {
+    register: String,
+}
 
 #[derive(Clone, Copy)]
 pub enum Location {
@@ -50,7 +57,25 @@ impl ToString for Location {
     fn to_string(&self) -> String{
         match self {
             Location::Register { register } => register.to_string(),
-            Location::Memory => String::from("(HL)")
+            Location::Memory => String::from("M")
+        }
+    }
+}
+
+impl Location {
+    pub fn from(location: &str) -> Result<Self, LocationParsingError> {
+        match location {
+            "A" => Ok(Location::Register { register: RegisterType::A }),
+            "B" => Ok(Location::Register { register: RegisterType::B }),
+            "C" => Ok(Location::Register { register: RegisterType::C }),
+            "D" => Ok(Location::Register { register: RegisterType::D }),
+            "E" => Ok(Location::Register { register: RegisterType::E }),
+            "H" => Ok(Location::Register { register: RegisterType::H }),
+            "L" => Ok(Location::Register { register: RegisterType::L }),
+            "M" => Ok(Location::Memory),
+            "SP" => Ok(Location::Register { register: RegisterType::Sp }),
+            "PSW" => Ok(Location::Register { register: RegisterType::Psw }),
+            _ => Err(LocationParsingError { register: String::from(location) }),
         }
     }
 }
