@@ -2,7 +2,7 @@
 extern crate intel8080cpu;
 
 use failure::{Error, Fail};
-use intel8080cpu::{Intel8080Instruction, Location, RegisterType};
+use intel8080cpu::{Intel8080Instruction, Location};
 use std::io::{Bytes, Read};
 use std::iter::Peekable;
 
@@ -82,6 +82,7 @@ impl<R: Read> Lexer<R> {
         Ok(match literal.as_str() {
             "A" | "B" | "C" | "D" | "E" | "H" | "L" | "M" | "PSW" | "SP" =>
                 Some(Intel8080AssemblerToken::DataStore(Location::from(&literal)?)),
+            "EQU" => Some(Intel8080AssemblerToken::Equ),
             _ => Some(Intel8080AssemblerToken::LabelToken(Label(literal)))
         })
     }
