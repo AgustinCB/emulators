@@ -12,11 +12,11 @@ instruction     → instructionCode
 dataDefinition  → label "EQU" number ;
 labelDefinition → label ":" ;
 argument        → number
-                | register ;
+                | dataStore ;
 number          → numberLiteral
                 | ( label | numberLiteral ) ( "+" | "-" ) ( label | numberLiteral ) ;
 instructionCode → [A-Z]{2,3} ;
 label           → [A-Z_]+ ;
 numberLiteral   → [0-9]+ ( "H" )? ;
-register        → "A" | "B" | "C" | "D" | "E" | "H" | "L" | "M" ;
+dataStore       → "A" | "B" | "C" | "D" | "E" | "H" | "L" | "M" | "PSW" | "SP" ;
 ```
