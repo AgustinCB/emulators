@@ -3,6 +3,7 @@ SNAKE               EQU     4001H
 ; 2000 -> Direction
 ; 2001 -> Next direction
 ; 2002 -> Timer
+; 2003 -> INIT status
 STATUS              EQU     2000H
 MID_WIDTH           EQU     112
 MID_HEIGHT          EQU     128
@@ -23,11 +24,10 @@ PUSH A
 PUSH B
 PUSH D
 PUSH H
-MOV A, B
+LXI H, STATUS+3
+MOV A, M
 CPI 0x08 ; Did initialization finished?
 JNZ RETURN_TO_WORK ; No! Come back to work!
-CALL DRAW_NEW_STEP
-CALL UPDATE_TAIL
 CALL READ_INPUT
 CALL UPDATE_TIMER
 RETURN_TO_WORK:
@@ -42,10 +42,9 @@ ORG 100H
 INIT:
 ; Current step will be stored in B
 ; 0x01 -> Saving status
-; 0x02 -> Clearing screen
-; 0x04 -> Init snake
 ; 0x08 -> All done! Game running!
-MVI B, 1
+LXI H, STATUS+3
+MVI M, 1
 
 ; Initialize the status
 MVI SP, FFFFH
@@ -80,7 +79,8 @@ DCX D
 CALL SAVE_SNAKE_POINT
 CALL DRAW_NODE
 
-MVI B, 08H
+LXI H, STATUS+3
+MVI M, 08H
 CALL GAME_LOOP
 
 SAVE_SNAKE_POINT:
@@ -106,6 +106,8 @@ GAME_LOOP:
 ; This basically means that the snake will move one position in the screen by half a second.
 CALL WAIT_HALF_SECOND
 CALL UPDATE_STATUS
+CALL DRAW_NEW_STEP
+CALL UPDATE_TAIL
 JMP GAME_LOOP
 
 DRAW_NEW_STEP:
