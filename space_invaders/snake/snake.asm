@@ -148,6 +148,7 @@ FINISH:
 ;   Save new state
 
 ; Update the bit
+; GET_BIT uses BC and DE, so let's save them in the stack
 PUSH B
 PUSH D
 CALL GET_BIT
@@ -164,22 +165,22 @@ POP B
 MOV A, D
 SUB B
 JZ SAME_COLUMN
-
-; If the row is the same
 JM GO_RIGHT
+; If it's in different columns and the last vertex is further right than the previous one, move it left.
 DCR D
 JMP REMOVE_LAST_VERTEX
+; If it's in different columns and the last vertex is further left than the previous one, move it right.
 GO_RIGHT:
 INC D
 JMP REMOVE_LAST_VERTEX
-
-; If the column is the same
 SAME_COLUMN:
 MOV A, E
 SUB C
 JM GO_UP
+; If it's in the same columns (i.e. different rows) and the last vertex is further up than the previous one, move it down.
 DCR E
 JMP REMOVE_LAST_VERTEX
+; If it's in the same columns (i.e. different rows) and the last vertex is further down than the previous one, move it up.
 GO_UP:
 INC E
 JMP REMOVE_LAST_VERTEX
