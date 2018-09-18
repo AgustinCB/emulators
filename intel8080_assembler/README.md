@@ -16,7 +16,7 @@ argument            → number
 number              → numberLiteral
                     | ( label | numberLiteral ) ( "+" | "-" ) ( label | numberLiteral ) ;
 instructionCode     → [A-Z]{2,3} ;
-label               → [A-Z_]+ ;
+label               → [A-Za-z_]+ ;
 numberLiteral       → decimalNumber | hexadecimalNumber ;
 decimalNumber       → [0-9]+ ;
 hexadecimalNumber   → [0-9] ( [0-9A-Fa-f] )* "H" ;
