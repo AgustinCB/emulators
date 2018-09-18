@@ -19,6 +19,6 @@ instructionCode     → [A-Z]{2,3} ;
 label               → [A-Z_]+ ;
 numberLiteral       → decimalNumber | hexadecimalNumber ;
 decimalNumber       → [0-9]+ ;
-hexadecimalNumber   → [0-9A-Fa-f]+ ( "H" )? ;
+hexadecimalNumber   → [0-9] ( [0-9A-Fa-f] )* "H" ;
 dataStore           → "A" | "B" | "C" | "D" | "E" | "H" | "L" | "M" | "P" | "SP" ;
 ```

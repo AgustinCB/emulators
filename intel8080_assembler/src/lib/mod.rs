@@ -61,8 +61,7 @@ impl<R: Read> Lexer<R> {
         let token = match input {
             c if c.is_whitespace() => Ok(None),
             c if c.is_digit(10) => self.maybe_scan_number(input),
-            'F' => self.maybe_scan_number(input),
-            'A' | 'B' | 'C' | 'D' | 'E' | 'H' | 'L' | 'M' | 'P' => self.maybe_scan_location(input),
+            'A' | 'B' | 'C' | 'D' | 'E' | 'H' | 'L' | 'M' | 'P'  => self.maybe_scan_location(input),
             'S' => self.maybe_scan_sp_register(),
             ':' => Ok(Some(Intel8080AssemblerToken::Colon)),
             ',' => Ok(Some(Intel8080AssemblerToken::Comma)),
