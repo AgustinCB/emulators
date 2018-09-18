@@ -1,0 +1,8 @@
+[package]
+name = "intel8080_assembler"
+version = "0.1.0"
+authors = ["Agustin Chiappe Berrini <jnieve@gmail.com>"]
+
+[dependencies]
+intel8080cpu = { path = "../intel8080cpu" }
+failure = "0.1"

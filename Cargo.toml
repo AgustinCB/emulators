@@ -2,6 +2,7 @@
 members = [
     "cpu",
     "disassembler",
+    "intel8080_assembler",
     "intel8080cpu",
     "mos6502cpu",
     "nes",
