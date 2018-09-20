@@ -50,7 +50,7 @@ impl<R: Read> Lexer<R> {
         Ok(match literal.as_str() {
             "A" | "B" | "C" | "D" | "E" | "H" | "L" | "M" | "PSW" | "SP" =>
                 Some(AssemblerToken::DataStore(Location::from(&literal)?)),
-            "EQU" => Some(AssemblerToken::Equ),
+            "DW" => Some(AssemblerToken::Dw),
             "NOP" => Some(AssemblerToken::InstructionCode(InstructionCode::Noop)),
             "LXI" => Some(AssemblerToken::InstructionCode(InstructionCode::Lxi)),
             "STAX" => Some(AssemblerToken::InstructionCode(InstructionCode::Stax)),

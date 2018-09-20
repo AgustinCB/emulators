@@ -9,7 +9,7 @@ program             → ( dataDefinition | labelDefinition | instruction ) * ;
 instruction         → instructionCode
                     | INTEL8080INSTRUCTION argument
                     | INTEL8080INSTRUCTION argument "," argument ;
-dataDefinition      → label "EQU" number ;
+dataDefinition      → label ( "DB" | "DW" ) number ;
 labelDefinition     → label ":" ;
 argument            → number
                     | dataStore ;

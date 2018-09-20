@@ -31,7 +31,7 @@ impl Parser {
         let expression = match (input, self.source.peek()) {
             (AssemblerToken::LabelToken(label), Some(AssemblerToken::Colon)) =>
                 Ok(Expression::LabelDefinition((*label).clone())),
-            (AssemblerToken::LabelToken(label), Some(AssemblerToken::Equ)) => {
+            (AssemblerToken::LabelToken(label), Some(AssemblerToken::Dw)) => {
                 self.source.next();
                 if let Some(AssemblerToken::Number(value)) = self.source.peek() {
                     Ok(Expression::DataDefinition { value: *value, label: (*label).clone() })

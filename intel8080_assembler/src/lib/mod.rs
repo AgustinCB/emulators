@@ -106,7 +106,7 @@ pub enum AssemblerToken {
     Colon,
     Comma,
     DataStore(Location),
-    Equ,
+    Dw,
     InstructionCode(InstructionCode),
     LabelToken(Label),
     Minus,
