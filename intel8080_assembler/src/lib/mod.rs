@@ -1,10 +1,11 @@
 #[macro_use] extern crate failure;
 extern crate intel8080cpu;
 
-use failure::{Error, Fail};
+use failure::Fail;
 use intel8080cpu::{Intel8080Instruction, Location};
 
-struct Label(String);
+#[derive(Clone, PartialEq)]
+pub struct Label(String);
 
 #[derive(Debug, Fail)]
 pub enum AssemblerError {
@@ -16,6 +17,7 @@ pub enum AssemblerError {
     UndefinedError,
 }
 
+#[derive(PartialEq)]
 pub enum InstructionCode {
     Noop,
     Lxi,
@@ -97,7 +99,8 @@ pub enum InstructionCode {
     Cpi,
 }
 
-pub(crate) enum AssemblerToken {
+#[derive(PartialEq)]
+pub enum AssemblerToken {
     Colon,
     Comma,
     DataStore(Location),
@@ -118,3 +121,4 @@ pub(crate) enum Expression {
 mod lexer;
 mod parser;
 pub use lexer::Lexer;
+pub use parser::Parser;

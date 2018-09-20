@@ -46,7 +46,7 @@ pub struct LocationParsingError {
     register: String,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum Location {
     Register { register: RegisterType },
     Memory,
