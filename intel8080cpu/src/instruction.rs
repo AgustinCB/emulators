@@ -804,7 +804,7 @@ impl From<Vec<u8>> for Intel8080Instruction {
 impl ToString for Intel8080Instruction {
     fn to_string(&self) -> String {
         match self {
-            Intel8080Instruction::Noop => String::from("NOOP"),
+            Intel8080Instruction::Noop => String::from("NOP"),
             Intel8080Instruction::Lxi { register, low_byte, high_byte } =>
                 format!("LXI {},#${:02x}{:02x}", register.to_string(), high_byte, low_byte),
             Intel8080Instruction::Stax { register } => format!("STAX {}", register.to_string()),

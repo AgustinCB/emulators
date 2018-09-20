@@ -1,4 +1,3 @@
-use failure::Error;
 use helpers::two_bytes_to_word;
 use std::boxed::Box;
 use std::fmt;
