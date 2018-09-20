@@ -20,16 +20,23 @@ impl Parser {
 
     pub fn parse_expressions(&mut self) -> Result<(), Error> {
         while let Some(input) = self.source.next() {
-            self.parse_expression(input)?;
+            self.parse_expression(&input)?;
         }
         Ok(())
     }
 
-    fn parse_expression(&mut self, input: AssemblerToken) -> Result<(), Error> {
-        let next = self.source.peek();
-        let expression = match (input, next) {
-            (AssemblerToken::LabelToken(ref label), Some(AssemblerToken::Colon)) =>
+    fn parse_expression(&mut self, input: &AssemblerToken) -> Result<(), Error> {
+        let expression = match (input, self.source.peek()) {
+            (AssemblerToken::LabelToken(label), Some(AssemblerToken::Colon)) =>
                 Ok(Expression::LabelDefinition((*label).clone())),
+            (AssemblerToken::LabelToken(label), Some(AssemblerToken::Equ)) => {
+                self.source.next();
+                if let Some(AssemblerToken::Number(value)) = self.source.peek() {
+                    Ok(Expression::DataDefinition { value: *value, label: (*label).clone() })
+                } else {
+                    Err(Error::from(AssemblerError::ExpectingNumber))
+                }
+            },
             _ => Err(Error::from(AssemblerError::UndefinedError)),
         }?;
         self.expressions.push(expression);

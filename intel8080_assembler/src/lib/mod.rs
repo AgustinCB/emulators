@@ -4,7 +4,7 @@ extern crate intel8080cpu;
 use failure::Fail;
 use intel8080cpu::{Intel8080Instruction, Location};
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Label(String);
 
 #[derive(Debug, Fail)]
@@ -13,11 +13,13 @@ pub enum AssemblerError {
     UnexpectedCharacter {
         c: char,
     },
+    #[fail(display = "Expecting number")]
+    ExpectingNumber,
     #[fail(display = "THERE IS SOMETHING VERY WRONG DUDE")]
     UndefinedError,
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum InstructionCode {
     Noop,
     Lxi,
@@ -99,7 +101,7 @@ pub enum InstructionCode {
     Cpi,
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum AssemblerToken {
     Colon,
     Comma,
