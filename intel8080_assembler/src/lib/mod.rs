@@ -97,7 +97,7 @@ pub enum InstructionCode {
     Cpi,
 }
 
-pub(crate) enum Intel8080AssemblerToken {
+pub(crate) enum AssemblerToken {
     Colon,
     Comma,
     DataStore(Location),
@@ -109,11 +109,12 @@ pub(crate) enum Intel8080AssemblerToken {
     Plus,
 }
 
-pub(crate) enum Intel8080Expression {
+pub(crate) enum Expression {
     Instruction(Intel8080Instruction),
     LabelDefinition(Label),
     DataDefinition { label: Label, value: u16 },
 }
 
 mod lexer;
+mod parser;
 pub use lexer::Lexer;
