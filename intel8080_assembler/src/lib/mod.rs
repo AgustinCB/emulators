@@ -103,14 +103,16 @@ pub enum InstructionCode {
 
 #[derive(Debug, PartialEq)]
 pub enum AssemblerToken {
+    Byte(u8),
     Colon,
     Comma,
     DataStore(Location),
+    Db,
     Dw,
     InstructionCode(InstructionCode),
     LabelToken(Label),
     Minus,
-    Number(u16),
+    Word(u16),
     Plus,
 }
 

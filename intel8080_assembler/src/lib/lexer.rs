@@ -50,6 +50,7 @@ impl<R: Read> Lexer<R> {
         Ok(match literal.as_str() {
             "A" | "B" | "C" | "D" | "E" | "H" | "L" | "M" | "PSW" | "SP" =>
                 Some(AssemblerToken::DataStore(Location::from(&literal)?)),
+            "DB" => Some(AssemblerToken::Db),
             "DW" => Some(AssemblerToken::Dw),
             "NOP" => Some(AssemblerToken::InstructionCode(InstructionCode::Noop)),
             "LXI" => Some(AssemblerToken::InstructionCode(InstructionCode::Lxi)),
@@ -140,7 +141,7 @@ impl<R: Read> Lexer<R> {
         let radix = if self.check(|c| c == 'H') { 16 } else { 10 };
         let number = u16::from_str_radix(&number_string, radix)?;
         if self.at_end_of_statement() {
-            Ok(Some(AssemblerToken::Number(number)))
+            Ok(Some(AssemblerToken::Word(number)))
         } else if let Some(Ok(c)) = self.source.peek() {
             Err(Error::from(AssemblerError::UnexpectedCharacter { c: (*c) as char }))
         } else {
