@@ -7,15 +7,14 @@ Very simple (and therefore stupid) assembler for the Intel 8080 CPU.
 ```$xslt
 program             → ( dataDefinition | labelDefinition | instruction ) * ;
 instruction         → instructionCode
-                    | instructionCode argument
-                    | instructionCode argument "," argument ;
+                    | INTEL8080INSTRUCTION argument
+                    | INTEL8080INSTRUCTION argument "," argument ;
 dataDefinition      → label "EQU" number ;
 labelDefinition     → label ":" ;
 argument            → number
                     | dataStore ;
 number              → numberLiteral
                     | ( label | numberLiteral ) ( "+" | "-" ) ( label | numberLiteral ) ;
-instructionCode     → [A-Z]{2,3} ;
 label               → [A-Za-z_]+ ;
 numberLiteral       → decimalNumber | hexadecimalNumber ;
 decimalNumber       → [0-9]+ ;
