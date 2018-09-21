@@ -117,9 +117,10 @@ pub enum AssemblerToken {
 }
 
 pub(crate) enum Expression {
+    ByteDefinition { label: Label, value: u8 },
     Instruction(Intel8080Instruction),
     LabelDefinition(Label),
-    DataDefinition { label: Label, value: u16 },
+    WordDefinition { label: Label, value: u16 },
 }
 
 mod lexer;

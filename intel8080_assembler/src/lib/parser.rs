@@ -34,7 +34,15 @@ impl Parser {
             (AssemblerToken::LabelToken(label), Some(AssemblerToken::Dw)) => {
                 self.source.next();
                 if let Some(AssemblerToken::Word(value)) = self.source.peek() {
-                    Ok(Expression::DataDefinition { value: *value, label: (*label).clone() })
+                    Ok(Expression::WordDefinition { value: *value, label: (*label).clone() })
+                } else {
+                    Err(Error::from(AssemblerError::ExpectingNumber))
+                }
+            },
+            (AssemblerToken::LabelToken(label), Some(AssemblerToken::Db)) => {
+                self.source.next();
+                if let Some(AssemblerToken::Byte(value)) = self.source.peek() {
+                    Ok(Expression::ByteDefinition { value: *value, label: (*label).clone() })
                 } else {
                     Err(Error::from(AssemblerError::ExpectingNumber))
                 }
