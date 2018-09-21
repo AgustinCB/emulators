@@ -2,7 +2,7 @@ extern crate failure;
 extern crate intel8080cpu;
 
 use failure::Error;
-use intel8080cpu::Intel8080Instruction;
+use intel8080cpu::{Location, Intel8080Instruction, RegisterType};
 use std::iter::{IntoIterator, Peekable};
 use std::vec::IntoIter;
 use super::{AssemblerError, AssemblerToken, Expression, InstructionCode};
@@ -53,12 +53,54 @@ impl Parser {
                 Ok(Expression::Instruction(Intel8080Instruction::Cmc)),
             (AssemblerToken::InstructionCode(InstructionCode::Daa), _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Daa)),
+            (AssemblerToken::InstructionCode(InstructionCode::Dad),
+                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::B }))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Dad { register: RegisterType::B })),
+            (AssemblerToken::InstructionCode(InstructionCode::Dad),
+                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::D }))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Dad { register: RegisterType::D })),
+            (AssemblerToken::InstructionCode(InstructionCode::Dad),
+                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::H }))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Dad { register: RegisterType::H })),
+            (AssemblerToken::InstructionCode(InstructionCode::Dad),
+                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::Sp }))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Dad { register: RegisterType::Sp })),
+            (AssemblerToken::InstructionCode(InstructionCode::Dcx),
+                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::B }))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Dcx { register: RegisterType::B })),
+            (AssemblerToken::InstructionCode(InstructionCode::Dcx),
+                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::D }))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Dcx { register: RegisterType::D })),
+            (AssemblerToken::InstructionCode(InstructionCode::Dcx),
+                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::H }))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Dcx { register: RegisterType::H })),
+            (AssemblerToken::InstructionCode(InstructionCode::Dcx),
+                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::Sp }))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Dcx { register: RegisterType::Sp })),
             (AssemblerToken::InstructionCode(InstructionCode::Di), _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Di)),
             (AssemblerToken::InstructionCode(InstructionCode::Ei), _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Ei)),
             (AssemblerToken::InstructionCode(InstructionCode::Hlt), _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Hlt)),
+            (AssemblerToken::InstructionCode(InstructionCode::Inx),
+                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::B }))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Inx { register: RegisterType::B })),
+            (AssemblerToken::InstructionCode(InstructionCode::Inx),
+                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::D }))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Inx { register: RegisterType::D })),
+            (AssemblerToken::InstructionCode(InstructionCode::Inx),
+                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::H }))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Inx { register: RegisterType::H })),
+            (AssemblerToken::InstructionCode(InstructionCode::Inx),
+                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::Sp }))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Inx { register: RegisterType::Sp })),
+            (AssemblerToken::InstructionCode(InstructionCode::Ldax),
+                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::B }))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Ldax { register: RegisterType::B })),
+            (AssemblerToken::InstructionCode(InstructionCode::Ldax),
+                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::D }))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Ldax { register: RegisterType::D })),
             (AssemblerToken::InstructionCode(InstructionCode::Noop), _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Noop)),
             (AssemblerToken::InstructionCode(InstructionCode::Pchl), _) =>
@@ -91,6 +133,12 @@ impl Parser {
                 Ok(Expression::Instruction(Intel8080Instruction::Rz)),
             (AssemblerToken::InstructionCode(InstructionCode::Sphl), _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Sphl)),
+            (AssemblerToken::InstructionCode(InstructionCode::Stax),
+                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::B }))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Stax { register: RegisterType::B })),
+            (AssemblerToken::InstructionCode(InstructionCode::Stax),
+                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::D }))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Stax { register: RegisterType::D })),
             (AssemblerToken::InstructionCode(InstructionCode::Stc), _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Stc)),
             (AssemblerToken::InstructionCode(InstructionCode::Xchg), _) =>
