@@ -381,7 +381,7 @@ mod tests {
         let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
-        cpu.execute_instruction(&Intel8080Instruction::Rst { value: 3 }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Rst { byte: 3 }).unwrap();
         assert_eq!(cpu.pc, 0x18);
         assert_eq!(cpu.state, State::Running);
         assert_eq!(cpu.get_current_sp_value(), 0);
@@ -395,7 +395,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.interruptions_enabled = false;
-        cpu.execute_instruction(&Intel8080Instruction::Rst { value: 3 }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Rst { byte: 3 }).unwrap();
         assert_eq!(cpu.pc, 0x2c03);
         assert_eq!(cpu.state, State::Running);
         assert_eq!(cpu.get_current_sp_value(), 2);
@@ -409,7 +409,7 @@ mod tests {
         cpu.save_to_sp(2);
         cpu.pc = 0x2c03;
         cpu.state = State::Stopped;
-        cpu.execute_instruction(&Intel8080Instruction::Rst { value: 3 }).unwrap();
+        cpu.execute_instruction(&Intel8080Instruction::Rst { byte: 3 }).unwrap();
         assert_eq!(cpu.pc, 0x18);
         assert_eq!(cpu.state, State::Running);
         assert_eq!(cpu.get_current_sp_value(), 0);

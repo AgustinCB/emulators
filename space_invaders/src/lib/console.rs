@@ -159,7 +159,7 @@ impl<'a> Console<'a> {
             };
             self.view.update_image(self.screen.get_pixels());
             self.cpu.execute_instruction(&Intel8080Instruction::Rst {
-                value: self.prev_interruption
+                byte: self.prev_interruption
             })?;
         }
         let mut cycles_to_run = (args.dt * (HERTZ as f64)) as i64 + self.cycles_left;

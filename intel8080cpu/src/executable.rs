@@ -111,7 +111,7 @@ impl<'a> Cpu<u8, Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
             Intel8080Instruction::Rpe => self.execute_rpe(),
             Intel8080Instruction::Rpo => self.execute_rpo(),
             Intel8080Instruction::Rrc => self.execute_rrc()?,
-            Intel8080Instruction::Rst { value } => self.execute_rst(value),
+            Intel8080Instruction::Rst { byte } => self.execute_rst(byte),
             Intel8080Instruction::Rz => self.execute_rz(),
             Intel8080Instruction::Sbb { source: Location::Register { register } } =>
                 self.execute_sbb_by_register(&register)?,
@@ -156,7 +156,7 @@ impl<'a> Cpu<u8, Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
     #[inline]
     fn can_run(&self, instruction: &Intel8080Instruction) -> bool {
         match instruction {
-            Intel8080Instruction::Rst { value: _ } => true,
+            Intel8080Instruction::Rst { byte: _ } => true,
             _ if self.state == State::Running => true,
             _ => false,
         }
