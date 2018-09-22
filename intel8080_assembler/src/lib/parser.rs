@@ -105,6 +105,30 @@ impl Parser {
                 Ok(Expression::Instruction(Intel8080Instruction::Noop)),
             (AssemblerToken::InstructionCode(InstructionCode::Pchl), _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Pchl)),
+            (AssemblerToken::InstructionCode(InstructionCode::Pop),
+                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::B }))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Pop { register: RegisterType::B })),
+            (AssemblerToken::InstructionCode(InstructionCode::Pop),
+                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::D }))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Pop { register: RegisterType::D })),
+            (AssemblerToken::InstructionCode(InstructionCode::Pop),
+                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::H }))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Pop { register: RegisterType::H })),
+            (AssemblerToken::InstructionCode(InstructionCode::Pop),
+                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::Psw }))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Pop { register: RegisterType::Psw })),
+            (AssemblerToken::InstructionCode(InstructionCode::Push),
+                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::B }))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Push { register: RegisterType::B })),
+            (AssemblerToken::InstructionCode(InstructionCode::Push),
+                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::D }))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Push { register: RegisterType::D })),
+            (AssemblerToken::InstructionCode(InstructionCode::Push),
+                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::H }))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Push { register: RegisterType::H })),
+            (AssemblerToken::InstructionCode(InstructionCode::Push),
+                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::Psw }))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Push { register: RegisterType::Psw })),
             (AssemblerToken::InstructionCode(InstructionCode::Ral), _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Ral)),
             (AssemblerToken::InstructionCode(InstructionCode::Rar), _) =>
