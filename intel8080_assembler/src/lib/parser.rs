@@ -164,29 +164,23 @@ impl Parser {
             (InstructionCode::Daa, _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Daa)),
             (InstructionCode::Dad,
-                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::B }))) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Dad { register: RegisterType::B })),
+                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::B }))) |
             (InstructionCode::Dad,
-                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::D }))) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Dad { register: RegisterType::D })),
+                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::D }))) |
             (InstructionCode::Dad,
-                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::H }))) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Dad { register: RegisterType::H })),
+                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::H }))) |
             (InstructionCode::Dad,
-                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::Sp }))) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Dad { register: RegisterType::Sp })),
+                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::Sp }))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Dad { register: r })),
             (InstructionCode::Dcx,
-                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::B }))) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Dcx { register: RegisterType::B })),
+                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::B }))) |
             (InstructionCode::Dcx,
-                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::D }))) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Dcx { register: RegisterType::D })),
+                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::D }))) |
             (InstructionCode::Dcx,
-                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::H }))) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Dcx { register: RegisterType::H })),
+                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::H }))) |
             (InstructionCode::Dcx,
-                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::Sp }))) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Dcx { register: RegisterType::Sp })),
+                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::Sp }))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Dcx { register: r })),
             (InstructionCode::Di, _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Di)),
             (InstructionCode::Ei, _) =>
@@ -286,17 +280,14 @@ impl Parser {
             (InstructionCode::In, &Some(AssemblerToken::Byte(byte))) =>
                 Ok(Expression::Instruction(Intel8080Instruction::In { byte })),
             (InstructionCode::Inx,
-                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::B }))) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Inx { register: RegisterType::B })),
+                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::B }))) |
             (InstructionCode::Inx,
-                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::D }))) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Inx { register: RegisterType::D })),
+                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::D }))) |
             (InstructionCode::Inx,
-                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::H }))) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Inx { register: RegisterType::H })),
+                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::H }))) |
             (InstructionCode::Inx,
-                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::Sp }))) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Inx { register: RegisterType::Sp })),
+                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::Sp }))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Inx { register: r })),
             (InstructionCode::Lhld, &Some(AssemblerToken::Byte(low_byte))) => {
                 self.source.next();
                 if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
@@ -318,11 +309,10 @@ impl Parser {
                 }
             },
             (InstructionCode::Ldax,
-                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::B }))) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Ldax { register: RegisterType::B })),
+                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::B }))) |
             (InstructionCode::Ldax,
-                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::D }))) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Ldax { register: RegisterType::D })),
+                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::D }))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Ldax { register: r })),
             (InstructionCode::Lxi,
                 &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::B }))) |
             (InstructionCode::Lxi,
@@ -356,29 +346,23 @@ impl Parser {
             (InstructionCode::Pchl, _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Pchl)),
             (InstructionCode::Pop,
-                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::B }))) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Pop { register: RegisterType::B })),
+                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::B }))) |
             (InstructionCode::Pop,
-                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::D }))) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Pop { register: RegisterType::D })),
+                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::D }))) |
             (InstructionCode::Pop,
-                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::H }))) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Pop { register: RegisterType::H })),
+                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::H }))) |
             (InstructionCode::Pop,
-                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::Psw }))) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Pop { register: RegisterType::Psw })),
+                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::Psw }))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Pop { register: r })),
             (InstructionCode::Push,
-                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::B }))) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Push { register: RegisterType::B })),
+                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::B }))) |
             (InstructionCode::Push,
-                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::D }))) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Push { register: RegisterType::D })),
+                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::D }))) |
             (InstructionCode::Push,
-                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::H }))) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Push { register: RegisterType::H })),
+                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::H }))) |
             (InstructionCode::Push,
-                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::Psw }))) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Push { register: RegisterType::Psw })),
+                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::Psw }))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Push { register: r })),
             (InstructionCode::Ral, _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Ral)),
             (InstructionCode::Rar, _) =>
@@ -432,11 +416,10 @@ impl Parser {
                 }
             },
             (InstructionCode::Stax,
-                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::B }))) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Stax { register: RegisterType::B })),
+                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::B }))) |
             (InstructionCode::Stax,
-                Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::D }))) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Stax { register: RegisterType::D })),
+                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::D }))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Stax { register: r })),
             (InstructionCode::Stc, _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Stc)),
             (InstructionCode::Sui, &Some(AssemblerToken::Byte(byte))) =>
