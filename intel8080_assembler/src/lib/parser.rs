@@ -59,8 +59,8 @@ impl Parser {
     fn parse_instruction(&mut self, instruction: &InstructionCode, next: &Option<AssemblerToken>)
         -> Result<Expression, Error> {
         match (instruction, next) {
-            (InstructionCode::Adi, Some(AssemblerToken::Byte(byte))) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Adi { byte: (*byte).clone() })),
+            (InstructionCode::Adi, &Some(AssemblerToken::Byte(byte))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Adi { byte })),
             (InstructionCode::Cma, _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Cma)),
             (InstructionCode::Cmc, _) =>
