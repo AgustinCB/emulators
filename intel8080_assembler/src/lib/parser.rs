@@ -65,12 +65,102 @@ impl Parser {
                 Ok(Expression::Instruction(Intel8080Instruction::Adi { byte })),
             (InstructionCode::Ani, &Some(AssemblerToken::Byte(byte))) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Ani { byte })),
+            (InstructionCode::Call, &Some(AssemblerToken::Byte(low_byte))) => {
+                self.source.next();
+                if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
+                    Ok(Expression::Instruction(Intel8080Instruction::Call {
+                        address: [ low_byte, high_byte ],
+                    }))
+                } else {
+                    Err(Error::from(AssemblerError::InvalidInstructionArgument))
+                }
+            },
+            (InstructionCode::Cc, &Some(AssemblerToken::Byte(low_byte))) => {
+                self.source.next();
+                if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
+                    Ok(Expression::Instruction(Intel8080Instruction::Cc {
+                        address: [ low_byte, high_byte ],
+                    }))
+                } else {
+                    Err(Error::from(AssemblerError::InvalidInstructionArgument))
+                }
+            },
+            (InstructionCode::Cm, &Some(AssemblerToken::Byte(low_byte))) => {
+                self.source.next();
+                if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
+                    Ok(Expression::Instruction(Intel8080Instruction::Cm {
+                        address: [ low_byte, high_byte ],
+                    }))
+                } else {
+                    Err(Error::from(AssemblerError::InvalidInstructionArgument))
+                }
+            },
             (InstructionCode::Cma, _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Cma)),
             (InstructionCode::Cmc, _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Cmc)),
             (InstructionCode::Cpi, &Some(AssemblerToken::Byte(byte))) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Cpi { byte })),
+            (InstructionCode::Cnc, &Some(AssemblerToken::Byte(low_byte))) => {
+                self.source.next();
+                if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
+                    Ok(Expression::Instruction(Intel8080Instruction::Cnc {
+                        address: [ low_byte, high_byte ],
+                    }))
+                } else {
+                    Err(Error::from(AssemblerError::InvalidInstructionArgument))
+                }
+            },
+            (InstructionCode::Cnz, &Some(AssemblerToken::Byte(low_byte))) => {
+                self.source.next();
+                if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
+                    Ok(Expression::Instruction(Intel8080Instruction::Cnz {
+                        address: [ low_byte, high_byte ],
+                    }))
+                } else {
+                    Err(Error::from(AssemblerError::InvalidInstructionArgument))
+                }
+            },
+            (InstructionCode::Cp, &Some(AssemblerToken::Byte(low_byte))) => {
+                self.source.next();
+                if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
+                    Ok(Expression::Instruction(Intel8080Instruction::Cp {
+                        address: [ low_byte, high_byte ],
+                    }))
+                } else {
+                    Err(Error::from(AssemblerError::InvalidInstructionArgument))
+                }
+            },
+            (InstructionCode::Cpe, &Some(AssemblerToken::Byte(low_byte))) => {
+                self.source.next();
+                if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
+                    Ok(Expression::Instruction(Intel8080Instruction::Cpe {
+                        address: [ low_byte, high_byte ],
+                    }))
+                } else {
+                    Err(Error::from(AssemblerError::InvalidInstructionArgument))
+                }
+            },
+            (InstructionCode::Cpo, &Some(AssemblerToken::Byte(low_byte))) => {
+                self.source.next();
+                if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
+                    Ok(Expression::Instruction(Intel8080Instruction::Cpo {
+                        address: [ low_byte, high_byte ],
+                    }))
+                } else {
+                    Err(Error::from(AssemblerError::InvalidInstructionArgument))
+                }
+            },
+            (InstructionCode::Cz, &Some(AssemblerToken::Byte(low_byte))) => {
+                self.source.next();
+                if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
+                    Ok(Expression::Instruction(Intel8080Instruction::Cz {
+                        address: [ low_byte, high_byte ],
+                    }))
+                } else {
+                    Err(Error::from(AssemblerError::InvalidInstructionArgument))
+                }
+            },
             (InstructionCode::Daa, _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Daa)),
             (InstructionCode::Dad,
@@ -101,6 +191,96 @@ impl Parser {
                 Ok(Expression::Instruction(Intel8080Instruction::Di)),
             (InstructionCode::Ei, _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Ei)),
+            (InstructionCode::Jc, &Some(AssemblerToken::Byte(low_byte))) => {
+                self.source.next();
+                if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
+                    Ok(Expression::Instruction(Intel8080Instruction::Jc {
+                        address: [ low_byte, high_byte ],
+                    }))
+                } else {
+                    Err(Error::from(AssemblerError::InvalidInstructionArgument))
+                }
+            },
+            (InstructionCode::Jm, &Some(AssemblerToken::Byte(low_byte))) => {
+                self.source.next();
+                if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
+                    Ok(Expression::Instruction(Intel8080Instruction::Jm {
+                        address: [ low_byte, high_byte ],
+                    }))
+                } else {
+                    Err(Error::from(AssemblerError::InvalidInstructionArgument))
+                }
+            },
+            (InstructionCode::Jmp, &Some(AssemblerToken::Byte(low_byte))) => {
+                self.source.next();
+                if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
+                    Ok(Expression::Instruction(Intel8080Instruction::Jmp {
+                        address: [ low_byte, high_byte ],
+                    }))
+                } else {
+                    Err(Error::from(AssemblerError::InvalidInstructionArgument))
+                }
+            },
+            (InstructionCode::Jnc, &Some(AssemblerToken::Byte(low_byte))) => {
+                self.source.next();
+                if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
+                    Ok(Expression::Instruction(Intel8080Instruction::Jnc {
+                        address: [ low_byte, high_byte ],
+                    }))
+                } else {
+                    Err(Error::from(AssemblerError::InvalidInstructionArgument))
+                }
+            },
+            (InstructionCode::Jnz, &Some(AssemblerToken::Byte(low_byte))) => {
+                self.source.next();
+                if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
+                    Ok(Expression::Instruction(Intel8080Instruction::Jnz {
+                        address: [ low_byte, high_byte ],
+                    }))
+                } else {
+                    Err(Error::from(AssemblerError::InvalidInstructionArgument))
+                }
+            },
+            (InstructionCode::Jp, &Some(AssemblerToken::Byte(low_byte))) => {
+                self.source.next();
+                if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
+                    Ok(Expression::Instruction(Intel8080Instruction::Jp {
+                        address: [ low_byte, high_byte ],
+                    }))
+                } else {
+                    Err(Error::from(AssemblerError::InvalidInstructionArgument))
+                }
+            },
+            (InstructionCode::Jpe, &Some(AssemblerToken::Byte(low_byte))) => {
+                self.source.next();
+                if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
+                    Ok(Expression::Instruction(Intel8080Instruction::Jpe {
+                        address: [ low_byte, high_byte ],
+                    }))
+                } else {
+                    Err(Error::from(AssemblerError::InvalidInstructionArgument))
+                }
+            },
+            (InstructionCode::Jpo, &Some(AssemblerToken::Byte(low_byte))) => {
+                self.source.next();
+                if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
+                    Ok(Expression::Instruction(Intel8080Instruction::Jpo {
+                        address: [ low_byte, high_byte ],
+                    }))
+                } else {
+                    Err(Error::from(AssemblerError::InvalidInstructionArgument))
+                }
+            },
+            (InstructionCode::Jz, &Some(AssemblerToken::Byte(low_byte))) => {
+                self.source.next();
+                if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
+                    Ok(Expression::Instruction(Intel8080Instruction::Jz {
+                        address: [ low_byte, high_byte ],
+                    }))
+                } else {
+                    Err(Error::from(AssemblerError::InvalidInstructionArgument))
+                }
+            },
             (InstructionCode::Hlt, _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Hlt)),
             (InstructionCode::In, &Some(AssemblerToken::Byte(byte))) =>
@@ -117,6 +297,26 @@ impl Parser {
             (InstructionCode::Inx,
                 Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::Sp }))) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Inx { register: RegisterType::Sp })),
+            (InstructionCode::Lhld, &Some(AssemblerToken::Byte(low_byte))) => {
+                self.source.next();
+                if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
+                    Ok(Expression::Instruction(Intel8080Instruction::Lhld {
+                        address: [ low_byte, high_byte ],
+                    }))
+                } else {
+                    Err(Error::from(AssemblerError::InvalidInstructionArgument))
+                }
+            },
+            (InstructionCode::Lda, &Some(AssemblerToken::Byte(low_byte))) => {
+                self.source.next();
+                if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
+                    Ok(Expression::Instruction(Intel8080Instruction::Lda {
+                        address: [ low_byte, high_byte ],
+                    }))
+                } else {
+                    Err(Error::from(AssemblerError::InvalidInstructionArgument))
+                }
+            },
             (InstructionCode::Ldax,
                 Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::B }))) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Ldax { register: RegisterType::B })),
@@ -185,8 +385,28 @@ impl Parser {
                 Ok(Expression::Instruction(Intel8080Instruction::Rz)),
             (InstructionCode::Sbi, &Some(AssemblerToken::Byte(byte))) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Sbi { byte })),
+            (InstructionCode::Shld, &Some(AssemblerToken::Byte(low_byte))) => {
+                self.source.next();
+                if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
+                    Ok(Expression::Instruction(Intel8080Instruction::Shld {
+                        address: [ low_byte, high_byte ],
+                    }))
+                } else {
+                    Err(Error::from(AssemblerError::InvalidInstructionArgument))
+                }
+            },
             (InstructionCode::Sphl, _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Sphl)),
+            (InstructionCode::Sta, &Some(AssemblerToken::Byte(low_byte))) => {
+                self.source.next();
+                if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
+                    Ok(Expression::Instruction(Intel8080Instruction::Sta {
+                        address: [ low_byte, high_byte ],
+                    }))
+                } else {
+                    Err(Error::from(AssemblerError::InvalidInstructionArgument))
+                }
+            },
             (InstructionCode::Stax,
                 Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::B }))) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Stax { register: RegisterType::B })),

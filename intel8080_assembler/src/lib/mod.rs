@@ -15,6 +15,8 @@ pub enum AssemblerError {
     },
     #[fail(display = "Expecting number")]
     ExpectingNumber,
+    #[fail(display = "Invalid argument for instruction")]
+    InvalidInstructionArgument,
     #[fail(display = "THERE IS SOMETHING VERY WRONG DUDE")]
     UndefinedError,
 }
