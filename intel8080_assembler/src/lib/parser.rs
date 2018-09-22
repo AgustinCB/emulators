@@ -323,6 +323,30 @@ impl Parser {
             (InstructionCode::Ldax,
                 Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::D }))) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Ldax { register: RegisterType::D })),
+            (InstructionCode::Lxi,
+                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::B }))) |
+            (InstructionCode::Lxi,
+                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::D }))) |
+            (InstructionCode::Lxi,
+                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::H }))) |
+            (InstructionCode::Lxi,
+                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::Sp}))) => {
+                self.source.next();
+                if let Some(&AssemblerToken::Byte(low_byte)) = self.source.peek() {
+                    self.source.next();
+                    if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
+                        Ok(Expression::Instruction(Intel8080Instruction::Lxi {
+                            register: r,
+                            high_byte,
+                            low_byte,
+                        }))
+                    } else {
+                        Err(Error::from(AssemblerError::InvalidInstructionArgument))
+                    }
+                } else {
+                    Err(Error::from(AssemblerError::InvalidInstructionArgument))
+                }
+            },
             (InstructionCode::Noop, _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Noop)),
             (InstructionCode::Ori, &Some(AssemblerToken::Byte(byte))) =>
