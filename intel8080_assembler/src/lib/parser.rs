@@ -59,12 +59,18 @@ impl Parser {
     fn parse_instruction(&mut self, instruction: &InstructionCode, next: &Option<AssemblerToken>)
         -> Result<Expression, Error> {
         match (instruction, next) {
+            (InstructionCode::Aci, &Some(AssemblerToken::Byte(byte))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Aci { byte })),
             (InstructionCode::Adi, &Some(AssemblerToken::Byte(byte))) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Adi { byte })),
+            (InstructionCode::Ani, &Some(AssemblerToken::Byte(byte))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Ani { byte })),
             (InstructionCode::Cma, _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Cma)),
             (InstructionCode::Cmc, _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Cmc)),
+            (InstructionCode::Cpi, &Some(AssemblerToken::Byte(byte))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Cpi { byte })),
             (InstructionCode::Daa, _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Daa)),
             (InstructionCode::Dad,
@@ -97,6 +103,8 @@ impl Parser {
                 Ok(Expression::Instruction(Intel8080Instruction::Ei)),
             (InstructionCode::Hlt, _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Hlt)),
+            (InstructionCode::In, &Some(AssemblerToken::Byte(byte))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::In { byte })),
             (InstructionCode::Inx,
                 Some(AssemblerToken::DataStore(Location::Register { register: RegisterType::B }))) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Inx { register: RegisterType::B })),
@@ -117,6 +125,10 @@ impl Parser {
                 Ok(Expression::Instruction(Intel8080Instruction::Ldax { register: RegisterType::D })),
             (InstructionCode::Noop, _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Noop)),
+            (InstructionCode::Ori, &Some(AssemblerToken::Byte(byte))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Ori { byte })),
+            (InstructionCode::Out, &Some(AssemblerToken::Byte(byte))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Out { byte })),
             (InstructionCode::Pchl, _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Pchl)),
             (InstructionCode::Pop,
@@ -167,8 +179,12 @@ impl Parser {
                 Ok(Expression::Instruction(Intel8080Instruction::Rpo)),
             (InstructionCode::Rrc, _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Rrc)),
+            (InstructionCode::Rst, &Some(AssemblerToken::Byte(byte))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Rst { byte })),
             (InstructionCode::Rz, _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Rz)),
+            (InstructionCode::Sbi, &Some(AssemblerToken::Byte(byte))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Sbi { byte })),
             (InstructionCode::Sphl, _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Sphl)),
             (InstructionCode::Stax,
@@ -179,8 +195,12 @@ impl Parser {
                 Ok(Expression::Instruction(Intel8080Instruction::Stax { register: RegisterType::D })),
             (InstructionCode::Stc, _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Stc)),
+            (InstructionCode::Sui, &Some(AssemblerToken::Byte(byte))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Sui { byte })),
             (InstructionCode::Xchg, _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Xchg)),
+            (InstructionCode::Xri, &Some(AssemblerToken::Byte(byte))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Xri { byte })),
             (InstructionCode::Xthl, _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Xthl)),
             _ => Err(Error::from(AssemblerError::UndefinedError)),
