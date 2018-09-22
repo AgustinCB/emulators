@@ -19,7 +19,7 @@ pub enum AssemblerError {
     UndefinedError,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum InstructionCode {
     Noop,
     Lxi,
@@ -101,7 +101,7 @@ pub enum InstructionCode {
     Cpi,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum AssemblerToken {
     Byte(u8),
     Colon,

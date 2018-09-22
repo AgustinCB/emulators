@@ -28,7 +28,8 @@ impl Parser {
     }
 
     fn parse_expression(&mut self, input: &AssemblerToken) -> Result<(), Error> {
-        let expression = match (input, self.source.peek()) {
+        let next = self.source.peek().map(|a| (*a).clone());
+        let expression = match (input, next) {
             (AssemblerToken::LabelToken(label), Some(AssemblerToken::Colon)) =>
                 Ok(Expression::LabelDefinition((*label).clone())),
             (AssemblerToken::LabelToken(label), Some(AssemblerToken::Dw)) => {
@@ -47,6 +48,8 @@ impl Parser {
                     Err(Error::from(AssemblerError::ExpectingNumber))
                 }
             },
+            (AssemblerToken::InstructionCode(InstructionCode::Adi), Some(AssemblerToken::Byte(byte))) =>
+                Ok(Expression::Instruction(Intel8080Instruction::Adi { byte })),
             (AssemblerToken::InstructionCode(InstructionCode::Cma), _) =>
                 Ok(Expression::Instruction(Intel8080Instruction::Cma)),
             (AssemblerToken::InstructionCode(InstructionCode::Cmc), _) =>
