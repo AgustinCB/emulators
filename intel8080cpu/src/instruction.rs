@@ -741,7 +741,7 @@ impl From<Vec<u8>> for Intel8080Instruction {
             0xc4 => Intel8080Instruction::Cnz { address: [bytes[1], bytes[2]] },
             0xc5 => Intel8080Instruction::Push { register: RegisterType::B },
             0xc6 => Intel8080Instruction::Adi { byte: bytes[1] },
-            0xc7 => Intel8080Instruction::Rst { byte: 1 },
+            0xc7 => Intel8080Instruction::Rst { byte: 0 },
             0xc8 => Intel8080Instruction::Rz,
             0xc9 => Intel8080Instruction::Ret,
             0xca => Intel8080Instruction::Jz { address: [bytes[1], bytes[2]] },

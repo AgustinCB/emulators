@@ -451,6 +451,293 @@ impl Assembler {
                 destiny: Location::Register { register: RegisterType::A },
                 source: Location::Register { register: RegisterType::A }
             } => res.push(0x7f),
+            Intel8080Instruction::Add { source: Location::Register { register: RegisterType::B } } =>
+                res.push(0x80),
+            Intel8080Instruction::Add { source: Location::Register { register: RegisterType::C } } =>
+                res.push(0x81),
+            Intel8080Instruction::Add { source: Location::Register { register: RegisterType::D } } =>
+                res.push(0x82),
+            Intel8080Instruction::Add { source: Location::Register { register: RegisterType::E } } =>
+                res.push(0x83),
+            Intel8080Instruction::Add { source: Location::Register { register: RegisterType::H } } =>
+                res.push(0x84),
+            Intel8080Instruction::Add { source: Location::Register { register: RegisterType::L } } =>
+                res.push(0x85),
+            Intel8080Instruction::Add { source: Location::Memory } => res.push(0x86),
+            Intel8080Instruction::Add { source: Location::Register { register: RegisterType::A } } =>
+                res.push(0x87),
+            Intel8080Instruction::Adc { source: Location::Register { register: RegisterType::B } } =>
+                res.push(0x88),
+            Intel8080Instruction::Adc { source: Location::Register { register: RegisterType::C } } =>
+                res.push(0x89),
+            Intel8080Instruction::Adc { source: Location::Register { register: RegisterType::D } } =>
+                res.push(0x8a),
+            Intel8080Instruction::Adc { source: Location::Register { register: RegisterType::E } } =>
+                res.push(0x8b),
+            Intel8080Instruction::Adc { source: Location::Register { register: RegisterType::H } } =>
+                res.push(0x8c),
+            Intel8080Instruction::Adc { source: Location::Register { register: RegisterType::L } } =>
+                res.push(0x8d),
+            Intel8080Instruction::Adc { source: Location::Memory } => res.push(0x8e),
+            Intel8080Instruction::Adc { source: Location::Register { register: RegisterType::A } } =>
+                res.push(0x8f),
+            Intel8080Instruction::Sub { source: Location::Register { register: RegisterType::B } } =>
+                res.push(0x90),
+            Intel8080Instruction::Sub { source: Location::Register { register: RegisterType::C } } =>
+                res.push(0x91),
+            Intel8080Instruction::Sub { source: Location::Register { register: RegisterType::D } } =>
+                res.push(0x92),
+            Intel8080Instruction::Sub { source: Location::Register { register: RegisterType::E } } =>
+                res.push(0x93),
+            Intel8080Instruction::Sub { source: Location::Register { register: RegisterType::H } } =>
+                res.push(0x94),
+            Intel8080Instruction::Sub { source: Location::Register { register: RegisterType::L } } =>
+                res.push(0x95),
+            Intel8080Instruction::Sub { source: Location::Memory } =>
+                res.push(0x96),
+            Intel8080Instruction::Sub { source: Location::Register { register: RegisterType::A } } =>
+                res.push(0x97),
+            Intel8080Instruction::Sbb { source: Location::Register { register: RegisterType::B } } =>
+                res.push(0x98),
+            Intel8080Instruction::Sbb { source: Location::Register { register: RegisterType::C } } =>
+                res.push(0x99),
+            Intel8080Instruction::Sbb { source: Location::Register { register: RegisterType::D } } =>
+                res.push(0x9a),
+            Intel8080Instruction::Sbb { source: Location::Register { register: RegisterType::E } } =>
+                res.push(0x9b),
+            Intel8080Instruction::Sbb { source: Location::Register { register: RegisterType::H } } =>
+                res.push(0x9c),
+            Intel8080Instruction::Sbb { source: Location::Register { register: RegisterType::L } } =>
+                res.push(0x9d),
+            Intel8080Instruction::Sbb { source: Location::Memory } =>
+                res.push(0x9e),
+            Intel8080Instruction::Sbb { source: Location::Register { register: RegisterType::A } } =>
+                res.push(0x9f),
+            Intel8080Instruction::Ana { source: Location::Register { register: RegisterType::B } } =>
+                res.push(0xa0),
+            Intel8080Instruction::Ana { source: Location::Register { register: RegisterType::C } } =>
+                res.push(0xa1),
+            Intel8080Instruction::Ana { source: Location::Register { register: RegisterType::D } } =>
+                res.push(0xa2),
+            Intel8080Instruction::Ana { source: Location::Register { register: RegisterType::E } } =>
+                res.push(0xa3),
+            Intel8080Instruction::Ana { source: Location::Register { register: RegisterType::H } } =>
+                res.push(0xa4),
+            Intel8080Instruction::Ana { source: Location::Register { register: RegisterType::L } } =>
+                res.push(0xa5),
+            Intel8080Instruction::Ana { source: Location::Memory } =>
+                res.push(0xa6),
+            Intel8080Instruction::Ana { source: Location::Register { register: RegisterType::A } } =>
+                res.push(0xa7),
+            Intel8080Instruction::Xra { source: Location::Register { register: RegisterType::B } } =>
+                res.push(0xa8),
+            Intel8080Instruction::Xra { source: Location::Register { register: RegisterType::C } } =>
+                res.push(0xa9),
+            Intel8080Instruction::Xra { source: Location::Register { register: RegisterType::D } } =>
+                res.push(0xaa),
+            Intel8080Instruction::Xra { source: Location::Register { register: RegisterType::E } } =>
+                res.push(0xab),
+            Intel8080Instruction::Xra { source: Location::Register { register: RegisterType::H } } =>
+                res.push(0xac),
+            Intel8080Instruction::Xra { source: Location::Register { register: RegisterType::L } } =>
+                res.push(0xad),
+            Intel8080Instruction::Xra { source: Location::Memory } =>
+                res.push(0xae),
+            Intel8080Instruction::Xra { source: Location::Register { register: RegisterType::A } } =>
+                res.push(0xaf),
+            Intel8080Instruction::Ora { source: Location::Register { register: RegisterType::B } } =>
+                res.push(0xb0),
+            Intel8080Instruction::Ora { source: Location::Register { register: RegisterType::C } } =>
+                res.push(0xb1),
+            Intel8080Instruction::Ora { source: Location::Register { register: RegisterType::D } } =>
+                res.push(0xb2),
+            Intel8080Instruction::Ora { source: Location::Register { register: RegisterType::E } } =>
+                res.push(0xb3),
+            Intel8080Instruction::Ora { source: Location::Register { register: RegisterType::H } } =>
+                res.push(0xb4),
+            Intel8080Instruction::Ora { source: Location::Register { register: RegisterType::L } } =>
+                res.push(0xb5),
+            Intel8080Instruction::Ora { source: Location::Memory } =>
+                res.push(0xb6),
+            Intel8080Instruction::Ora { source: Location::Register { register: RegisterType::A } } =>
+                res.push(0xb7),
+            Intel8080Instruction::Cmp { source: Location::Register { register: RegisterType::B } } =>
+                res.push(0xb8),
+            Intel8080Instruction::Cmp { source: Location::Register { register: RegisterType::C } } =>
+                res.push(0xb9),
+            Intel8080Instruction::Cmp { source: Location::Register { register: RegisterType::D } } =>
+                res.push(0xba),
+            Intel8080Instruction::Cmp { source: Location::Register { register: RegisterType::E } } =>
+                res.push(0xbb),
+            Intel8080Instruction::Cmp { source: Location::Register { register: RegisterType::H } } =>
+                res.push(0xbc),
+            Intel8080Instruction::Cmp { source: Location::Register { register: RegisterType::L } } =>
+                res.push(0xbd),
+            Intel8080Instruction::Cmp { source: Location::Memory } =>
+                res.push(0xbe),
+            Intel8080Instruction::Cmp { source: Location::Register { register: RegisterType::A } } =>
+                res.push(0xbf),
+            Intel8080Instruction::Rnz => res.push(0xc0),
+            Intel8080Instruction::Pop { register: RegisterType::B } => res.push(0xc1),
+            Intel8080Instruction::Jnz { address: [low_byte, high_byte] } => {
+                res.push(0xc2);
+                res.push(low_byte);
+                res.push(high_byte);
+            },
+            Intel8080Instruction::Jmp { address: [low_byte, high_byte] } => {
+                res.push(0xc3);
+                res.push(low_byte);
+                res.push(high_byte);
+            },
+            Intel8080Instruction::Cnz { address: [low_byte, high_byte] } => {
+                res.push(0xc4);
+                res.push(low_byte);
+                res.push(high_byte);
+            },
+            Intel8080Instruction::Push { register: RegisterType::B } => res.push(0xc5),
+            Intel8080Instruction::Adi { byte } => {
+                res.push(0xc6);
+                res.push(byte);
+            },
+            Intel8080Instruction::Rst { byte: 0 } => res.push(0xc7),
+            Intel8080Instruction::Rz => res.push(0xc8),
+            Intel8080Instruction::Ret => res.push(0xc9),
+            Intel8080Instruction::Jz { address: [low_byte, high_byte] } => {
+                res.push(0xca);
+                res.push(low_byte);
+                res.push(high_byte);
+            },
+            Intel8080Instruction::Cz { address: [low_byte, high_byte] } => {
+                res.push(0xcc);
+                res.push(low_byte);
+                res.push(high_byte);
+            },
+            Intel8080Instruction::Call { address: [low_byte, high_byte] } => {
+                res.push(0xcd);
+                res.push(low_byte);
+                res.push(high_byte);
+            },
+            Intel8080Instruction::Aci { byte } => {
+                res.push(0xce);
+                res.push(byte)
+            },
+            Intel8080Instruction::Rst { byte: 1 } => res.push(0xcf),
+            Intel8080Instruction::Rnc => res.push(0xd0),
+            Intel8080Instruction::Pop { register: RegisterType::D } => res.push(0xd1),
+            Intel8080Instruction::Jnc { address: [low_byte, high_byte] } => {
+                res.push(0xd2);
+                res.push(low_byte);
+                res.push(high_byte);
+            },
+            Intel8080Instruction::Out { byte } => {
+                res.push(0xd3);
+                res.push(byte);
+            },
+            Intel8080Instruction::Cnc { address: [high_byte, low_byte] } => {
+                res.push(0xd4);
+                res.push(low_byte);
+                res.push(high_byte);
+            },
+            Intel8080Instruction::Push { register: RegisterType::D } => res.push(0xd5),
+            Intel8080Instruction::Sui { byte } => {
+                res.push(0xd6);
+                res.push(byte);
+            },
+            Intel8080Instruction::Rst { byte: 2 } => res.push(0xd7),
+            Intel8080Instruction::Rc => res.push(0xd8),
+            Intel8080Instruction::Jc { address: [low_byte, high_byte] } => {
+                res.push(0xda);
+                res.push(low_byte);
+                res.push(high_byte);
+            },
+            Intel8080Instruction::In { byte } => {
+                res.push(0xdb);
+                res.push(byte);
+            },
+            Intel8080Instruction::Cc { address: [low_byte, high_byte] } => {
+                res.push(0xdc);
+                res.push(low_byte);
+                res.push(high_byte);
+            },
+            Intel8080Instruction::Sbi { byte } => {
+                res.push(0xde);
+                res.push(byte);
+            },
+            Intel8080Instruction::Rst { byte: 3 } => res.push(0xdf),
+            Intel8080Instruction::Rpo => res.push(0xe0),
+            Intel8080Instruction::Pop { register: RegisterType::H } => res.push(0xe1),
+            Intel8080Instruction::Jpo { address: [low_byte, high_byte] } => {
+                res.push(0xe2);
+                res.push(low_byte);
+                res.push(high_byte);
+            },
+            Intel8080Instruction::Xthl => res.push(0xe3),
+            Intel8080Instruction::Cpo { address: [low_byte, high_byte] } => {
+                res.push(0xe4);
+                res.push(low_byte);
+                res.push(high_byte);
+            },
+            Intel8080Instruction::Push { register: RegisterType::H } => res.push(0xe5),
+            Intel8080Instruction::Ani { byte } => {
+                res.push(0xe6);
+                res.push(byte);
+            },
+            Intel8080Instruction::Rst { byte: 4 } => res.push(0xe7),
+            Intel8080Instruction::Rpe => res.push(0xe8),
+            Intel8080Instruction::Pchl => res.push(0xe9),
+            Intel8080Instruction::Jpe { address: [low_byte, high_byte] } => {
+                res.push(0xea);
+                res.push(low_byte);
+                res.push(high_byte);
+            },
+            Intel8080Instruction::Xchg => res.push(0xeb),
+            Intel8080Instruction::Cpe { address: [low_byte, high_byte] } => {
+                res.push(0xec);
+                res.push(low_byte);
+                res.push(high_byte);
+            },
+            Intel8080Instruction::Xri { byte } => {
+                res.push(0xee);
+                res.push(byte);
+            },
+            Intel8080Instruction::Rst { byte: 5 } => res.push(0xef),
+            Intel8080Instruction::Rp => res.push(0xf0),
+            Intel8080Instruction::Pop { register: RegisterType::Psw } => res.push(0xf1),
+            Intel8080Instruction::Jp { address: [low_byte, high_byte] } => {
+                res.push(0xf2);
+                res.push(low_byte);
+                res.push(high_byte);
+            },
+            Intel8080Instruction::Di => res.push(0xf3),
+            Intel8080Instruction::Cp { address: [low_byte, high_byte] } => {
+                res.push(0xf4);
+                res.push(low_byte);
+                res.push(high_byte);
+            },
+            Intel8080Instruction::Push { register: RegisterType::Psw } => res.push(0xf5),
+            Intel8080Instruction::Ori { byte } => {
+                res.push(0xf6);
+                res.push(byte);
+            },
+            Intel8080Instruction::Rst { byte: 6 } => res.push(0xf7),
+            Intel8080Instruction::Rm => res.push(0xf8),
+            Intel8080Instruction::Sphl => res.push(0xf9),
+            Intel8080Instruction::Jm { address: [low_byte, high_byte] } => {
+                res.push(0xfa);
+                res.push(low_byte);
+                res.push(high_byte);
+            },
+            Intel8080Instruction::Ei => res.push(0xfb),
+            Intel8080Instruction::Cm { address: [low_byte, high_byte] } => {
+                res.push(0xfc);
+                res.push(low_byte);
+                res.push(high_byte);
+            },
+            Intel8080Instruction::Cpi { byte } => {
+                res.push(0xfe);
+                res.push(byte);
+            },
+            Intel8080Instruction::Rst { byte: 7 } => res.push(0xff),
             _ => panic!("unfined method"),
         }
         res
