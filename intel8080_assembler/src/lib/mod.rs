@@ -127,5 +127,7 @@ pub(crate) enum Expression {
 
 mod lexer;
 mod parser;
+mod assembler;
+pub use assembler::Assembler;
 pub use lexer::Lexer;
 pub use parser::Parser;
