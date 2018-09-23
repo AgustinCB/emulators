@@ -198,6 +198,259 @@ impl Assembler {
                 res.push(byte);
             },
             Intel8080Instruction::Cmc => res.push(0x3f),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::B },
+                source: Location::Register { register: RegisterType::B }
+            } => res.push(0x40),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::B },
+                source: Location::Register { register: RegisterType::C }
+            } => res.push(0x41),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::B },
+                source: Location::Register { register: RegisterType::D }
+            } => res.push(0x42),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::B },
+                source: Location::Register { register: RegisterType::E }
+            } => res.push(0x43),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::B },
+                source: Location::Register { register: RegisterType::H }
+            } => res.push(0x44),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::B },
+                source: Location::Register { register: RegisterType::L }
+            } => res.push(0x45),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::B },
+                source: Location::Memory,
+            } => res.push(0x46),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::B },
+                source: Location::Register { register: RegisterType::A }
+            } => res.push(0x47),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::C },
+                source: Location::Register { register: RegisterType::B }
+            } => res.push(0x48),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::C },
+                source: Location::Register { register: RegisterType::C }
+            } => res.push(0x49),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::C },
+                source: Location::Register { register: RegisterType::D }
+            } => res.push(0x4a),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::C },
+                source: Location::Register { register: RegisterType::E }
+            } => res.push(0x4b),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::C },
+                source: Location::Register { register: RegisterType::H }
+            } => res.push(0x4c),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::C },
+                source: Location::Register { register: RegisterType::L }
+            } => res.push(0x4d),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::C },
+                source: Location::Memory,
+            } => res.push(0x4e),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::C },
+                source: Location::Register { register: RegisterType::A }
+            } => res.push(0x4f),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::D },
+                source: Location::Register { register: RegisterType::B }
+            } => res.push(0x50),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::D },
+                source: Location::Register { register: RegisterType::C }
+            } => res.push(0x51),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::D },
+                source: Location::Register { register: RegisterType::D }
+            } => res.push(0x52),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::D },
+                source: Location::Register { register: RegisterType::E }
+            } => res.push(0x53),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::D },
+                source: Location::Register { register: RegisterType::H }
+            } => res.push(0x54),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::D },
+                source: Location::Register { register: RegisterType::L }
+            } => res.push(0x55),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::D },
+                source: Location::Memory,
+            } => res.push(0x56),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::D },
+                source: Location::Register { register: RegisterType::A }
+            } => res.push(0x57),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::E },
+                source: Location::Register { register: RegisterType::B }
+            } => res.push(0x58),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::E },
+                source: Location::Register { register: RegisterType::C }
+            } => res.push(0x59),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::E },
+                source: Location::Register { register: RegisterType::D }
+            } => res.push(0x5a),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::E },
+                source: Location::Register { register: RegisterType::E }
+            } => res.push(0x5b),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::E },
+                source: Location::Register { register: RegisterType::H }
+            } => res.push(0x5c),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::E },
+                source: Location::Register { register: RegisterType::L }
+            } => res.push(0x5d),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::E },
+                source: Location::Memory,
+            } => res.push(0x5e),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::E },
+                source: Location::Register { register: RegisterType::A }
+            } => res.push(0x5f),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::H },
+                source: Location::Register { register: RegisterType::B }
+            } => res.push(0x60),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::H },
+                source: Location::Register { register: RegisterType::C }
+            } => res.push(0x61),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::H },
+                source: Location::Register { register: RegisterType::D }
+            } => res.push(0x62),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::H },
+                source: Location::Register { register: RegisterType::E }
+            } => res.push(0x63),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::H },
+                source: Location::Register { register: RegisterType::H }
+            } => res.push(0x64),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::H },
+                source: Location::Register { register: RegisterType::L }
+            } => res.push(0x65),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::H },
+                source: Location::Memory,
+            } => res.push(0x66),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::H },
+                source: Location::Register { register: RegisterType::A }
+            } => res.push(0x67),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::L },
+                source: Location::Register { register: RegisterType::B }
+            } => res.push(0x68),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::L },
+                source: Location::Register { register: RegisterType::C }
+            } => res.push(0x69),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::L },
+                source: Location::Register { register: RegisterType::D }
+            } => res.push(0x6a),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::L },
+                source: Location::Register { register: RegisterType::E }
+            } => res.push(0x6b),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::L },
+                source: Location::Register { register: RegisterType::H }
+            } => res.push(0x6c),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::L },
+                source: Location::Register { register: RegisterType::L }
+            } => res.push(0x6d),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::L },
+                source: Location::Memory,
+            } => res.push(0x6e),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::L },
+                source: Location::Register { register: RegisterType::A }
+            } => res.push(0x6f),
+            Intel8080Instruction::Mov {
+                destiny: Location::Memory,
+                source: Location::Register { register: RegisterType::B }
+            } => res.push(0x70),
+            Intel8080Instruction::Mov {
+                destiny: Location::Memory,
+                source: Location::Register { register: RegisterType::C }
+            } => res.push(0x71),
+            Intel8080Instruction::Mov {
+                destiny: Location::Memory,
+                source: Location::Register { register: RegisterType::D }
+            } => res.push(0x72),
+            Intel8080Instruction::Mov {
+                destiny: Location::Memory,
+                source: Location::Register { register: RegisterType::E }
+            } => res.push(0x73),
+            Intel8080Instruction::Mov {
+                destiny: Location::Memory,
+                source: Location::Register { register: RegisterType::H }
+            } => res.push(0x74),
+            Intel8080Instruction::Mov {
+                destiny: Location::Memory,
+                source: Location::Register { register: RegisterType::L }
+            } => res.push(0x75),
+            Intel8080Instruction::Hlt => res.push(0x76),
+            Intel8080Instruction::Mov {
+                destiny: Location::Memory,
+                source: Location::Register { register: RegisterType::A }
+            } => res.push(0x77),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::A },
+                source: Location::Register { register: RegisterType::B }
+            } => res.push(0x78),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::A },
+                source: Location::Register { register: RegisterType::C }
+            } => res.push(0x79),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::A },
+                source: Location::Register { register: RegisterType::D }
+            } => res.push(0x7a),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::A },
+                source: Location::Register { register: RegisterType::E }
+            } => res.push(0x7b),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::A },
+                source: Location::Register { register: RegisterType::H }
+            } => res.push(0x7c),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::A },
+                source: Location::Register { register: RegisterType::L }
+            } => res.push(0x7d),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::A },
+                source: Location::Memory,
+            } => res.push(0x7e),
+            Intel8080Instruction::Mov {
+                destiny: Location::Register { register: RegisterType::A },
+                source: Location::Register { register: RegisterType::A }
+            } => res.push(0x7f),
             _ => panic!("unfined method"),
         }
         res
