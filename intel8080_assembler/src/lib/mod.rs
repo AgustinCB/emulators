@@ -1,10 +1,9 @@
 #[macro_use] extern crate failure;
 extern crate intel8080cpu;
 
-use failure::Fail;
 use intel8080cpu::{Intel8080Instruction, Location};
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Label(String);
 
 #[derive(Debug, Fail)]
@@ -118,7 +117,7 @@ pub enum AssemblerToken {
     Plus,
 }
 
-pub(crate) enum Expression {
+pub enum Expression {
     ByteDefinition { label: Label, value: u8 },
     Instruction(Intel8080Instruction),
     LabelDefinition(Label),
