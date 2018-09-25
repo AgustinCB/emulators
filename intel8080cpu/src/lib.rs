@@ -1,8 +1,6 @@
 #[macro_use] extern crate cpu;
 #[macro_use] extern crate failure;
 
-use failure::Fail;
-
 mod branch_call;
 mod branch_jmp;
 mod branch_ret;

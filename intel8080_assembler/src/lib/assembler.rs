@@ -4,7 +4,7 @@ extern crate intel8080cpu;
 use failure::Error;
 use intel8080cpu::{Instruction, Intel8080Instruction, Location, RegisterType, ROM_MEMORY_LIMIT};
 use std::collections::HashMap;
-use super::{Expression, Label};
+use super::{AssemblerError, ByteValue, Expression, Label, WordValue};
 
 pub struct Assembler {
     bytes: HashMap<Label, u8>,
@@ -28,14 +28,40 @@ impl Assembler {
     pub fn assemble(mut self, expressions: Vec<Expression>) -> Result<[u8; ROM_MEMORY_LIMIT], Error> {
         for expression in expressions {
             match expression {
-                Expression::LabelDefinition(label) => { self.labels.insert(label, self.pc); },
-                Expression::ByteDefinition { label, value } => { self.bytes.insert(label, value); },
-                Expression::WordDefinition { label, value } => { self.words.insert(label, value); },
+                Expression::LabelDefinition(label) => {
+                    self.labels.insert(label, self.pc);
+                    Ok(())
+                },
+                Expression::ByteDefinition { label, value: ByteValue::Literal(value) } => {
+                    self.bytes.insert(label, value);
+                    Ok(())
+                },
+                Expression::ByteDefinition { label, value: ByteValue::Label(label_value) } => {
+                    if let Some(&value) = self.bytes.get(&label_value) {
+                        self.bytes.insert(label, value);
+                        Ok(())
+                    } else {
+                        Err(AssemblerError::LabelDoesntExist)
+                    }
+                },
+                Expression::WordDefinition { label, value: WordValue::Literal(value) } => {
+                    self.words.insert(label, value);
+                    Ok(())
+                },
+                Expression::WordDefinition { label, value: WordValue::Label(label_value) } => {
+                    if let Some(&value) = self.words.get(&label_value) {
+                        self.words.insert(label, value);
+                        Ok(())
+                    } else {
+                        Err(AssemblerError::LabelDoesntExist)
+                    }
+                },
                 Expression::Instruction(instruction) => {
                     self.pc += instruction.size()? as u16;
                     self.add_instruction(instruction);
+                    Ok(())
                 }
-            }
+            }?
         }
         Ok(self.rom)
     }

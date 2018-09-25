@@ -4,7 +4,7 @@ extern crate intel8080cpu;
 extern crate mos6502cpu;
 
 use cpu::Instruction;
-use failure::{Error, Fail};
+use failure::Error;
 use mos6502cpu::Mos6502Instruction;
 use intel8080cpu::Intel8080Instruction;
 use std::cmp::min;

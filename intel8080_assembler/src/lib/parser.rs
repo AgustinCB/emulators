@@ -5,7 +5,7 @@ use failure::Error;
 use intel8080cpu::{Location, Intel8080Instruction, RegisterType};
 use std::iter::{IntoIterator, Peekable};
 use std::vec::IntoIter;
-use super::{AssemblerError, AssemblerToken, Expression, InstructionCode};
+use super::{AssemblerError, AssemblerToken, ByteValue, Expression, InstructionCode, WordValue};
 
 pub struct Parser {
     source: Peekable<IntoIter<AssemblerToken>>,
@@ -35,7 +35,10 @@ impl Parser {
             (AssemblerToken::LabelToken(label), Some(AssemblerToken::Dw)) => {
                 self.source.next();
                 if let Some(AssemblerToken::Word(value)) = self.source.peek() {
-                    Ok(Expression::WordDefinition { value: *value, label: (*label).clone() })
+                    Ok(Expression::WordDefinition {
+                        value: WordValue::Literal(*value),
+                        label: (*label).clone(),
+                    })
                 } else {
                     Err(Error::from(AssemblerError::ExpectingNumber))
                 }
@@ -43,7 +46,10 @@ impl Parser {
             (AssemblerToken::LabelToken(label), Some(AssemblerToken::Db)) => {
                 self.source.next();
                 if let Some(AssemblerToken::Byte(value)) = self.source.peek() {
-                    Ok(Expression::ByteDefinition { value: *value, label: (*label).clone() })
+                    Ok(Expression::ByteDefinition {
+                        value: ByteValue::Literal(*value),
+                        label: (*label).clone(),
+                    })
                 } else {
                     Err(Error::from(AssemblerError::ExpectingNumber))
                 }

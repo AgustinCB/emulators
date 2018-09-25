@@ -1,7 +1,5 @@
 #[macro_use] extern crate failure;
 
-use self::failure::Fail;
-
 #[derive(Debug, Fail)]
 pub enum ConsoleError {
     #[fail(display = "couldn't create cpu: {}", msg)]

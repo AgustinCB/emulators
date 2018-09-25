@@ -1,5 +1,5 @@
 use super::cpu::{Cycles, Instruction};
-use super::failure::{Error, Fail};
+use super::failure::Error;
 use intel8080cpu::{RegisterType, Location, Address};
 
 #[derive(Debug, Fail)]

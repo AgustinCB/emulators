@@ -14,7 +14,7 @@ labelDefinition     → label ":" ;
 argument            → number
                     | dataStore ;
 number              → numberLiteral
-                    | ( label | numberLiteral ) ( "+" | "-" ) ( label | numberLiteral ) ;
+                    | label ;
 label               → [A-Za-z_]+ ;
 numberLiteral       → decimalNumber | hexadecimalNumber ;
 decimalNumber       → [0-9]+ ;

@@ -18,6 +18,8 @@ pub enum AssemblerError {
     InvalidInstructionArgument,
     #[fail(display = "THERE IS SOMETHING VERY WRONG DUDE")]
     UndefinedError,
+    #[fail(display = "Label doesn't exist.")]
+    LabelDoesntExist,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -117,11 +119,21 @@ pub enum AssemblerToken {
     Plus,
 }
 
+pub enum ByteValue {
+    Literal(u8),
+    Label(Label),
+}
+
+pub enum WordValue {
+    Literal(u16),
+    Label(Label),
+}
+
 pub enum Expression {
-    ByteDefinition { label: Label, value: u8 },
+    ByteDefinition { label: Label, value: ByteValue },
     Instruction(Intel8080Instruction),
     LabelDefinition(Label),
-    WordDefinition { label: Label, value: u16 },
+    WordDefinition { label: Label, value: WordValue },
 }
 
 mod lexer;
