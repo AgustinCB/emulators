@@ -5,10 +5,11 @@ Very simple (and therefore stupid) assembler for the Intel 8080 CPU.
 ## Grammar
 
 ```$xslt
-program             → ( dataDefinition | labelDefinition | instruction ) * ;
-instruction         → instructionCode
+program             → ( dataDefinition | labelDefinition | orgStatement | instruction ) * ;
+instruction         → INTEL8080INSTRUCTION
                     | INTEL8080INSTRUCTION argument
                     | INTEL8080INSTRUCTION argument "," argument ;
+orgStatement        → "ORG" number ;
 dataDefinition      → label ( "DB" | "DW" ) number ;
 labelDefinition     → label ":" ;
 argument            → number

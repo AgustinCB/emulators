@@ -52,6 +52,7 @@ impl<R: Read> Lexer<R> {
                 Some(AssemblerToken::DataStore(Location::from(&literal)?)),
             "DB" => Some(AssemblerToken::Db),
             "DW" => Some(AssemblerToken::Dw),
+            "ORG" => Some(AssemblerToken::Org),
             "NOP" => Some(AssemblerToken::InstructionCode(InstructionCode::Noop)),
             "LXI" => Some(AssemblerToken::InstructionCode(InstructionCode::Lxi)),
             "STAX" => Some(AssemblerToken::InstructionCode(InstructionCode::Stax)),

@@ -115,6 +115,7 @@ pub enum AssemblerToken {
     InstructionCode(InstructionCode),
     LabelToken(Label),
     Minus,
+    Org,
     Word(u16),
     Plus,
 }
@@ -133,6 +134,7 @@ pub enum Expression {
     ByteDefinition { label: Label, value: ByteValue },
     Instruction(Intel8080Instruction),
     LabelDefinition(Label),
+    OrgStatement(WordValue),
     WordDefinition { label: Label, value: WordValue },
 }
 

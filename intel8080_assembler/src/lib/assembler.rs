@@ -28,10 +28,6 @@ impl Assembler {
     pub fn assemble(mut self, expressions: Vec<Expression>) -> Result<[u8; ROM_MEMORY_LIMIT], Error> {
         for expression in expressions {
             match expression {
-                Expression::LabelDefinition(label) => {
-                    self.labels.insert(label, self.pc);
-                    Ok(())
-                },
                 Expression::ByteDefinition { label, value: ByteValue::Literal(value) } => {
                     self.bytes.insert(label, value);
                     Ok(())
@@ -43,6 +39,27 @@ impl Assembler {
                     } else {
                         Err(AssemblerError::LabelDoesntExist)
                     }
+                },
+                Expression::Instruction(instruction) => {
+                    self.pc += instruction.size()? as u16;
+                    self.add_instruction(instruction);
+                    Ok(())
+                },
+                Expression::OrgStatement(WordValue::Literal(value)) => {
+                    self.pc = value;
+                    Ok(())
+                },
+                Expression::OrgStatement(WordValue::Label(label_value)) => {
+                    if let Some(&value) = self.words.get(&label_value) {
+                        self.pc = value;
+                        Ok(())
+                    } else {
+                        Err(AssemblerError::LabelDoesntExist)
+                    }
+                },
+                Expression::LabelDefinition(label) => {
+                    self.labels.insert(label, self.pc);
+                    Ok(())
                 },
                 Expression::WordDefinition { label, value: WordValue::Literal(value) } => {
                     self.words.insert(label, value);
@@ -56,11 +73,6 @@ impl Assembler {
                         Err(AssemblerError::LabelDoesntExist)
                     }
                 },
-                Expression::Instruction(instruction) => {
-                    self.pc += instruction.size()? as u16;
-                    self.add_instruction(instruction);
-                    Ok(())
-                }
             }?
         }
         Ok(self.rom)

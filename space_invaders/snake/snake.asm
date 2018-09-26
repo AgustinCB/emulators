@@ -1,15 +1,15 @@
-SNAKE               EQU     4001H
+SNAKE               DW      4001H
 ; Status storage
 ; 2000 -> Direction
 ; 2001 -> Next direction
 ; 2002 -> Timer
 ; 2003 -> INIT status
-STATUS              EQU     2000H
-MID_WIDTH           EQU     112
-MID_HEIGHT          EQU     128
-MID_SCREEN          EQU     7080H
-START_FRAME_BUFFER  EQU     2400H
-END_FRAME_BUFFER    EQU     4000H
+STATUS              DW      2000H
+MID_WIDTH           DB      112
+MID_HEIGHT          DB      128
+MID_SCREEN          DW      7080H
+START_FRAME_BUFFER  DW      2400H
+END_FRAME_BUFFER    DW      4000H
 
 ORG 03H
 JMP INIT

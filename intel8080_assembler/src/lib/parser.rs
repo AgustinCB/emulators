@@ -30,6 +30,10 @@ impl Parser {
     fn parse_expression(&mut self, input: &AssemblerToken) -> Result<(), Error> {
         let next = self.source.peek().map(|a| (*a).clone());
         let expression = match (input, next) {
+            (AssemblerToken::Org, Some(AssemblerToken::Word(value))) =>
+                Ok(Expression::OrgStatement(WordValue::Literal(value))),
+            (AssemblerToken::Org, Some(AssemblerToken::LabelToken(label))) =>
+                Ok(Expression::OrgStatement(WordValue::Label(label))),
             (AssemblerToken::LabelToken(label), Some(AssemblerToken::Colon)) =>
                 Ok(Expression::LabelDefinition((*label).clone())),
             (AssemblerToken::LabelToken(label), Some(AssemblerToken::Dw)) => {
