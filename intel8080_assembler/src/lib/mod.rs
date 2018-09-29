@@ -120,14 +120,22 @@ pub enum AssemblerToken {
     Plus,
 }
 
-pub enum ByteValue {
+pub enum ByteOperand {
     Literal(u8),
     Label(Label),
 }
 
-pub enum WordValue {
+pub enum ByteValue {
+    Operand(ByteOperand),
+}
+
+pub enum WordOperand {
     Literal(u16),
     Label(Label),
+}
+
+pub enum WordValue {
+    Operand(WordOperand),
 }
 
 pub enum Expression {

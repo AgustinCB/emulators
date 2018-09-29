@@ -4,7 +4,7 @@ extern crate intel8080cpu;
 use failure::Error;
 use intel8080cpu::{Instruction, Intel8080Instruction, Location, RegisterType, ROM_MEMORY_LIMIT};
 use std::collections::HashMap;
-use super::{AssemblerError, ByteValue, Expression, Label, WordValue};
+use super::{AssemblerError, ByteOperand, ByteValue, Expression, Label, WordOperand, WordValue};
 
 pub struct Assembler {
     bytes: HashMap<Label, u8>,
@@ -28,11 +28,17 @@ impl Assembler {
     pub fn assemble(mut self, expressions: Vec<Expression>) -> Result<[u8; ROM_MEMORY_LIMIT], Error> {
         for expression in expressions {
             match expression {
-                Expression::ByteDefinition { label, value: ByteValue::Literal(value) } => {
+                Expression::ByteDefinition {
+                    label,
+                    value: ByteValue::Operand(ByteOperand::Literal(value)),
+                } => {
                     self.bytes.insert(label, value);
                     Ok(())
                 },
-                Expression::ByteDefinition { label, value: ByteValue::Label(label_value) } => {
+                Expression::ByteDefinition {
+                    label,
+                    value: ByteValue::Operand(ByteOperand::Label(label_value)),
+                } => {
                     if let Some(&value) = self.bytes.get(&label_value) {
                         self.bytes.insert(label, value);
                         Ok(())
@@ -45,11 +51,11 @@ impl Assembler {
                     self.add_instruction(instruction);
                     Ok(())
                 },
-                Expression::OrgStatement(WordValue::Literal(value)) => {
+                Expression::OrgStatement(WordValue::Operand(WordOperand::Literal(value))) => {
                     self.pc = value;
                     Ok(())
                 },
-                Expression::OrgStatement(WordValue::Label(label_value)) => {
+                Expression::OrgStatement(WordValue::Operand(WordOperand::Label(label_value))) => {
                     if let Some(&value) = self.words.get(&label_value) {
                         self.pc = value;
                         Ok(())
@@ -61,11 +67,17 @@ impl Assembler {
                     self.labels.insert(label, self.pc);
                     Ok(())
                 },
-                Expression::WordDefinition { label, value: WordValue::Literal(value) } => {
+                Expression::WordDefinition {
+                    label,
+                    value: WordValue::Operand(WordOperand::Literal(value)),
+                } => {
                     self.words.insert(label, value);
                     Ok(())
                 },
-                Expression::WordDefinition { label, value: WordValue::Label(label_value) } => {
+                Expression::WordDefinition {
+                    label,
+                    value: WordValue::Operand(WordOperand::Label(label_value)),
+                } => {
                     if let Some(&value) = self.words.get(&label_value) {
                         self.words.insert(label, value);
                         Ok(())

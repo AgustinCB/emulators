@@ -5,7 +5,7 @@ use failure::Error;
 use intel8080cpu::{Location, Intel8080Instruction, RegisterType};
 use std::iter::{IntoIterator, Peekable};
 use std::vec::IntoIter;
-use super::{AssemblerError, AssemblerToken, ByteValue, Expression, InstructionCode, WordValue};
+use super::*;
 
 pub struct Parser {
     source: Peekable<IntoIter<AssemblerToken>>,
@@ -31,9 +31,9 @@ impl Parser {
         let next = self.source.peek().map(|a| (*a).clone());
         let expression = match (input, next) {
             (AssemblerToken::Org, Some(AssemblerToken::Word(value))) =>
-                Ok(Expression::OrgStatement(WordValue::Literal(value))),
+                Ok(Expression::OrgStatement(WordValue::Operand(WordOperand::Literal(value)))),
             (AssemblerToken::Org, Some(AssemblerToken::LabelToken(label))) =>
-                Ok(Expression::OrgStatement(WordValue::Label(label))),
+                Ok(Expression::OrgStatement(WordValue::Operand(WordOperand::Label(label)))),
             (AssemblerToken::LabelToken(label), Some(AssemblerToken::Colon)) =>
                 Ok(Expression::LabelDefinition((*label).clone())),
             (AssemblerToken::LabelToken(label), Some(AssemblerToken::Dw)) => {
@@ -41,13 +41,13 @@ impl Parser {
                 let res = match self.source.peek() {
                     Some(&AssemblerToken::Word(value)) => {
                         Ok(Expression::WordDefinition {
-                            value: WordValue::Literal(value),
+                            value: WordValue::Operand(WordOperand::Literal(value)),
                             label: (*label).clone(),
                         })
                     },
                     Some(AssemblerToken::LabelToken(value_label)) =>
                         Ok(Expression::WordDefinition {
-                            value: WordValue::Label((*value_label).clone()),
+                            value: WordValue::Operand(WordOperand::Label((*value_label).clone())),
                             label: (*label).clone(),
                         }),
                     _ => Err(Error::from(AssemblerError::ExpectingNumber)),
@@ -60,12 +60,12 @@ impl Parser {
                 let res = match self.source.peek() {
                     Some(&AssemblerToken::Byte(value)) =>
                         Ok(Expression::ByteDefinition {
-                            value: ByteValue::Literal(value),
+                            value: ByteValue::Operand(ByteOperand::Literal(value)),
                             label: (*label).clone(),
                         }),
                     Some(AssemblerToken::LabelToken(value_label)) =>
                         Ok(Expression::ByteDefinition {
-                            value: ByteValue::Label((*value_label).clone()),
+                            value: ByteValue::Operand(ByteOperand::Label((*value_label).clone())),
                             label: (*label).clone(),
                         }),
                     _ => Err(Error::from(AssemblerError::ExpectingNumber)),
