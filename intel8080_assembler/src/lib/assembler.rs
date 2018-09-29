@@ -63,6 +63,36 @@ impl Assembler {
                         Err(AssemblerError::LabelDoesntExist)
                     }
                 },
+                Expression::OrgStatement(
+                    WordValue::Sum(WordOperand::Literal(op1), WordOperand::Literal(op2))
+                ) => {
+                    self.pc = op1.wrapping_add(op2);
+                    Ok(())
+                },
+                Expression::OrgStatement(
+                    WordValue::Sum(WordOperand::Label(label), WordOperand::Literal(op))
+                ) |
+                Expression::OrgStatement(
+                    WordValue::Sum(WordOperand::Literal(op), WordOperand::Label(label))
+                ) => {
+                    if let Some(&label_op) = self.labels.get(&label) {
+                        self.pc = op.wrapping_add(label_op);
+                        Ok(())
+                    } else {
+                        Err(AssemblerError::LabelDoesntExist)
+                    }
+                },
+                Expression::OrgStatement(
+                    WordValue::Sum(WordOperand::Label(op1), WordOperand::Label(op2))
+                ) => {
+                    if let (Some(&op1), Some(&op2)) =
+                        (self.labels.get(&op1), self.labels.get(&op2)) {
+                        self.pc = op1.wrapping_add(op2);
+                        Ok(())
+                    } else {
+                        Err(AssemblerError::LabelDoesntExist)
+                    }
+                },
                 Expression::LabelDefinition(label) => {
                     self.labels.insert(label, self.pc);
                     Ok(())
@@ -80,6 +110,40 @@ impl Assembler {
                 } => {
                     if let Some(&value) = self.words.get(&label_value) {
                         self.words.insert(label, value);
+                        Ok(())
+                    } else {
+                        Err(AssemblerError::LabelDoesntExist)
+                    }
+                },
+                Expression::WordDefinition {
+                    label,
+                    value: WordValue::Sum(WordOperand::Literal(op1), WordOperand::Literal(op2)),
+                } => {
+                    self.words.insert(label, op1.wrapping_add(op2));
+                    Ok(())
+                },
+                Expression::WordDefinition {
+                    label,
+                    value: WordValue::Sum(WordOperand::Label(op_label), WordOperand::Literal(op)),
+                } |
+                Expression::WordDefinition {
+                    label,
+                    value: WordValue::Sum(WordOperand::Literal(op), WordOperand::Label(op_label)),
+                } => {
+                    if let Some(&op_label) = self.words.get(&op_label) {
+                        self.words.insert(label, op.wrapping_add(op_label));
+                        Ok(())
+                    } else {
+                        Err(AssemblerError::LabelDoesntExist)
+                    }
+                },
+                Expression::WordDefinition {
+                    label,
+                    value: WordValue::Sum(WordOperand::Label(op1), WordOperand::Label(op2)),
+                } => {
+                    if let (Some(&op1), Some(&op2)) =
+                        (self.labels.get(&op1), self.labels.get(&op2)) {
+                        self.words.insert(label, op1.wrapping_add(op2));
                         Ok(())
                     } else {
                         Err(AssemblerError::LabelDoesntExist)

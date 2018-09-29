@@ -136,6 +136,7 @@ pub enum WordOperand {
 
 pub enum WordValue {
     Operand(WordOperand),
+    Sum(WordOperand, WordOperand)
 }
 
 pub enum Expression {
