@@ -9,11 +9,14 @@ program             → ( dataDefinition | labelDefinition | orgStatement | inst
 instruction         → INTEL8080INSTRUCTION
                     | INTEL8080INSTRUCTION argument
                     | INTEL8080INSTRUCTION argument "," argument ;
-orgStatement        → "ORG" number ;
-dataDefinition      → label ( "DB" | "DW" ) number ;
+orgStatement        → "ORG" numberExpression ;
+dataDefinition      → label ( "DB" | "DW" ) numberExpression ;
 labelDefinition     → label ":" ;
-argument            → number
+argument            → numberExpression
                     | dataStore ;
+numberExpression    → ( number | sumExpression | restExpression ); 
+sumExpression       → number "+" number ;
+restExpression      → number "-" number ;
 number              → numberLiteral
                     | label ;
 label               → [A-Za-z_]+ ;

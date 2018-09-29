@@ -38,35 +38,40 @@ impl Parser {
                 Ok(Expression::LabelDefinition((*label).clone())),
             (AssemblerToken::LabelToken(label), Some(AssemblerToken::Dw)) => {
                 self.source.next();
-                if let Some(&AssemblerToken::Word(value)) = self.source.peek() {
-                    Ok(Expression::WordDefinition {
-                        value: WordValue::Literal(value),
-                        label: (*label).clone(),
-                    })
-                } else if let Some(AssemblerToken::LabelToken(value_label)) = self.source.peek() {
-                    Ok(Expression::WordDefinition {
-                        value: WordValue::Label((*value_label).clone()),
-                        label: (*label).clone(),
-                    })
-                } else {
-                    Err(Error::from(AssemblerError::ExpectingNumber))
-                }
+                let res = match self.source.peek() {
+                    Some(&AssemblerToken::Word(value)) => {
+                        Ok(Expression::WordDefinition {
+                            value: WordValue::Literal(value),
+                            label: (*label).clone(),
+                        })
+                    },
+                    Some(AssemblerToken::LabelToken(value_label)) =>
+                        Ok(Expression::WordDefinition {
+                            value: WordValue::Label((*value_label).clone()),
+                            label: (*label).clone(),
+                        }),
+                    _ => Err(Error::from(AssemblerError::ExpectingNumber)),
+                }?;
+                self.source.next();
+                Ok(res)
             },
             (AssemblerToken::LabelToken(label), Some(AssemblerToken::Db)) => {
                 self.source.next();
-                if let Some(&AssemblerToken::Byte(value)) = self.source.peek() {
-                    Ok(Expression::ByteDefinition {
-                        value: ByteValue::Literal(value),
-                        label: (*label).clone(),
-                    })
-                } else if let Some(AssemblerToken::LabelToken(value_label)) = self.source.peek() {
-                    Ok(Expression::ByteDefinition {
-                        value: ByteValue::Label((*value_label).clone()),
-                        label: (*label).clone(),
-                    })
-                } else {
-                    Err(Error::from(AssemblerError::ExpectingNumber))
-                }
+                let res = match self.source.peek() {
+                    Some(&AssemblerToken::Byte(value)) =>
+                        Ok(Expression::ByteDefinition {
+                            value: ByteValue::Literal(value),
+                            label: (*label).clone(),
+                        }),
+                    Some(AssemblerToken::LabelToken(value_label)) =>
+                        Ok(Expression::ByteDefinition {
+                            value: ByteValue::Label((*value_label).clone()),
+                            label: (*label).clone(),
+                        }),
+                    _ => Err(Error::from(AssemblerError::ExpectingNumber)),
+                }?;
+                self.source.next();
+                Ok(res)
             },
             (AssemblerToken::InstructionCode(instruction), ref next) =>
                 self.parse_instruction(instruction, next),
