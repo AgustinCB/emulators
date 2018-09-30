@@ -5,23 +5,23 @@ Very simple (and therefore stupid) assembler for the Intel 8080 CPU.
 ## Grammar
 
 ```$xslt
-program             → ( dataDefinition | labelDefinition | orgStatement | instruction ) * ;
-instruction         → INTEL8080INSTRUCTION
-                    | INTEL8080INSTRUCTION argument
-                    | INTEL8080INSTRUCTION argument "," argument ;
+program             → ( dataStatement | labelStatement | orgStatement | instructionExprStmt )* EOF ;
+instructionExprStmt → INTEL8080INSTRUCTION
+                    | INTEL8080INSTRUCTION argumentExpression
+                    | INTEL8080INSTRUCTION argumentExpression "," argumentExpression ;
 orgStatement        → "ORG" numberExpression ;
-dataDefinition      → label ( "DB" | "DW" ) numberExpression ;
-labelDefinition     → label ":" ;
-argument            → numberExpression
-                    | dataStore ;
-numberExpression    → ( number | sumExpression | restExpression ); 
-sumExpression       → number "+" number ;
-restExpression      → number "-" number ;
-number              → numberLiteral
+dataStatement       → label ( "DB" | "DW" ) numberExpression ;
+labelStatement      → label ":" ;
+argumentExpression  → numberExpression
+                    | dataExpression ;
+numberExpression    → ( numberVariable | sumExpression | restExpression ); 
+sumExpression       → numberVariable "+" numberVariable ;
+restExpression      → numberVariable "-" numberVariable ;
+numberVariable      → numberLiteral
                     | label ;
 label               → [A-Za-z_]+ ;
 numberLiteral       → decimalNumber | hexadecimalNumber ;
 decimalNumber       → [0-9]+ ;
 hexadecimalNumber   → [0-9] ( [0-9A-Fa-f] )* "H" ;
-dataStore           → "A" | "B" | "C" | "D" | "E" | "H" | "L" | "M" | "P" | "SP" ;
+dataExpression      → "A" | "B" | "C" | "D" | "E" | "H" | "L" | "M" | "P" | "SP" ;
 ```

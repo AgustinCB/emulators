@@ -1,7 +1,7 @@
 use intel8080cpu::Location;
 use std::io::{Bytes, Read};
 use std::iter::Peekable;
-use super::{InstructionCode, AssemblerToken, Label, AssemblerError};
+use super::{InstructionCode, AssemblerToken, LabelExpression, AssemblerError};
 use super::failure::Error;
 
 pub struct Lexer<R: Read> {
@@ -131,7 +131,7 @@ impl<R: Read> Lexer<R> {
             "EI" => Some(AssemblerToken::InstructionCode(InstructionCode::Ei)),
             "CM" => Some(AssemblerToken::InstructionCode(InstructionCode::Cm)),
             "CPI" => Some(AssemblerToken::InstructionCode(InstructionCode::Cpi)),
-            _ => Some(AssemblerToken::LabelToken(Label(literal)))
+            _ => Some(AssemblerToken::LabelToken(LabelExpression(literal)))
         })
     }
 

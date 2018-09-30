@@ -4,7 +4,7 @@ extern crate intel8080cpu;
 use intel8080cpu::{Intel8080Instruction, Location};
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct Label(String);
+pub struct LabelExpression(String);
 
 #[derive(Debug, Fail)]
 pub enum AssemblerError {
@@ -113,38 +113,38 @@ pub enum AssemblerToken {
     Db,
     Dw,
     InstructionCode(InstructionCode),
-    LabelToken(Label),
+    LabelToken(LabelExpression),
     Minus,
     Org,
     Word(u16),
     Plus,
 }
 
-pub enum ByteOperand {
+pub enum ByteExpression {
     Literal(u8),
-    Label(Label),
+    Label(LabelExpression),
 }
 
 pub enum ByteValue {
-    Operand(ByteOperand),
+    Operand(ByteExpression),
 }
 
-pub enum WordOperand {
+pub enum WordExpression {
     Literal(u16),
-    Label(Label),
+    Label(LabelExpression),
 }
 
 pub enum WordValue {
-    Operand(WordOperand),
-    Sum(WordOperand, WordOperand)
+    Operand(WordExpression),
+    Sum(WordExpression, WordExpression)
 }
 
-pub enum Expression {
-    ByteDefinition { label: Label, value: ByteValue },
-    Instruction(Intel8080Instruction),
-    LabelDefinition(Label),
+pub enum Statement {
+    ByteDefinitionStatement { label: LabelExpression, value: ByteValue },
+    InstructionExprStmt(Intel8080Instruction),
+    LabelDefinitionStatement(LabelExpression),
     OrgStatement(WordValue),
-    WordDefinition { label: Label, value: WordValue },
+    WordDefinitionStatement { label: LabelExpression, value: WordValue },
 }
 
 mod lexer;

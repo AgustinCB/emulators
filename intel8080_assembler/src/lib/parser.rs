@@ -9,7 +9,7 @@ use super::*;
 
 pub struct Parser {
     source: Peekable<IntoIter<AssemblerToken>>,
-    expressions: Vec<Expression>,
+    expressions: Vec<Statement>,
 }
 
 impl Parser {
@@ -32,28 +32,28 @@ impl Parser {
         let expression = match (input, next) {
             (AssemblerToken::Org, Some(AssemblerToken::Word(value))) => {
                 self.source.next();
-                Ok(Expression::OrgStatement(WordValue::Operand(WordOperand::Literal(value))))
+                Ok(Statement::OrgStatement(WordValue::Operand(WordExpression::Literal(value))))
             },
             (AssemblerToken::Org, Some(AssemblerToken::LabelToken(label))) => {
                 self.source.next();
-                Ok(Expression::OrgStatement(WordValue::Operand(WordOperand::Label(label))))
+                Ok(Statement::OrgStatement(WordValue::Operand(WordExpression::Label(label))))
             },
             (AssemblerToken::LabelToken(label), Some(AssemblerToken::Colon)) => {
                 self.source.next();
-                Ok(Expression::LabelDefinition((*label).clone()))
+                Ok(Statement::LabelDefinitionStatement((*label).clone()))
             },
             (AssemblerToken::LabelToken(label), Some(AssemblerToken::Dw)) => {
                 self.source.next();
                 let res = match self.source.peek() {
                     Some(&AssemblerToken::Word(value)) => {
-                        Ok(Expression::WordDefinition {
-                            value: WordValue::Operand(WordOperand::Literal(value)),
+                        Ok(Statement::WordDefinitionStatement {
+                            value: WordValue::Operand(WordExpression::Literal(value)),
                             label: (*label).clone(),
                         })
                     },
                     Some(AssemblerToken::LabelToken(value_label)) =>
-                        Ok(Expression::WordDefinition {
-                            value: WordValue::Operand(WordOperand::Label((*value_label).clone())),
+                        Ok(Statement::WordDefinitionStatement {
+                            value: WordValue::Operand(WordExpression::Label((*value_label).clone())),
                             label: (*label).clone(),
                         }),
                     _ => Err(Error::from(AssemblerError::ExpectingNumber)),
@@ -65,13 +65,13 @@ impl Parser {
                 self.source.next();
                 let res = match self.source.peek() {
                     Some(&AssemblerToken::Byte(value)) =>
-                        Ok(Expression::ByteDefinition {
-                            value: ByteValue::Operand(ByteOperand::Literal(value)),
+                        Ok(Statement::ByteDefinitionStatement {
+                            value: ByteValue::Operand(ByteExpression::Literal(value)),
                             label: (*label).clone(),
                         }),
                     Some(AssemblerToken::LabelToken(value_label)) =>
-                        Ok(Expression::ByteDefinition {
-                            value: ByteValue::Operand(ByteOperand::Label((*value_label).clone())),
+                        Ok(Statement::ByteDefinitionStatement {
+                            value: ByteValue::Operand(ByteExpression::Label((*value_label).clone())),
                             label: (*label).clone(),
                         }),
                     _ => Err(Error::from(AssemblerError::ExpectingNumber)),
@@ -88,7 +88,7 @@ impl Parser {
     }
 
     fn parse_instruction(&mut self, instruction: &InstructionCode, next: &Option<AssemblerToken>)
-        -> Result<Expression, Error> {
+        -> Result<Statement, Error> {
         match (instruction, next) {
             (InstructionCode::Adc,
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::A }))) |
@@ -107,7 +107,7 @@ impl Parser {
             (InstructionCode::Adc,
                 &Some(AssemblerToken::DataStore(l@Location::Memory))) => {
                 self.source.next();
-                Ok(Expression::Instruction(Intel8080Instruction::Adc { source: l }))
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Adc { source: l }))
             },
             (InstructionCode::Adc, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
@@ -128,19 +128,19 @@ impl Parser {
             (InstructionCode::Add,
                 &Some(AssemblerToken::DataStore(l@Location::Memory))) => {
                 self.source.next();
-                Ok(Expression::Instruction(Intel8080Instruction::Add { source: l }))
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Add { source: l }))
             },
             (InstructionCode::Add, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Aci, &Some(AssemblerToken::Byte(byte))) => {
                 self.source.next();
-                Ok(Expression::Instruction(Intel8080Instruction::Aci { byte }))
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Aci { byte }))
             },
             (InstructionCode::Aci, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Adi, &Some(AssemblerToken::Byte(byte))) => {
                 self.source.next();
-                Ok(Expression::Instruction(Intel8080Instruction::Adi { byte }))
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Adi { byte }))
             },
             (InstructionCode::Adi, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
@@ -161,13 +161,13 @@ impl Parser {
             (InstructionCode::Ana,
                 &Some(AssemblerToken::DataStore(l@Location::Memory))) => {
                 self.source.next();
-                Ok(Expression::Instruction(Intel8080Instruction::Ana { source: l }))
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Ana { source: l }))
             },
             (InstructionCode::Ana, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Ani, &Some(AssemblerToken::Byte(byte))) => {
                 self.source.next();
-                Ok(Expression::Instruction(Intel8080Instruction::Ani { byte }))
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Ani { byte }))
             },
             (InstructionCode::Ani, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
@@ -175,7 +175,7 @@ impl Parser {
                 self.source.next();
                 if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
                     self.source.next();
-                    Ok(Expression::Instruction(Intel8080Instruction::Call {
+                    Ok(Statement::InstructionExprStmt(Intel8080Instruction::Call {
                         address: [ low_byte, high_byte ],
                     }))
                 } else {
@@ -188,7 +188,7 @@ impl Parser {
                 self.source.next();
                 if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
                     self.source.next();
-                    Ok(Expression::Instruction(Intel8080Instruction::Cc {
+                    Ok(Statement::InstructionExprStmt(Intel8080Instruction::Cc {
                         address: [ low_byte, high_byte ],
                     }))
                 } else {
@@ -201,7 +201,7 @@ impl Parser {
                 self.source.next();
                 if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
                     self.source.next();
-                    Ok(Expression::Instruction(Intel8080Instruction::Cm {
+                    Ok(Statement::InstructionExprStmt(Intel8080Instruction::Cm {
                         address: [ low_byte, high_byte ],
                     }))
                 } else {
@@ -211,9 +211,9 @@ impl Parser {
             (InstructionCode::Cm, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Cma, _) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Cma)),
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Cma)),
             (InstructionCode::Cmc, _) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Cmc)),
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Cmc)),
             (InstructionCode::Cmp,
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::A }))) |
             (InstructionCode::Cmp,
@@ -231,13 +231,13 @@ impl Parser {
             (InstructionCode::Cmp,
                 &Some(AssemblerToken::DataStore(l@Location::Memory))) => {
                 self.source.next();
-                Ok(Expression::Instruction(Intel8080Instruction::Cmp { source: l }))
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Cmp { source: l }))
             },
             (InstructionCode::Cmp, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Cpi, &Some(AssemblerToken::Byte(byte))) => {
                 self.source.next();
-                Ok(Expression::Instruction(Intel8080Instruction::Cpi { byte }))
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Cpi { byte }))
             },
             (InstructionCode::Cpi, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
@@ -245,7 +245,7 @@ impl Parser {
                 self.source.next();
                 if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
                     self.source.next();
-                    Ok(Expression::Instruction(Intel8080Instruction::Cnc {
+                    Ok(Statement::InstructionExprStmt(Intel8080Instruction::Cnc {
                         address: [ low_byte, high_byte ],
                     }))
                 } else {
@@ -258,7 +258,7 @@ impl Parser {
                 self.source.next();
                 if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
                     self.source.next();
-                    Ok(Expression::Instruction(Intel8080Instruction::Cnz {
+                    Ok(Statement::InstructionExprStmt(Intel8080Instruction::Cnz {
                         address: [ low_byte, high_byte ],
                     }))
                 } else {
@@ -271,7 +271,7 @@ impl Parser {
                 self.source.next();
                 if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
                     self.source.next();
-                    Ok(Expression::Instruction(Intel8080Instruction::Cp {
+                    Ok(Statement::InstructionExprStmt(Intel8080Instruction::Cp {
                         address: [ low_byte, high_byte ],
                     }))
                 } else {
@@ -284,7 +284,7 @@ impl Parser {
                 self.source.next();
                 if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
                     self.source.next();
-                    Ok(Expression::Instruction(Intel8080Instruction::Cpe {
+                    Ok(Statement::InstructionExprStmt(Intel8080Instruction::Cpe {
                         address: [ low_byte, high_byte ],
                     }))
                 } else {
@@ -297,7 +297,7 @@ impl Parser {
                 self.source.next();
                 if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
                     self.source.next();
-                    Ok(Expression::Instruction(Intel8080Instruction::Cpo {
+                    Ok(Statement::InstructionExprStmt(Intel8080Instruction::Cpo {
                         address: [ low_byte, high_byte ],
                     }))
                 } else {
@@ -310,7 +310,7 @@ impl Parser {
                 self.source.next();
                 if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
                     self.source.next();
-                    Ok(Expression::Instruction(Intel8080Instruction::Cz {
+                    Ok(Statement::InstructionExprStmt(Intel8080Instruction::Cz {
                         address: [ low_byte, high_byte ],
                     }))
                 } else {
@@ -320,7 +320,7 @@ impl Parser {
             (InstructionCode::Cz, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Daa, _) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Daa)),
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Daa)),
             (InstructionCode::Dad,
                 &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::B }))) |
             (InstructionCode::Dad,
@@ -330,7 +330,7 @@ impl Parser {
             (InstructionCode::Dad,
                 &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::Sp }))) => {
                 self.source.next();
-                Ok(Expression::Instruction(Intel8080Instruction::Dad { register: r }))
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Dad { register: r }))
             },
             (InstructionCode::Dad, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
@@ -351,7 +351,7 @@ impl Parser {
             (InstructionCode::Dcr,
                 &Some(AssemblerToken::DataStore(l@Location::Memory))) => {
                 self.source.next();
-                Ok(Expression::Instruction(Intel8080Instruction::Dcr { source: l }))
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Dcr { source: l }))
             },
             (InstructionCode::Dcr, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
@@ -364,19 +364,19 @@ impl Parser {
             (InstructionCode::Dcx,
                 &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::Sp }))) => {
                 self.source.next();
-                Ok(Expression::Instruction(Intel8080Instruction::Dcx { register: r }))
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Dcx { register: r }))
             },
             (InstructionCode::Dcx, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Di, _) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Di)),
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Di)),
             (InstructionCode::Ei, _) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Ei)),
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Ei)),
             (InstructionCode::Hlt, _) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Hlt)),
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Hlt)),
             (InstructionCode::In, &Some(AssemblerToken::Byte(byte))) => {
                 self.source.next();
-                Ok(Expression::Instruction(Intel8080Instruction::In { byte }))
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::In { byte }))
             },
             (InstructionCode::In, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
@@ -397,7 +397,7 @@ impl Parser {
             (InstructionCode::Inr,
                 &Some(AssemblerToken::DataStore(l@Location::Memory))) => {
                 self.source.next();
-                Ok(Expression::Instruction(Intel8080Instruction::Inr { source: l }))
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Inr { source: l }))
             },
             (InstructionCode::Inr, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
@@ -410,7 +410,7 @@ impl Parser {
             (InstructionCode::Inx,
                 &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::Sp }))) => {
                 self.source.next();
-                Ok(Expression::Instruction(Intel8080Instruction::Inx { register: r }))
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Inx { register: r }))
             },
             (InstructionCode::Inx, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
@@ -418,7 +418,7 @@ impl Parser {
                 self.source.next();
                 if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
                     self.source.next();
-                    Ok(Expression::Instruction(Intel8080Instruction::Jc {
+                    Ok(Statement::InstructionExprStmt(Intel8080Instruction::Jc {
                         address: [ low_byte, high_byte ],
                     }))
                 } else {
@@ -431,7 +431,7 @@ impl Parser {
                 self.source.next();
                 if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
                     self.source.next();
-                    Ok(Expression::Instruction(Intel8080Instruction::Jm {
+                    Ok(Statement::InstructionExprStmt(Intel8080Instruction::Jm {
                         address: [ low_byte, high_byte ],
                     }))
                 } else {
@@ -444,7 +444,7 @@ impl Parser {
                 self.source.next();
                 if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
                     self.source.next();
-                    Ok(Expression::Instruction(Intel8080Instruction::Jmp {
+                    Ok(Statement::InstructionExprStmt(Intel8080Instruction::Jmp {
                         address: [ low_byte, high_byte ],
                     }))
                 } else {
@@ -457,7 +457,7 @@ impl Parser {
                 self.source.next();
                 if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
                     self.source.next();
-                    Ok(Expression::Instruction(Intel8080Instruction::Jnc {
+                    Ok(Statement::InstructionExprStmt(Intel8080Instruction::Jnc {
                         address: [ low_byte, high_byte ],
                     }))
                 } else {
@@ -470,7 +470,7 @@ impl Parser {
                 self.source.next();
                 if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
                     self.source.next();
-                    Ok(Expression::Instruction(Intel8080Instruction::Jnz {
+                    Ok(Statement::InstructionExprStmt(Intel8080Instruction::Jnz {
                         address: [ low_byte, high_byte ],
                     }))
                 } else {
@@ -483,7 +483,7 @@ impl Parser {
                 self.source.next();
                 if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
                     self.source.next();
-                    Ok(Expression::Instruction(Intel8080Instruction::Jp {
+                    Ok(Statement::InstructionExprStmt(Intel8080Instruction::Jp {
                         address: [ low_byte, high_byte ],
                     }))
                 } else {
@@ -496,7 +496,7 @@ impl Parser {
                 self.source.next();
                 if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
                     self.source.next();
-                    Ok(Expression::Instruction(Intel8080Instruction::Jpe {
+                    Ok(Statement::InstructionExprStmt(Intel8080Instruction::Jpe {
                         address: [ low_byte, high_byte ],
                     }))
                 } else {
@@ -509,7 +509,7 @@ impl Parser {
                 self.source.next();
                 if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
                     self.source.next();
-                    Ok(Expression::Instruction(Intel8080Instruction::Jpo {
+                    Ok(Statement::InstructionExprStmt(Intel8080Instruction::Jpo {
                         address: [ low_byte, high_byte ],
                     }))
                 } else {
@@ -522,7 +522,7 @@ impl Parser {
                 self.source.next();
                 if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
                     self.source.next();
-                    Ok(Expression::Instruction(Intel8080Instruction::Jz {
+                    Ok(Statement::InstructionExprStmt(Intel8080Instruction::Jz {
                         address: [ low_byte, high_byte ],
                     }))
                 } else {
@@ -535,7 +535,7 @@ impl Parser {
                 self.source.next();
                 if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
                     self.source.next();
-                    Ok(Expression::Instruction(Intel8080Instruction::Lda {
+                    Ok(Statement::InstructionExprStmt(Intel8080Instruction::Lda {
                         address: [ low_byte, high_byte ],
                     }))
                 } else {
@@ -549,7 +549,7 @@ impl Parser {
             (InstructionCode::Ldax,
                 &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::D }))) => {
                 self.source.next();
-                Ok(Expression::Instruction(Intel8080Instruction::Ldax { register: r }))
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Ldax { register: r }))
             },
             (InstructionCode::Ldax, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
@@ -557,7 +557,7 @@ impl Parser {
                 self.source.next();
                 if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
                     self.source.next();
-                    Ok(Expression::Instruction(Intel8080Instruction::Lhld {
+                    Ok(Statement::InstructionExprStmt(Intel8080Instruction::Lhld {
                         address: [ low_byte, high_byte ],
                     }))
                 } else {
@@ -579,7 +579,7 @@ impl Parser {
                     self.source.next();
                     if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
                         self.source.next();
-                        Ok(Expression::Instruction(Intel8080Instruction::Lxi {
+                        Ok(Statement::InstructionExprStmt(Intel8080Instruction::Lxi {
                             register: r,
                             high_byte,
                             low_byte,
@@ -634,7 +634,7 @@ impl Parser {
                     })) |
                     Some(&AssemblerToken::DataStore(s@Location::Memory)) => {
                         self.source.next();
-                        Ok(Expression::Instruction(Intel8080Instruction::Mov {
+                        Ok(Statement::InstructionExprStmt(Intel8080Instruction::Mov {
                             destiny: d,
                             source: s,
                         }))
@@ -663,7 +663,7 @@ impl Parser {
                 self.source.next();
                 if let Some(&AssemblerToken::Byte(byte)) = self.source.peek() {
                     self.source.next();
-                    Ok(Expression::Instruction(Intel8080Instruction::Mvi {
+                    Ok(Statement::InstructionExprStmt(Intel8080Instruction::Mvi {
                         byte,
                         source: s,
                     }))
@@ -674,7 +674,7 @@ impl Parser {
             (InstructionCode::Mvi, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Noop, _) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Noop)),
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Noop)),
             (InstructionCode::Ora,
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::A }))) |
             (InstructionCode::Ora,
@@ -692,24 +692,24 @@ impl Parser {
             (InstructionCode::Ora,
                 &Some(AssemblerToken::DataStore(l@Location::Memory))) => {
                 self.source.next();
-                Ok(Expression::Instruction(Intel8080Instruction::Ora { source: l }))
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Ora { source: l }))
             },
             (InstructionCode::Ora, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Ori, &Some(AssemblerToken::Byte(byte))) => {
                 self.source.next();
-                Ok(Expression::Instruction(Intel8080Instruction::Ori { byte }))
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Ori { byte }))
             },
             (InstructionCode::Ori, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Out, &Some(AssemblerToken::Byte(byte))) => {
                 self.source.next();
-                Ok(Expression::Instruction(Intel8080Instruction::Out { byte }))
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Out { byte }))
             },
             (InstructionCode::Out, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Pchl, _) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Pchl)),
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Pchl)),
             (InstructionCode::Pop,
                 &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::B }))) |
             (InstructionCode::Pop,
@@ -719,7 +719,7 @@ impl Parser {
             (InstructionCode::Pop,
                 &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::Psw }))) => {
                 self.source.next();
-                Ok(Expression::Instruction(Intel8080Instruction::Pop { register: r }))
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Pop { register: r }))
             },
             (InstructionCode::Pop, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
@@ -732,42 +732,42 @@ impl Parser {
             (InstructionCode::Push,
                 &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::Psw }))) => {
                 self.source.next();
-                Ok(Expression::Instruction(Intel8080Instruction::Push { register: r }))
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Push { register: r }))
             },
             (InstructionCode::Push, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Ral, _) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Ral)),
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Ral)),
             (InstructionCode::Rar, _) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Rar)),
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Rar)),
             (InstructionCode::Rc, _) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Rc)),
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Rc)),
             (InstructionCode::Ret, _) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Ret)),
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Ret)),
             (InstructionCode::Rlc, _) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Rlc)),
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Rlc)),
             (InstructionCode::Rm, _) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Rm)),
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Rm)),
             (InstructionCode::Rnc, _) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Rnc)),
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Rnc)),
             (InstructionCode::Rnz, _) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Rnz)),
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Rnz)),
             (InstructionCode::Rp, _) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Rp)),
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Rp)),
             (InstructionCode::Rpe, _) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Rpe)),
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Rpe)),
             (InstructionCode::Rpo, _) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Rpo)),
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Rpo)),
             (InstructionCode::Rrc, _) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Rrc)),
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Rrc)),
             (InstructionCode::Rst, &Some(AssemblerToken::Byte(byte))) => {
                 self.source.next();
-                Ok(Expression::Instruction(Intel8080Instruction::Rst { byte }))
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Rst { byte }))
             },
             (InstructionCode::Rst, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Rz, _) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Rz)),
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Rz)),
             (InstructionCode::Sbb,
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::A }))) |
             (InstructionCode::Sbb,
@@ -785,13 +785,13 @@ impl Parser {
             (InstructionCode::Sbb,
                 &Some(AssemblerToken::DataStore(l@Location::Memory))) => {
                 self.source.next();
-                Ok(Expression::Instruction(Intel8080Instruction::Sbb { source: l }))
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Sbb { source: l }))
             },
             (InstructionCode::Sbb, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Sbi, &Some(AssemblerToken::Byte(byte))) => {
                 self.source.next();
-                Ok(Expression::Instruction(Intel8080Instruction::Sbi { byte }))
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Sbi { byte }))
             },
             (InstructionCode::Sbi, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
@@ -799,7 +799,7 @@ impl Parser {
                 self.source.next();
                 if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
                     self.source.next();
-                    Ok(Expression::Instruction(Intel8080Instruction::Shld {
+                    Ok(Statement::InstructionExprStmt(Intel8080Instruction::Shld {
                         address: [ low_byte, high_byte ],
                     }))
                 } else {
@@ -809,12 +809,12 @@ impl Parser {
             (InstructionCode::Shld, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Sphl, _) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Sphl)),
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Sphl)),
             (InstructionCode::Sta, &Some(AssemblerToken::Byte(low_byte))) => {
                 self.source.next();
                 if let Some(&AssemblerToken::Byte(high_byte)) = self.source.peek() {
                     self.source.next();
-                    Ok(Expression::Instruction(Intel8080Instruction::Sta {
+                    Ok(Statement::InstructionExprStmt(Intel8080Instruction::Sta {
                         address: [ low_byte, high_byte ],
                     }))
                 } else {
@@ -828,12 +828,12 @@ impl Parser {
             (InstructionCode::Stax,
                 &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::D }))) => {
                 self.source.next();
-                Ok(Expression::Instruction(Intel8080Instruction::Stax { register: r }))
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Stax { register: r }))
             },
             (InstructionCode::Stax, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Stc, _) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Stc)),
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Stc)),
             (InstructionCode::Sub,
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::A }))) |
             (InstructionCode::Sub,
@@ -851,18 +851,18 @@ impl Parser {
             (InstructionCode::Sub,
                 &Some(AssemblerToken::DataStore(l@Location::Memory))) => {
                 self.source.next();
-                Ok(Expression::Instruction(Intel8080Instruction::Sub { source: l }))
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Sub { source: l }))
             },
             (InstructionCode::Sub, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Sui, &Some(AssemblerToken::Byte(byte))) => {
                 self.source.next();
-                Ok(Expression::Instruction(Intel8080Instruction::Sui { byte }))
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Sui { byte }))
             },
             (InstructionCode::Sui, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Xchg, _) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Xchg)),
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Xchg)),
             (InstructionCode::Xra,
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::A }))) |
             (InstructionCode::Xra,
@@ -880,18 +880,18 @@ impl Parser {
             (InstructionCode::Xra,
                 &Some(AssemblerToken::DataStore(l@Location::Memory))) => {
                 self.source.next();
-                Ok(Expression::Instruction(Intel8080Instruction::Xra { source: l }))
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Xra { source: l }))
             },
             (InstructionCode::Xra, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Xri, &Some(AssemblerToken::Byte(byte))) => {
                 self.source.next();
-                Ok(Expression::Instruction(Intel8080Instruction::Xri { byte }))
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Xri { byte }))
             },
             (InstructionCode::Xri, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Xthl, _) =>
-                Ok(Expression::Instruction(Intel8080Instruction::Xthl)),
+                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Xthl)),
         }
     }
 }
