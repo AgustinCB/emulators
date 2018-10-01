@@ -32,7 +32,23 @@ impl Parser {
         let expression = match (input, next) {
             (AssemblerToken::Org, Some(AssemblerToken::Word(value))) => {
                 self.source.next();
-                Ok(Statement::OrgStatement(WordValue::Operand(WordExpression::Literal(value))))
+                match self.source.peek() {
+                    Some(AssemblerToken::Plus) => {
+                        self.source.next();
+                        match self.source.peek() {
+                            Some(&AssemblerToken::Word(other_value)) =>
+                                Ok(Statement::OrgStatement(
+                                    WordValue::Sum(
+                                        WordExpression::Literal(value),
+                                        WordExpression::Literal(other_value)
+                                    )
+                                )),
+                            _ => Err(Error::from(AssemblerError::ExpectingNumber)),
+                        }
+                    },
+                    _ =>
+                        Ok(Statement::OrgStatement(WordValue::Operand(WordExpression::Literal(value)))),
+                }
             },
             (AssemblerToken::Org, Some(AssemblerToken::LabelToken(label))) => {
                 self.source.next();
