@@ -32,23 +32,7 @@ impl Parser {
         let expression = match (input, next) {
             (AssemblerToken::Org, Some(AssemblerToken::Word(value))) => {
                 self.source.next();
-                match self.source.peek() {
-                    Some(AssemblerToken::Plus) => {
-                        self.source.next();
-                        match self.source.peek() {
-                            Some(&AssemblerToken::Word(other_value)) =>
-                                Ok(Statement::OrgStatement(
-                                    WordValue::Sum(
-                                        WordExpression::Literal(value),
-                                        WordExpression::Literal(other_value)
-                                    )
-                                )),
-                            _ => Err(Error::from(AssemblerError::ExpectingNumber)),
-                        }
-                    },
-                    _ =>
-                        Ok(Statement::OrgStatement(WordValue::Operand(WordExpression::Literal(value)))),
-                }
+                self.parse_org_sum_expression(WordExpression::Literal(value))
             },
             (AssemblerToken::Org, Some(AssemblerToken::LabelToken(label))) => {
                 self.source.next();
@@ -101,6 +85,25 @@ impl Parser {
         }?;
         self.expressions.push(expression);
         Ok(())
+    }
+
+    fn parse_org_sum_expression(&mut self, value: WordExpression) -> Result<Statement, Error> {
+        match self.source.peek() {
+            Some(AssemblerToken::Plus) => {
+                self.source.next();
+                match self.source.peek() {
+                    Some(&AssemblerToken::Word(other_value)) =>
+                        Ok(Statement::OrgStatement(
+                            WordValue::Sum(
+                                value,
+                                WordExpression::Literal(other_value)
+                            )
+                        )),
+                    _ => Err(Error::from(AssemblerError::ExpectingNumber)),
+                }
+            },
+            _ => Ok(Statement::OrgStatement(WordValue::Operand(value))),
+        }
     }
 
     fn parse_instruction(&mut self, instruction: &InstructionCode, next: &Option<AssemblerToken>)
