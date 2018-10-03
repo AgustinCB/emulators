@@ -32,47 +32,47 @@ impl Parser {
         let expression = match (input, next) {
             (AssemblerToken::Org, Some(AssemblerToken::Word(value))) => {
                 self.source.next();
-                self.parse_org_sum_expression(WordExpression::Literal(value))
+                self.parse_org_statement(WordExpression::Literal(value))
             },
             (AssemblerToken::Org, Some(AssemblerToken::LabelToken(label))) => {
                 self.source.next();
-                Ok(Statement::OrgStatement(WordValue::Operand(WordExpression::Label(label))))
+                self.parse_org_statement(WordExpression::Label(label))
             },
-            (AssemblerToken::LabelToken(label), Some(AssemblerToken::Colon)) => {
+            (&AssemblerToken::LabelToken(ref label), Some(AssemblerToken::Colon)) => {
                 self.source.next();
-                Ok(Statement::LabelDefinitionStatement((*label).clone()))
+                Ok(Statement::LabelDefinitionStatement(label.clone()))
             },
-            (AssemblerToken::LabelToken(label), Some(AssemblerToken::Dw)) => {
+            (&AssemblerToken::LabelToken(ref label), Some(AssemblerToken::Dw)) => {
                 self.source.next();
                 let res = match self.source.peek() {
                     Some(&AssemblerToken::Word(value)) => {
                         Ok(Statement::WordDefinitionStatement {
                             value: WordValue::Operand(WordExpression::Literal(value)),
-                            label: (*label).clone(),
+                            label: label.clone(),
                         })
                     },
-                    Some(AssemblerToken::LabelToken(value_label)) =>
+                    Some(&AssemblerToken::LabelToken(ref value_label)) =>
                         Ok(Statement::WordDefinitionStatement {
-                            value: WordValue::Operand(WordExpression::Label((*value_label).clone())),
-                            label: (*label).clone(),
+                            value: WordValue::Operand(WordExpression::Label(value_label.clone())),
+                            label: label.clone(),
                         }),
                     _ => Err(Error::from(AssemblerError::ExpectingNumber)),
                 }?;
                 self.source.next();
                 Ok(res)
             },
-            (AssemblerToken::LabelToken(label), Some(AssemblerToken::Db)) => {
+            (&AssemblerToken::LabelToken(ref label), Some(AssemblerToken::Db)) => {
                 self.source.next();
                 let res = match self.source.peek() {
                     Some(&AssemblerToken::Byte(value)) =>
                         Ok(Statement::ByteDefinitionStatement {
                             value: ByteValue::Operand(ByteExpression::Literal(value)),
-                            label: (*label).clone(),
+                            label: label.clone(),
                         }),
-                    Some(AssemblerToken::LabelToken(value_label)) =>
+                    Some(&AssemblerToken::LabelToken(ref value_label)) =>
                         Ok(Statement::ByteDefinitionStatement {
-                            value: ByteValue::Operand(ByteExpression::Label((*value_label).clone())),
-                            label: (*label).clone(),
+                            value: ByteValue::Operand(ByteExpression::Label(value_label.clone())),
+                            label: label.clone(),
                         }),
                     _ => Err(Error::from(AssemblerError::ExpectingNumber)),
                 }?;
@@ -87,7 +87,7 @@ impl Parser {
         Ok(())
     }
 
-    fn parse_org_sum_expression(&mut self, value: WordExpression) -> Result<Statement, Error> {
+    fn parse_org_statement(&mut self, value: WordExpression) -> Result<Statement, Error> {
         match self.source.peek() {
             Some(AssemblerToken::Plus) => {
                 self.source.next();
@@ -97,6 +97,13 @@ impl Parser {
                             WordValue::Sum(
                                 value,
                                 WordExpression::Literal(other_value)
+                            )
+                        )),
+                    Some(&AssemblerToken::LabelToken(ref other_label)) =>
+                        Ok(Statement::OrgStatement(
+                            WordValue::Sum(
+                                value,
+                                WordExpression::Label(other_label.clone())
                             )
                         )),
                     _ => Err(Error::from(AssemblerError::ExpectingNumber)),
