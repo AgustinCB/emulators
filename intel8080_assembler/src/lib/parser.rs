@@ -109,7 +109,50 @@ impl Parser {
                     _ => Err(Error::from(AssemblerError::ExpectingNumber)),
                 }
             },
+            Some(AssemblerToken::Minus) =>
+                self.parse_operation(&AssemblerToken::Minus, value)
+                    .map(|o| Statement::OrgStatement(o)),
             _ => Ok(Statement::OrgStatement(WordValue::Operand(value))),
+        }
+    }
+
+    fn parse_operation(&mut self, operation: &AssemblerToken, value: WordExpression)
+        -> Result<WordValue, Error> {
+        match operation {
+            AssemblerToken::Plus | AssemblerToken::Minus =>
+                self.parse_operands(operation, value),
+            _ => Err(Error::from(AssemblerError::InvalidOperationToken)),
+        }
+    }
+
+    fn parse_operands(&mut self, operation: &AssemblerToken, value: WordExpression)
+        -> Result<WordValue, Error> {
+        macro_rules! operation {
+            ($op:ident,$value:ident,$operand:expr) => {
+                if let AssemblerToken::Plus = $op {
+                    Ok(WordValue::Sum($value, $operand))
+                } else if let AssemblerToken::Minus = $op {
+                    Ok(WordValue::Rest($value, $operand))
+                } else {
+                    Err(Error::from(AssemblerError::InvalidOperationToken))
+                }
+            }
+        }
+        self.source.next();
+        match self.source.peek() {
+            Some(&AssemblerToken::Word(other_value)) =>
+                operation!(
+                    operation,
+                    value,
+                    WordExpression::Literal(other_value)
+                ),
+            Some(&AssemblerToken::LabelToken(ref other_label)) =>
+                operation!(
+                    operation,
+                    value,
+                    WordExpression::Label(other_label.clone())
+                ),
+            _ => Err(Error::from(AssemblerError::ExpectingNumber)),
         }
     }
 

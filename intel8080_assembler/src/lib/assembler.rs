@@ -149,6 +149,7 @@ impl Assembler {
                         Err(AssemblerError::LabelDoesntExist)
                     }
                 },
+                _ => panic!("NOT IMPLEMENTED YET"),
             }?
         }
         Ok(self.rom)

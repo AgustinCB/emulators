@@ -16,10 +16,12 @@ pub enum AssemblerError {
     ExpectingNumber,
     #[fail(display = "Invalid argument for instruction")]
     InvalidInstructionArgument,
-    #[fail(display = "THERE IS SOMETHING VERY WRONG DUDE")]
-    UndefinedError,
+    #[fail(display = "Invalid operation token.")]
+    InvalidOperationToken,
     #[fail(display = "Label doesn't exist.")]
     LabelDoesntExist,
+    #[fail(display = "THERE IS SOMETHING VERY WRONG DUDE")]
+    UndefinedError,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -136,7 +138,8 @@ pub enum WordExpression {
 
 pub enum WordValue {
     Operand(WordExpression),
-    Sum(WordExpression, WordExpression)
+    Sum(WordExpression, WordExpression),
+    Rest(WordExpression, WordExpression)
 }
 
 pub enum Statement {
