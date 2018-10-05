@@ -88,30 +88,14 @@ impl Parser {
     }
 
     fn parse_org_statement(&mut self, value: WordExpression) -> Result<Statement, Error> {
-        match self.source.peek() {
-            Some(AssemblerToken::Plus) => {
+        let next = self.source.peek().map(|t| (*t).clone());
+        match next {
+            Some(ref op@AssemblerToken::Plus) |
+            Some(ref op@AssemblerToken::Minus) => {
                 self.source.next();
-                match self.source.peek() {
-                    Some(&AssemblerToken::Word(other_value)) =>
-                        Ok(Statement::OrgStatement(
-                            WordValue::Sum(
-                                value,
-                                WordExpression::Literal(other_value)
-                            )
-                        )),
-                    Some(&AssemblerToken::LabelToken(ref other_label)) =>
-                        Ok(Statement::OrgStatement(
-                            WordValue::Sum(
-                                value,
-                                WordExpression::Label(other_label.clone())
-                            )
-                        )),
-                    _ => Err(Error::from(AssemblerError::ExpectingNumber)),
-                }
+                self.parse_operation(op, value)
+                    .map(|o| Statement::OrgStatement(o))
             },
-            Some(AssemblerToken::Minus) =>
-                self.parse_operation(&AssemblerToken::Minus, value)
-                    .map(|o| Statement::OrgStatement(o)),
             _ => Ok(Statement::OrgStatement(WordValue::Operand(value))),
         }
     }
@@ -119,8 +103,11 @@ impl Parser {
     fn parse_operation(&mut self, operation: &AssemblerToken, value: WordExpression)
         -> Result<WordValue, Error> {
         match operation {
-            AssemblerToken::Plus | AssemblerToken::Minus =>
-                self.parse_operands(operation, value),
+            AssemblerToken::Plus | AssemblerToken::Minus => {
+                let r = self.parse_operands(operation, value)?;
+                self.source.next();
+                Ok(r)
+            },
             _ => Err(Error::from(AssemblerError::InvalidOperationToken)),
         }
     }
@@ -138,20 +125,21 @@ impl Parser {
                 }
             }
         }
-        self.source.next();
         match self.source.peek() {
-            Some(&AssemblerToken::Word(other_value)) =>
+            Some(&AssemblerToken::Word(other_value)) => {
                 operation!(
                     operation,
                     value,
                     WordExpression::Literal(other_value)
-                ),
-            Some(&AssemblerToken::LabelToken(ref other_label)) =>
+                )
+            },
+            Some(&AssemblerToken::LabelToken(ref other_label)) => {
                 operation!(
                     operation,
                     value,
                     WordExpression::Label(other_label.clone())
-                ),
+                )
+            },
             _ => Err(Error::from(AssemblerError::ExpectingNumber)),
         }
     }
