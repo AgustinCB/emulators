@@ -32,11 +32,17 @@ impl Parser {
         let expression = match (input, next) {
             (AssemblerToken::Org, Some(AssemblerToken::Word(value))) => {
                 self.source.next();
-                self.parse_org_statement(WordExpression::Literal(value))
+                self.parse_statement_with_operation(
+                    WordExpression::Literal(value),
+                    |o| Statement::OrgStatement(o),
+                    |v| Statement::OrgStatement(WordValue::Operand(v)))
             },
             (AssemblerToken::Org, Some(AssemblerToken::LabelToken(label))) => {
                 self.source.next();
-                self.parse_org_statement(WordExpression::Label(label))
+                self.parse_statement_with_operation(
+                    WordExpression::Label(label),
+                    |o| Statement::OrgStatement(o),
+                    |v| Statement::OrgStatement(WordValue::Operand(v)))
             },
             (&AssemblerToken::LabelToken(ref label), Some(AssemblerToken::Colon)) => {
                 self.source.next();
@@ -44,14 +50,21 @@ impl Parser {
             },
             (&AssemblerToken::LabelToken(ref label), Some(AssemblerToken::Dw)) => {
                 self.source.next();
-                let res = match self.source.peek() {
-                    Some(&AssemblerToken::Word(value)) => {
-                        Ok(Statement::WordDefinitionStatement {
-                            value: WordValue::Operand(WordExpression::Literal(value)),
-                            label: label.clone(),
-                        })
+                let next = self.source.peek().map(|t| (*t).clone());
+                let res = match next {
+                    Some(AssemblerToken::Word(value)) => {
+                        self.parse_statement_with_operation(
+                            WordExpression::Literal(value),
+                            |o| Statement::WordDefinitionStatement {
+                                value: o,
+                                label: label.clone(),
+                            },
+                            |v| Statement::WordDefinitionStatement {
+                                value: WordValue::Operand(v),
+                                label: label.clone(),
+                            })
                     },
-                    Some(&AssemblerToken::LabelToken(ref value_label)) =>
+                    Some(AssemblerToken::LabelToken(ref value_label)) =>
                         Ok(Statement::WordDefinitionStatement {
                             value: WordValue::Operand(WordExpression::Label(value_label.clone())),
                             label: label.clone(),
@@ -87,16 +100,19 @@ impl Parser {
         Ok(())
     }
 
-    fn parse_org_statement(&mut self, value: WordExpression) -> Result<Statement, Error> {
+    fn parse_statement_with_operation<O, D>(&mut self, value: WordExpression, op: O, default: D)
+        -> Result<Statement, Error>
+        where O: FnOnce(WordValue) -> Statement,
+              D: FnOnce(WordExpression) -> Statement {
         let next = self.source.peek().map(|t| (*t).clone());
         match next {
-            Some(ref op@AssemblerToken::Plus) |
-            Some(ref op@AssemblerToken::Minus) => {
+            Some(ref op_token@AssemblerToken::Plus) |
+            Some(ref op_token@AssemblerToken::Minus) => {
                 self.source.next();
-                self.parse_operation(op, value)
-                    .map(|o| Statement::OrgStatement(o))
+                self.parse_operation(op_token, value)
+                    .map(op)
             },
-            _ => Ok(Statement::OrgStatement(WordValue::Operand(value))),
+            _ => Ok(default(value)),
         }
     }
 
