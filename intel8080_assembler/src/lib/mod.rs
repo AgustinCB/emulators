@@ -139,7 +139,7 @@ pub enum WordExpression {
 pub enum WordValue {
     Operand(WordExpression),
     Sum(WordExpression, WordExpression),
-    Rest(WordExpression, WordExpression)
+    Rest(WordExpression, WordExpression),
 }
 
 pub enum Statement {

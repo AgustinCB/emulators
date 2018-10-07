@@ -48,56 +48,67 @@ impl Parser {
                 self.source.next();
                 Ok(Statement::LabelDefinitionStatement(label.clone()))
             },
-            (&AssemblerToken::LabelToken(ref label), Some(AssemblerToken::Dw)) => {
-                self.source.next();
-                let next = self.source.peek().map(|t| (*t).clone());
-                let res = match next {
-                    Some(AssemblerToken::Word(value)) => {
-                        self.parse_statement_with_operation(
-                            WordExpression::Literal(value),
-                            |o| Statement::WordDefinitionStatement {
-                                value: o,
-                                label: label.clone(),
-                            },
-                            |v| Statement::WordDefinitionStatement {
-                                value: WordValue::Operand(v),
-                                label: label.clone(),
-                            })
-                    },
-                    Some(AssemblerToken::LabelToken(ref value_label)) =>
-                        Ok(Statement::WordDefinitionStatement {
-                            value: WordValue::Operand(WordExpression::Label(value_label.clone())),
-                            label: label.clone(),
-                        }),
-                    _ => Err(Error::from(AssemblerError::ExpectingNumber)),
-                }?;
-                self.source.next();
-                Ok(res)
-            },
-            (&AssemblerToken::LabelToken(ref label), Some(AssemblerToken::Db)) => {
-                self.source.next();
-                let res = match self.source.peek() {
-                    Some(&AssemblerToken::Byte(value)) =>
-                        Ok(Statement::ByteDefinitionStatement {
-                            value: ByteValue::Operand(ByteExpression::Literal(value)),
-                            label: label.clone(),
-                        }),
-                    Some(&AssemblerToken::LabelToken(ref value_label)) =>
-                        Ok(Statement::ByteDefinitionStatement {
-                            value: ByteValue::Operand(ByteExpression::Label(value_label.clone())),
-                            label: label.clone(),
-                        }),
-                    _ => Err(Error::from(AssemblerError::ExpectingNumber)),
-                }?;
-                self.source.next();
-                Ok(res)
-            },
+            (&AssemblerToken::LabelToken(ref label), Some(AssemblerToken::Dw)) =>
+                self.parse_word_definition(label),
+            (&AssemblerToken::LabelToken(ref label), Some(AssemblerToken::Db)) =>
+                self.parse_byte_definition(label),
             (AssemblerToken::InstructionCode(instruction), ref next) =>
                 self.parse_instruction(instruction, next),
             _ => Err(Error::from(AssemblerError::UndefinedError)),
         }?;
         self.expressions.push(expression);
         Ok(())
+    }
+
+    fn parse_byte_definition(&mut self, label: &LabelExpression) -> Result<Statement, Error> {
+        self.source.next();
+        let res = match self.source.peek() {
+            Some(&AssemblerToken::Byte(value)) =>
+                Ok(Statement::ByteDefinitionStatement {
+                    value: ByteValue::Operand(ByteExpression::Literal(value)),
+                    label: label.clone(),
+                }),
+            Some(&AssemblerToken::LabelToken(ref value_label)) =>
+                Ok(Statement::ByteDefinitionStatement {
+                    value: ByteValue::Operand(ByteExpression::Label(value_label.clone())),
+                    label: label.clone(),
+                }),
+            _ => Err(Error::from(AssemblerError::ExpectingNumber)),
+        }?;
+        self.source.next();
+        Ok(res)
+    }
+
+    fn parse_word_definition(&mut self, label: &LabelExpression) -> Result<Statement, Error> {
+        self.source.next();
+        let next = self.source.peek().map(|t| (*t).clone());
+        let res = match next {
+            Some(AssemblerToken::Word(value)) =>
+                self.parse_statement_with_operation(
+                    WordExpression::Literal(value),
+                    |o| Statement::WordDefinitionStatement {
+                        value: o,
+                        label: label.clone(),
+                    },
+                    |v| Statement::WordDefinitionStatement {
+                        value: WordValue::Operand(v),
+                        label: label.clone(),
+                    }),
+            Some(AssemblerToken::LabelToken(ref value_label)) =>
+                self.parse_statement_with_operation(
+                    WordExpression::Label(value_label.clone()),
+                    |o| Statement::WordDefinitionStatement {
+                        value: o,
+                        label: label.clone(),
+                    },
+                    |v| Statement::WordDefinitionStatement {
+                        value: WordValue::Operand(v),
+                        label: label.clone(),
+                    }),
+            _ => Err(Error::from(AssemblerError::ExpectingNumber)),
+        }?;
+        self.source.next();
+        Ok(res)
     }
 
     fn parse_statement_with_operation<O, D>(&mut self, value: WordExpression, op: O, default: D)
