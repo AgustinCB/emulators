@@ -46,6 +46,40 @@ impl Assembler {
                         Err(AssemblerError::LabelDoesntExist)
                     }
                 },
+                Statement::ByteDefinitionStatement {
+                    label,
+                    value: ByteValue::Sum(ByteExpression::Literal(op1), ByteExpression::Literal(op2)),
+                } => {
+                    self.bytes.insert(label, op1.wrapping_add(op2));
+                    Ok(())
+                },
+                Statement::ByteDefinitionStatement {
+                    label,
+                    value: ByteValue::Sum(ByteExpression::Label(op_label), ByteExpression::Literal(op)),
+                } |
+                Statement::ByteDefinitionStatement {
+                    label,
+                    value: ByteValue::Sum(ByteExpression::Literal(op), ByteExpression::Label(op_label)),
+                } => {
+                    if let Some(&op_label) = self.bytes.get(&op_label) {
+                        self.bytes.insert(label, op.wrapping_add(op_label));
+                        Ok(())
+                    } else {
+                        Err(AssemblerError::LabelDoesntExist)
+                    }
+                },
+                Statement::ByteDefinitionStatement {
+                    label,
+                    value: ByteValue::Sum(ByteExpression::Label(op1), ByteExpression::Label(op2)),
+                } => {
+                    if let (Some(&op1), Some(&op2)) =
+                    (self.bytes.get(&op1), self.bytes.get(&op2)) {
+                        self.bytes.insert(label, op1.wrapping_add(op2));
+                        Ok(())
+                    } else {
+                        Err(AssemblerError::LabelDoesntExist)
+                    }
+                },
                 Statement::InstructionExprStmt(instruction) => {
                     self.pc += instruction.size()? as u16;
                     self.add_instruction(instruction);
@@ -142,14 +176,14 @@ impl Assembler {
                     value: WordValue::Sum(WordExpression::Label(op1), WordExpression::Label(op2)),
                 } => {
                     if let (Some(&op1), Some(&op2)) =
-                        (self.labels.get(&op1), self.labels.get(&op2)) {
+                        (self.words.get(&op1), self.words.get(&op2)) {
                         self.words.insert(label, op1.wrapping_add(op2));
                         Ok(())
                     } else {
                         Err(AssemblerError::LabelDoesntExist)
                     }
                 },
-                _ => panic!("NOT IMPLEMENTED YET"),
+                _ => panic!("Not implemented yet!"),
             }?
         }
         Ok(self.rom)

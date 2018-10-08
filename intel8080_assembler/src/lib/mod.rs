@@ -129,6 +129,8 @@ pub enum ByteExpression {
 
 pub enum ByteValue {
     Operand(ByteExpression),
+    Sum(ByteExpression, ByteExpression),
+    Rest(ByteExpression, ByteExpression),
 }
 
 pub enum WordExpression {
