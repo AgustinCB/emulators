@@ -28,10 +28,7 @@ impl Assembler {
     pub fn assemble(mut self, expressions: Vec<Statement>) -> Result<[u8; ROM_MEMORY_LIMIT], Error> {
         for expression in expressions {
             match expression {
-                Statement::ByteDefinitionStatement {
-                    label,
-                    value,
-                } => self.assemble_byte_definition(label, value),
+                Statement::ByteDefinitionStatement(label, value) => self.assemble_byte_definition(label, value),
                 Statement::InstructionExprStmt(instruction) => {
                     self.pc += instruction.size()? as u16;
                     self.add_instruction(instruction);
@@ -79,10 +76,7 @@ impl Assembler {
                         Err(AssemblerError::LabelDoesntExist)
                     }
                 },
-                Statement::WordDefinitionStatement {
-                    label,
-                    value,
-                } => self.assemble_word_definition(label, value),
+                Statement::WordDefinitionStatement(label, value) => self.assemble_word_definition(label, value),
                 Statement::LabelDefinitionStatement(label) => {
                     self.labels.insert(label, self.pc);
                     Ok(())

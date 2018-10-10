@@ -145,11 +145,11 @@ pub enum WordValue {
 }
 
 pub enum Statement {
-    ByteDefinitionStatement { label: LabelExpression, value: ByteValue },
+    ByteDefinitionStatement(LabelExpression, ByteValue),
     InstructionExprStmt(Intel8080Instruction),
     LabelDefinitionStatement(LabelExpression),
     OrgStatement(WordValue),
-    WordDefinitionStatement { label: LabelExpression, value: WordValue },
+    WordDefinitionStatement(LabelExpression, WordValue),
 }
 
 mod lexer;
