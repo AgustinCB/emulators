@@ -4,24 +4,24 @@ extern crate intel8080cpu;
 use failure::Error;
 use intel8080cpu::{Instruction, Intel8080Instruction, Location, RegisterType, ROM_MEMORY_LIMIT};
 use std::collections::HashMap;
-use super::{AssemblerError, ByteExpression, ByteValue, Statement, LabelExpression, WordExpression, WordValue};
+use super::{AssemblerError, WordExpression, WordValue, Statement, LabelExpression, TwoWordExpression, TwoWordValue};
 
 pub struct Assembler {
-    bytes: HashMap<LabelExpression, u8>,
+    words: HashMap<LabelExpression, u8>,
     labels: HashMap<LabelExpression, u16>,
     pc: u16,
     rom: [u8; ROM_MEMORY_LIMIT],
-    words: HashMap<LabelExpression, u16>,
+    two_words: HashMap<LabelExpression, u16>,
 }
 
 impl Assembler {
     pub fn new() -> Assembler {
         Assembler {
-            bytes: HashMap::new(),
+            words: HashMap::new(),
             labels: HashMap::new(),
             pc: 0,
             rom: [0; ROM_MEMORY_LIMIT],
-            words: HashMap::new(),
+            two_words: HashMap::new(),
         }
     }
 
@@ -34,12 +34,12 @@ impl Assembler {
                     self.add_instruction(instruction);
                     Ok(())
                 },
-                Statement::OrgStatement(WordValue::Operand(WordExpression::Literal(value))) => {
+                Statement::OrgStatement(TwoWordValue::Operand(TwoWordExpression::Literal(value))) => {
                     self.pc = value;
                     Ok(())
                 },
-                Statement::OrgStatement(WordValue::Operand(WordExpression::Label(label_value))) => {
-                    if let Some(&value) = self.words.get(&label_value) {
+                Statement::OrgStatement(TwoWordValue::Operand(TwoWordExpression::Label(label_value))) => {
+                    if let Some(&value) = self.two_words.get(&label_value) {
                         self.pc = value;
                         Ok(())
                     } else {
@@ -47,16 +47,16 @@ impl Assembler {
                     }
                 },
                 Statement::OrgStatement(
-                    WordValue::Sum(WordExpression::Literal(op1), WordExpression::Literal(op2))
+                    TwoWordValue::Sum(TwoWordExpression::Literal(op1), TwoWordExpression::Literal(op2))
                 ) => {
                     self.pc = op1.wrapping_add(op2);
                     Ok(())
                 },
                 Statement::OrgStatement(
-                    WordValue::Sum(WordExpression::Label(label), WordExpression::Literal(op))
+                    TwoWordValue::Sum(TwoWordExpression::Label(label), TwoWordExpression::Literal(op))
                 ) |
                 Statement::OrgStatement(
-                    WordValue::Sum(WordExpression::Literal(op), WordExpression::Label(label))
+                    TwoWordValue::Sum(TwoWordExpression::Literal(op), TwoWordExpression::Label(label))
                 ) => {
                     if let Some(&label_op) = self.labels.get(&label) {
                         self.pc = op.wrapping_add(label_op);
@@ -66,7 +66,7 @@ impl Assembler {
                     }
                 },
                 Statement::OrgStatement(
-                    WordValue::Sum(WordExpression::Label(op1), WordExpression::Label(op2))
+                    TwoWordValue::Sum(TwoWordExpression::Label(op1), TwoWordExpression::Label(op2))
                 ) => {
                     if let (Some(&op1), Some(&op2)) =
                         (self.labels.get(&op1), self.labels.get(&op2)) {
@@ -88,48 +88,8 @@ impl Assembler {
     }
 
     #[inline]
-    fn assemble_byte_definition(&mut self, label: LabelExpression, value: ByteValue) -> Result<(), AssemblerError> {
-        match value {
-            ByteValue::Operand(ByteExpression::Literal(value)) => {
-                self.bytes.insert(label, value);
-                Ok(())
-            },
-            ByteValue::Operand(ByteExpression::Label(label_value)) => {
-                if let Some(&value) = self.bytes.get(&label_value) {
-                    self.bytes.insert(label, value);
-                    Ok(())
-                } else {
-                    Err(AssemblerError::LabelDoesntExist)
-                }
-            },
-            ByteValue::Sum(ByteExpression::Literal(op1), ByteExpression::Literal(op2)) => {
-                self.bytes.insert(label, op1.wrapping_add(op2));
-                Ok(())
-            },
-            ByteValue::Sum(ByteExpression::Label(op_label), ByteExpression::Literal(op)) |
-            ByteValue::Sum(ByteExpression::Literal(op), ByteExpression::Label(op_label)) => {
-                if let Some(&op_label) = self.bytes.get(&op_label) {
-                    self.bytes.insert(label, op.wrapping_add(op_label));
-                    Ok(())
-                } else {
-                    Err(AssemblerError::LabelDoesntExist)
-                }
-            },
-            ByteValue::Sum(ByteExpression::Label(op1), ByteExpression::Label(op2)) => {
-                if let (Some(&op1), Some(&op2)) =
-                (self.bytes.get(&op1), self.bytes.get(&op2)) {
-                    self.bytes.insert(label, op1.wrapping_add(op2));
-                    Ok(())
-                } else {
-                    Err(AssemblerError::LabelDoesntExist)
-                }
-            },
-            _ => panic!("Not implemented yet!"),
-        }
-    }
-
-    #[inline]
-    fn assemble_word_definition(&mut self, label: LabelExpression, value: WordValue) -> Result<(), AssemblerError> {
+    fn assemble_byte_definition(&mut self, label: LabelExpression, value: WordValue)
+        -> Result<(), AssemblerError> {
         match value {
             WordValue::Operand(WordExpression::Literal(value)) => {
                 self.words.insert(label, value);
@@ -158,8 +118,50 @@ impl Assembler {
             },
             WordValue::Sum(WordExpression::Label(op1), WordExpression::Label(op2)) => {
                 if let (Some(&op1), Some(&op2)) =
-                    (self.words.get(&op1), self.words.get(&op2)) {
+                (self.words.get(&op1), self.words.get(&op2)) {
                     self.words.insert(label, op1.wrapping_add(op2));
+                    Ok(())
+                } else {
+                    Err(AssemblerError::LabelDoesntExist)
+                }
+            },
+            _ => panic!("Not implemented yet!"),
+        }
+    }
+
+    #[inline]
+    fn assemble_word_definition(&mut self, label: LabelExpression, value: TwoWordValue)
+        -> Result<(), AssemblerError> {
+        match value {
+            TwoWordValue::Operand(TwoWordExpression::Literal(value)) => {
+                self.two_words.insert(label, value);
+                Ok(())
+            },
+            TwoWordValue::Operand(TwoWordExpression::Label(label_value)) => {
+                if let Some(&value) = self.two_words.get(&label_value) {
+                    self.two_words.insert(label, value);
+                    Ok(())
+                } else {
+                    Err(AssemblerError::LabelDoesntExist)
+                }
+            },
+            TwoWordValue::Sum(TwoWordExpression::Literal(op1), TwoWordExpression::Literal(op2)) => {
+                self.two_words.insert(label, op1.wrapping_add(op2));
+                Ok(())
+            },
+            TwoWordValue::Sum(TwoWordExpression::Label(op_label), TwoWordExpression::Literal(op)) |
+            TwoWordValue::Sum(TwoWordExpression::Literal(op), TwoWordExpression::Label(op_label)) => {
+                if let Some(&op_label) = self.two_words.get(&op_label) {
+                    self.two_words.insert(label, op.wrapping_add(op_label));
+                    Ok(())
+                } else {
+                    Err(AssemblerError::LabelDoesntExist)
+                }
+            },
+            TwoWordValue::Sum(TwoWordExpression::Label(op1), TwoWordExpression::Label(op2)) => {
+                if let (Some(&op1), Some(&op2)) =
+                    (self.two_words.get(&op1), self.two_words.get(&op2)) {
+                    self.two_words.insert(label, op1.wrapping_add(op2));
                     Ok(())
                 } else {
                     Err(AssemblerError::LabelDoesntExist)

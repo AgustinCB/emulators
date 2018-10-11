@@ -122,19 +122,8 @@ pub enum AssemblerToken {
     Plus,
 }
 
-pub enum ByteExpression {
-    Literal(u8),
-    Label(LabelExpression),
-}
-
-pub enum ByteValue {
-    Operand(ByteExpression),
-    Sum(ByteExpression, ByteExpression),
-    Rest(ByteExpression, ByteExpression),
-}
-
 pub enum WordExpression {
-    Literal(u16),
+    Literal(u8),
     Label(LabelExpression),
 }
 
@@ -144,12 +133,23 @@ pub enum WordValue {
     Rest(WordExpression, WordExpression),
 }
 
+pub enum TwoWordExpression {
+    Literal(u16),
+    Label(LabelExpression),
+}
+
+pub enum TwoWordValue {
+    Operand(TwoWordExpression),
+    Sum(TwoWordExpression, TwoWordExpression),
+    Rest(TwoWordExpression, TwoWordExpression),
+}
+
 pub enum Statement {
-    ByteDefinitionStatement(LabelExpression, ByteValue),
+    ByteDefinitionStatement(LabelExpression, WordValue),
     InstructionExprStmt(Intel8080Instruction),
     LabelDefinitionStatement(LabelExpression),
-    OrgStatement(WordValue),
-    WordDefinitionStatement(LabelExpression, WordValue),
+    OrgStatement(TwoWordValue),
+    WordDefinitionStatement(LabelExpression, TwoWordValue),
 }
 
 mod lexer;
