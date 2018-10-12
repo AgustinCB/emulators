@@ -143,9 +143,9 @@ impl<R: Read> Lexer<R> {
         let number = u16::from_str_radix(&number_string, radix)?;
         if self.at_end_of_statement() {
             if number <= (u8::max_value() as u16) {
-                Ok(Some(AssemblerToken::Byte(number as u8)))
+                Ok(Some(AssemblerToken::Word(number as u8)))
             } else {
-                Ok(Some(AssemblerToken::Word(number)))
+                Ok(Some(AssemblerToken::TwoWord(number)))
             }
         } else if let Some(Ok(c)) = self.source.peek() {
             Err(Error::from(AssemblerError::UnexpectedCharacter { c: (*c) as char }))

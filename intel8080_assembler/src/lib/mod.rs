@@ -108,7 +108,7 @@ pub enum InstructionCode {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum AssemblerToken {
-    Byte(u8),
+    Word(u8),
     Colon,
     Comma,
     DataStore(Location),
@@ -118,7 +118,7 @@ pub enum AssemblerToken {
     LabelToken(LabelExpression),
     Minus,
     Org,
-    Word(u16),
+    TwoWord(u16),
     Plus,
 }
 
