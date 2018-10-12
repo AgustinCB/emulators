@@ -103,6 +103,28 @@ impl Assembler {
                     Err(AssemblerError::LabelDoesntExist)
                 }
             },
+            WordValue::Rest(WordExpression::Literal(op1), WordExpression::Literal(op2)) => {
+                self.words.insert(label, op1.wrapping_sub(op2));
+                Ok(())
+            },
+            WordValue::Rest(WordExpression::Label(op_label), WordExpression::Literal(op)) |
+            WordValue::Rest(WordExpression::Literal(op), WordExpression::Label(op_label)) => {
+                if let Some(&op_label) = self.words.get(&op_label) {
+                    self.words.insert(label, op.wrapping_sub(op_label));
+                    Ok(())
+                } else {
+                    Err(AssemblerError::LabelDoesntExist)
+                }
+            },
+            WordValue::Rest(WordExpression::Label(op1), WordExpression::Label(op2)) => {
+                if let (Some(&op1), Some(&op2)) =
+                (self.words.get(&op1), self.words.get(&op2)) {
+                    self.words.insert(label, op1.wrapping_sub(op2));
+                    Ok(())
+                } else {
+                    Err(AssemblerError::LabelDoesntExist)
+                }
+            },
             WordValue::Sum(WordExpression::Literal(op1), WordExpression::Literal(op2)) => {
                 self.words.insert(label, op1.wrapping_add(op2));
                 Ok(())
@@ -125,7 +147,6 @@ impl Assembler {
                     Err(AssemblerError::LabelDoesntExist)
                 }
             },
-            _ => panic!("Not implemented yet!"),
         }
     }
 
@@ -140,6 +161,28 @@ impl Assembler {
             TwoWordValue::Operand(TwoWordExpression::Label(label_value)) => {
                 if let Some(&value) = self.two_words.get(&label_value) {
                     self.two_words.insert(label, value);
+                    Ok(())
+                } else {
+                    Err(AssemblerError::LabelDoesntExist)
+                }
+            },
+            TwoWordValue::Rest(TwoWordExpression::Literal(op1), TwoWordExpression::Literal(op2)) => {
+                self.two_words.insert(label, op1.wrapping_sub(op2));
+                Ok(())
+            },
+            TwoWordValue::Rest(TwoWordExpression::Label(op_label), TwoWordExpression::Literal(op)) |
+            TwoWordValue::Rest(TwoWordExpression::Literal(op), TwoWordExpression::Label(op_label)) => {
+                if let Some(&op_label) = self.two_words.get(&op_label) {
+                    self.two_words.insert(label, op.wrapping_sub(op_label));
+                    Ok(())
+                } else {
+                    Err(AssemblerError::LabelDoesntExist)
+                }
+            },
+            TwoWordValue::Rest(TwoWordExpression::Label(op1), TwoWordExpression::Label(op2)) => {
+                if let (Some(&op1), Some(&op2)) =
+                    (self.two_words.get(&op1), self.two_words.get(&op2)) {
+                    self.two_words.insert(label, op1.wrapping_sub(op2));
                     Ok(())
                 } else {
                     Err(AssemblerError::LabelDoesntExist)
@@ -167,7 +210,6 @@ impl Assembler {
                     Err(AssemblerError::LabelDoesntExist)
                 }
             },
-            _ => panic!("Not implemented yet!"),
         }
     }
 
