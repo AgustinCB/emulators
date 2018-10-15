@@ -25,10 +25,11 @@ impl Assembler {
         }
     }
 
-    pub fn assemble(mut self, expressions: Vec<Statement>) -> Result<[u8; ROM_MEMORY_LIMIT], Error> {
-        for expression in expressions {
+    pub fn assemble(mut self, statements: Vec<Statement>) -> Result<[u8; ROM_MEMORY_LIMIT], Error> {
+        for expression in statements {
             match expression {
-                Statement::WordDefinitionStatement(label, value) => self.assemble_byte_definition(label, value),
+                Statement::WordDefinitionStatement(label, value) =>
+                    self.assemble_byte_definition(label, value),
                 Statement::InstructionExprStmt(instruction) => {
                     self.pc += instruction.size()? as u16;
                     self.add_instruction(instruction);

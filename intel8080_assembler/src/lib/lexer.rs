@@ -17,12 +17,12 @@ impl<R: Read> Lexer<R> {
         }
     }
 
-    pub fn scan_tokens(&mut self) -> Result<(), Error> {
+    pub fn scan_tokens(mut self) -> Result<Vec<AssemblerToken>, Error> {
         while let Some(i) = self.source.next() {
             let input = i? as char;
             self.scan_token(input)?;
         }
-        Ok(())
+        Ok(self.tokens)
     }
 
     fn scan_token(&mut self, input: char) -> Result<(), Error> {

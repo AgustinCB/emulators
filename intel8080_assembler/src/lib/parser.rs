@@ -20,14 +20,14 @@ impl Parser {
         }
     }
 
-    pub fn parse_expressions(&mut self) -> Result<(), Error> {
+    pub fn parse_statements(mut self) -> Result<Vec<Statement>, Error> {
         while let Some(input) = self.source.next() {
-            self.parse_expression(&input)?;
+            self.parse_statement(&input)?;
         }
-        Ok(())
+        Ok(self.expressions)
     }
 
-    fn parse_expression(&mut self, input: &AssemblerToken) -> Result<(), Error> {
+    fn parse_statement(&mut self, input: &AssemblerToken) -> Result<(), Error> {
         let next = self.source.peek().map(|a| (*a).clone());
         let expression = match (input, next) {
             (AssemblerToken::Org, Some(AssemblerToken::TwoWord(value))) => {
