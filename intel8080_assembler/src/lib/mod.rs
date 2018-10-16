@@ -144,6 +144,14 @@ pub enum TwoWordValue {
     Rest(TwoWordExpression, TwoWordExpression),
 }
 
+pub enum InstructionArgument {
+    Word(WordValue),
+    TwoWord(TwoWordValue),
+    DataStore(Location),
+}
+
+pub struct Instruction(InstructionCode, Option<InstructionArgument>, Option<InstructionArgument>);
+
 pub enum Statement {
     WordDefinitionStatement(LabelExpression, WordValue),
     InstructionExprStmt(Intel8080Instruction),
