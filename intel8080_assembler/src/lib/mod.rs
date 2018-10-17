@@ -154,7 +154,7 @@ pub struct Instruction(InstructionCode, Option<InstructionArgument>, Option<Inst
 
 pub enum Statement {
     WordDefinitionStatement(LabelExpression, WordValue),
-    InstructionExprStmt(Intel8080Instruction),
+    InstructionExprStmt(Instruction),
     LabelDefinitionStatement(LabelExpression),
     OrgStatement(TwoWordValue),
     TwoWordDefinitionStatement(LabelExpression, TwoWordValue),

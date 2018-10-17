@@ -222,7 +222,11 @@ impl Parser {
             (InstructionCode::Adc,
                 &Some(AssemblerToken::DataStore(l@Location::Memory))) => {
                 self.source.next();
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Adc { source: l }))
+                Ok(Statement::InstructionExprStmt(Instruction(
+                    InstructionCode::Adc,
+                    Some(InstructionArgument::DataStore(l)),
+                    None,
+                )))
             },
             (InstructionCode::Adc, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
@@ -243,10 +247,15 @@ impl Parser {
             (InstructionCode::Add,
                 &Some(AssemblerToken::DataStore(l@Location::Memory))) => {
                 self.source.next();
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Add { source: l }))
+                Ok(Statement::InstructionExprStmt(Instruction(
+                    InstructionCode::Add,
+                    Some(InstructionArgument::DataStore(l)),
+                    None,
+                )))
             },
             (InstructionCode::Add, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
+            /*
             (InstructionCode::Aci, &Some(AssemblerToken::Word(byte))) => {
                 self.source.next();
                 Ok(Statement::InstructionExprStmt(Intel8080Instruction::Aci { byte }))
@@ -1007,6 +1016,8 @@ impl Parser {
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Xthl, _) =>
                 Ok(Statement::InstructionExprStmt(Intel8080Instruction::Xthl)),
+                */
+            _ => panic!("Not implemented yet"),
         }
     }
 }

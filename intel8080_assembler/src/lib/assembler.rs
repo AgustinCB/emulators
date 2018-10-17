@@ -30,11 +30,11 @@ impl Assembler {
             match expression {
                 Statement::WordDefinitionStatement(label, value) =>
                     self.assemble_byte_definition(label, value),
-                Statement::InstructionExprStmt(instruction) => {
+                /*Statement::InstructionExprStmt(instruction) => {
                     self.pc += instruction.size()? as u16;
                     self.add_instruction(instruction);
                     Ok(())
-                },
+                },*/
                 Statement::OrgStatement(TwoWordValue::Operand(TwoWordExpression::Literal(value))) => {
                     self.pc = value;
                     Ok(())
@@ -214,6 +214,7 @@ impl Assembler {
         }
     }
 
+    /*
     fn add_instruction(&mut self, instruction: Intel8080Instruction) {
         for byte in self.bytes_for_instruction(instruction) {
             self.rom[self.pc as usize] = byte;
@@ -915,5 +916,5 @@ impl Assembler {
             _ => panic!("unfined method"),
         }
         res
-    }
+    }*/
 }
