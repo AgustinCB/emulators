@@ -1,7 +1,7 @@
 #[macro_use] extern crate failure;
 extern crate intel8080cpu;
 
-use intel8080cpu::{Intel8080Instruction, Location};
+use intel8080cpu::Location;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct LabelExpression(String);
@@ -148,6 +148,20 @@ pub enum InstructionArgument {
     Word(WordValue),
     TwoWord(TwoWordValue),
     DataStore(Location),
+}
+
+impl From<u8> for InstructionArgument {
+    #[inline]
+    fn from(byte: u8) -> InstructionArgument {
+        InstructionArgument::Word(WordValue::Operand(WordExpression::Literal(byte)))
+    }
+}
+
+impl From<u16> for InstructionArgument {
+    #[inline]
+    fn from(two_word: u16) -> InstructionArgument {
+        InstructionArgument::TwoWord(TwoWordValue::Operand(TwoWordExpression::Literal(two_word)))
+    }
 }
 
 pub struct Instruction(InstructionCode, Option<InstructionArgument>, Option<InstructionArgument>);
