@@ -606,9 +606,8 @@ impl Parser {
             },
             (InstructionCode::Mvi, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
-            /*
             (InstructionCode::Noop, _) =>
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Noop)),
+                Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Noop, None, None))),
             (InstructionCode::Ora,
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::A }))) |
             (InstructionCode::Ora,
@@ -626,24 +625,37 @@ impl Parser {
             (InstructionCode::Ora,
                 &Some(AssemblerToken::DataStore(l@Location::Memory))) => {
                 self.source.next();
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Ora { source: l }))
+                Ok(Statement::InstructionExprStmt(Instruction(
+                    InstructionCode::Ora,
+                    Some(InstructionArgument::DataStore(l)),
+                    None,
+                )))
             },
             (InstructionCode::Ora, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Ori, &Some(AssemblerToken::Word(byte))) => {
                 self.source.next();
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Ori { byte }))
+                Ok(Statement::InstructionExprStmt(Instruction(
+                    InstructionCode::Ori,
+                    Some(InstructionArgument::from(byte)),
+                    None,
+                )))
             },
             (InstructionCode::Ori, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Out, &Some(AssemblerToken::Word(byte))) => {
                 self.source.next();
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Out { byte }))
+                Ok(Statement::InstructionExprStmt(Instruction(
+                    InstructionCode::Out,
+                    Some(InstructionArgument::from(byte)),
+                    None,
+                )))
             },
             (InstructionCode::Out, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Pchl, _) =>
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Pchl)),
+                Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Pchl, None, None))),
+            /*
             (InstructionCode::Pop,
                 &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::B }))) |
             (InstructionCode::Pop,
