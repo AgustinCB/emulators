@@ -228,14 +228,8 @@ impl Parser {
             (InstructionCode::Adc,
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::L }))) |
             (InstructionCode::Adc,
-                &Some(AssemblerToken::DataStore(l@Location::Memory))) => {
-                self.source.next();
-                Ok(Statement::InstructionExprStmt(Instruction(
-                    InstructionCode::Adc,
-                    Some(InstructionArgument::DataStore(l)),
-                    None,
-                )))
-            },
+                &Some(AssemblerToken::DataStore(l@Location::Memory))) =>
+                self.parse_instruction_with_location(l, InstructionCode::Adc),
             (InstructionCode::Adc, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Add,
@@ -253,34 +247,16 @@ impl Parser {
             (InstructionCode::Add,
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::L }))) |
             (InstructionCode::Add,
-                &Some(AssemblerToken::DataStore(l@Location::Memory))) => {
-                self.source.next();
-                Ok(Statement::InstructionExprStmt(Instruction(
-                    InstructionCode::Add,
-                    Some(InstructionArgument::DataStore(l)),
-                    None,
-                )))
-            },
+                &Some(AssemblerToken::DataStore(l@Location::Memory))) =>
+                self.parse_instruction_with_location(l, InstructionCode::Add),
             (InstructionCode::Add, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
-            (InstructionCode::Aci, &Some(AssemblerToken::Word(byte))) => {
-                self.source.next();
-                Ok(Statement::InstructionExprStmt(Instruction(
-                    InstructionCode::Aci,
-                    Some(InstructionArgument::from(byte)),
-                    None
-                )))
-            },
+            (InstructionCode::Aci, &Some(AssemblerToken::Word(byte))) =>
+                self.parse_instruction_with_word(byte, InstructionCode::Aci),
             (InstructionCode::Aci, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
-            (InstructionCode::Adi, &Some(AssemblerToken::Word(byte))) => {
-                self.source.next();
-                Ok(Statement::InstructionExprStmt(Instruction(
-                    InstructionCode::Adi,
-                    Some(InstructionArgument::from(byte)),
-                    None
-                )))
-            },
+            (InstructionCode::Adi, &Some(AssemblerToken::Word(byte))) =>
+                self.parse_instruction_with_word(byte, InstructionCode::Adi),
             (InstructionCode::Adi, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Ana,
@@ -298,24 +274,12 @@ impl Parser {
             (InstructionCode::Ana,
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::L }))) |
             (InstructionCode::Ana,
-                &Some(AssemblerToken::DataStore(l@Location::Memory))) => {
-                self.source.next();
-                Ok(Statement::InstructionExprStmt(Instruction(
-                    InstructionCode::Ana,
-                    Some(InstructionArgument::DataStore(l)),
-                    None,
-                )))
-            },
+                &Some(AssemblerToken::DataStore(l@Location::Memory))) =>
+                self.parse_instruction_with_location(l, InstructionCode::Ana),
             (InstructionCode::Ana, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
-            (InstructionCode::Ani, &Some(AssemblerToken::Word(byte))) => {
-                self.source.next();
-                Ok(Statement::InstructionExprStmt(Instruction(
-                    InstructionCode::Ani,
-                    Some(InstructionArgument::from(byte)),
-                    None,
-                )))
-            },
+            (InstructionCode::Ani, &Some(AssemblerToken::Word(byte))) =>
+                self.parse_instruction_with_word(byte, InstructionCode::Ani),
             (InstructionCode::Ani, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Call, n@_) => self.parse_two_word_instruction(InstructionCode::Call, n),
@@ -340,24 +304,12 @@ impl Parser {
             (InstructionCode::Cmp,
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::L }))) |
             (InstructionCode::Cmp,
-                &Some(AssemblerToken::DataStore(l@Location::Memory))) => {
-                self.source.next();
-                Ok(Statement::InstructionExprStmt(Instruction(
-                    InstructionCode::Cmp,
-                    Some(InstructionArgument::DataStore(l)),
-                    None,
-                )))
-            },
+                &Some(AssemblerToken::DataStore(l@Location::Memory))) =>
+                self.parse_instruction_with_location(l, InstructionCode::Cmp),
             (InstructionCode::Cmp, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
-            (InstructionCode::Cpi, &Some(AssemblerToken::Word(byte))) => {
-                self.source.next();
-                Ok(Statement::InstructionExprStmt(Instruction(
-                    InstructionCode::Cpi,
-                    Some(InstructionArgument::from(byte)),
-                    None
-                )))
-            },
+            (InstructionCode::Cpi, &Some(AssemblerToken::Word(byte))) =>
+                self.parse_instruction_with_word(byte, InstructionCode::Cpi),
             (InstructionCode::Cpi, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Cnc, n@_) => self.parse_two_word_instruction(InstructionCode::Cnc, n),
@@ -375,14 +327,8 @@ impl Parser {
             (InstructionCode::Dad,
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::H }))) |
             (InstructionCode::Dad,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::Sp }))) => {
-                self.source.next();
-                Ok(Statement::InstructionExprStmt(Instruction(
-                    InstructionCode::Dad,
-                    Some(InstructionArgument::DataStore(l)),
-                    None,
-                )))
-            },
+                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::Sp }))) =>
+                self.parse_instruction_with_location(l, InstructionCode::Dad),
             (InstructionCode::Dad, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Dcr,
@@ -400,14 +346,8 @@ impl Parser {
             (InstructionCode::Dcr,
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::L }))) |
             (InstructionCode::Dcr,
-                &Some(AssemblerToken::DataStore(l@Location::Memory))) => {
-                self.source.next();
-                Ok(Statement::InstructionExprStmt(Instruction(
-                    InstructionCode::Dcr,
-                    Some(InstructionArgument::DataStore(l)),
-                    None,
-                )))
-            },
+                &Some(AssemblerToken::DataStore(l@Location::Memory))) =>
+                self.parse_instruction_with_location(l, InstructionCode::Dcr),
             (InstructionCode::Dcr, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Dcx,
@@ -417,14 +357,8 @@ impl Parser {
             (InstructionCode::Dcx,
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::H }))) |
             (InstructionCode::Dcx,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::Sp }))) => {
-                self.source.next();
-                Ok(Statement::InstructionExprStmt(Instruction(
-                    InstructionCode::Dcx,
-                    Some(InstructionArgument::DataStore(l)),
-                    None,
-                )))
-            },
+                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::Sp }))) =>
+                self.parse_instruction_with_location(l, InstructionCode::Dcx),
             (InstructionCode::Dcx, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Di, _) =>
@@ -433,14 +367,8 @@ impl Parser {
                 Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Ei, None, None))),
             (InstructionCode::Hlt, _) =>
                 Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Hlt, None, None))),
-            (InstructionCode::In, &Some(AssemblerToken::Word(byte))) => {
-                self.source.next();
-                Ok(Statement::InstructionExprStmt(Instruction(
-                    InstructionCode::In,
-                    Some(InstructionArgument::from(byte)),
-                    None,
-                )))
-            },
+            (InstructionCode::In, &Some(AssemblerToken::Word(byte))) =>
+                self.parse_instruction_with_word(byte, InstructionCode::In),
             (InstructionCode::In, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Inr,
@@ -458,14 +386,8 @@ impl Parser {
             (InstructionCode::Inr,
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::L }))) |
             (InstructionCode::Inr,
-                &Some(AssemblerToken::DataStore(l@Location::Memory))) => {
-                self.source.next();
-                Ok(Statement::InstructionExprStmt(Instruction(
-                    InstructionCode::Inr,
-                    Some(InstructionArgument::DataStore(l)),
-                    None,
-                )))
-            },
+                &Some(AssemblerToken::DataStore(l@Location::Memory))) =>
+                self.parse_instruction_with_location(l, InstructionCode::Inr),
             (InstructionCode::Inr, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Inx,
@@ -475,14 +397,8 @@ impl Parser {
             (InstructionCode::Inx,
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::H }))) |
             (InstructionCode::Inx,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::Sp }))) => {
-                self.source.next();
-                Ok(Statement::InstructionExprStmt(Instruction(
-                    InstructionCode::Inr,
-                    Some(InstructionArgument::DataStore(l)),
-                    None,
-                )))
-            },
+                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::Sp }))) =>
+                self.parse_instruction_with_location(l, InstructionCode::Inx),
             (InstructionCode::Inx, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Jc, n@_) => self.parse_two_word_instruction(InstructionCode::Jc, n),
@@ -498,14 +414,8 @@ impl Parser {
             (InstructionCode::Ldax,
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::B }))) |
             (InstructionCode::Ldax,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::D }))) => {
-                self.source.next();
-                Ok(Statement::InstructionExprStmt(Instruction(
-                    InstructionCode::Ldax,
-                    Some(InstructionArgument::DataStore(l)),
-                    None,
-                )))
-            },
+                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::D }))) =>
+                self.parse_instruction_with_location(l, InstructionCode::Ldax),
             (InstructionCode::Ldax, _) => Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Lhld, n@_) => self.parse_two_word_instruction(InstructionCode::Lhld, n),
             (InstructionCode::Lxi,
@@ -524,6 +434,7 @@ impl Parser {
                     Some(InstructionArgument::DataStore(l))
                 )
             },
+            (InstructionCode::Lxi, _) => Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Mov,
                 &Some(AssemblerToken::DataStore(d@Location::Register { register: RegisterType::A }))) |
             (InstructionCode::Mov,
@@ -623,97 +534,72 @@ impl Parser {
             (InstructionCode::Ora,
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::L }))) |
             (InstructionCode::Ora,
-                &Some(AssemblerToken::DataStore(l@Location::Memory))) => {
-                self.source.next();
-                Ok(Statement::InstructionExprStmt(Instruction(
-                    InstructionCode::Ora,
-                    Some(InstructionArgument::DataStore(l)),
-                    None,
-                )))
-            },
+                &Some(AssemblerToken::DataStore(l@Location::Memory))) =>
+                self.parse_instruction_with_location(l, InstructionCode::Ora),
             (InstructionCode::Ora, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
-            (InstructionCode::Ori, &Some(AssemblerToken::Word(byte))) => {
-                self.source.next();
-                Ok(Statement::InstructionExprStmt(Instruction(
-                    InstructionCode::Ori,
-                    Some(InstructionArgument::from(byte)),
-                    None,
-                )))
-            },
+            (InstructionCode::Ori, &Some(AssemblerToken::Word(byte))) =>
+                self.parse_instruction_with_word(byte, InstructionCode::Ori),
             (InstructionCode::Ori, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
-            (InstructionCode::Out, &Some(AssemblerToken::Word(byte))) => {
-                self.source.next();
-                Ok(Statement::InstructionExprStmt(Instruction(
-                    InstructionCode::Out,
-                    Some(InstructionArgument::from(byte)),
-                    None,
-                )))
-            },
+            (InstructionCode::Out, &Some(AssemblerToken::Word(byte))) =>
+                self.parse_instruction_with_word(byte, InstructionCode::Out),
             (InstructionCode::Out, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Pchl, _) =>
                 Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Pchl, None, None))),
-            /*
             (InstructionCode::Pop,
-                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::B }))) |
+                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::B }))) |
             (InstructionCode::Pop,
-                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::D }))) |
+                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::D }))) |
             (InstructionCode::Pop,
-                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::H }))) |
+                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::H }))) |
             (InstructionCode::Pop,
-                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::Psw }))) => {
-                self.source.next();
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Pop { register: r }))
-            },
+                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::Psw }))) =>
+                self.parse_instruction_with_location(l, InstructionCode::Pop),
             (InstructionCode::Pop, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Push,
-                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::B }))) |
+                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::B }))) |
             (InstructionCode::Push,
-                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::D }))) |
+                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::D }))) |
             (InstructionCode::Push,
-                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::H }))) |
+                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::H }))) |
             (InstructionCode::Push,
-                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::Psw }))) => {
-                self.source.next();
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Push { register: r }))
-            },
+                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::Psw }))) =>
+                self.parse_instruction_with_location(l, InstructionCode::Push),
             (InstructionCode::Push, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Ral, _) =>
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Ral)),
+                Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Ral, None, None))),
             (InstructionCode::Rar, _) =>
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Rar)),
+                Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Rar, None, None))),
             (InstructionCode::Rc, _) =>
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Rc)),
+                Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Rc, None, None))),
             (InstructionCode::Ret, _) =>
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Ret)),
+                Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Ret, None, None))),
             (InstructionCode::Rlc, _) =>
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Rlc)),
+                Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Rlc, None, None))),
             (InstructionCode::Rm, _) =>
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Rm)),
+                Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Rm, None, None))),
             (InstructionCode::Rnc, _) =>
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Rnc)),
+                Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Rnc, None, None))),
             (InstructionCode::Rnz, _) =>
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Rnz)),
+                Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Rnz, None, None))),
             (InstructionCode::Rp, _) =>
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Rp)),
+                Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Rp, None, None))),
             (InstructionCode::Rpe, _) =>
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Rpe)),
+                Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Rpe, None, None))),
             (InstructionCode::Rpo, _) =>
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Rpo)),
+                Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Rpo, None, None))),
             (InstructionCode::Rrc, _) =>
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Rrc)),
-            (InstructionCode::Rst, &Some(AssemblerToken::Word(byte))) => {
-                self.source.next();
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Rst { byte }))
-            },
+                Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Rrc, None, None))),
+            (InstructionCode::Rst, &Some(AssemblerToken::Word(byte))) =>
+                self.parse_instruction_with_word(byte, InstructionCode::Rst),
             (InstructionCode::Rst, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Rz, _) =>
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Rz)),
+                Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Rz, None, None))),
             (InstructionCode::Sbb,
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::A }))) |
             (InstructionCode::Sbb,
@@ -729,57 +615,27 @@ impl Parser {
             (InstructionCode::Sbb,
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::L }))) |
             (InstructionCode::Sbb,
-                &Some(AssemblerToken::DataStore(l@Location::Memory))) => {
-                self.source.next();
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Sbb { source: l }))
-            },
+                &Some(AssemblerToken::DataStore(l@Location::Memory))) =>
+                self.parse_instruction_with_location(l, InstructionCode::Sbb),
             (InstructionCode::Sbb, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
-            (InstructionCode::Sbi, &Some(AssemblerToken::Word(byte))) => {
-                self.source.next();
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Sbi { byte }))
-            },
+            (InstructionCode::Sbi, &Some(AssemblerToken::Word(byte))) =>
+                self.parse_instruction_with_word(byte, InstructionCode::Sbi),
             (InstructionCode::Sbi, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
-            (InstructionCode::Shld, &Some(AssemblerToken::Word(low_byte))) => {
-                self.source.next();
-                if let Some(&AssemblerToken::Word(high_byte)) = self.source.peek() {
-                    self.source.next();
-                    Ok(Statement::InstructionExprStmt(Intel8080Instruction::Shld {
-                        address: [ low_byte, high_byte ],
-                    }))
-                } else {
-                    Err(Error::from(AssemblerError::InvalidInstructionArgument))
-                }
-            },
-            (InstructionCode::Shld, _) =>
-                Err(Error::from(AssemblerError::InvalidInstructionArgument)),
+            (InstructionCode::Shld, n@_) => self.parse_two_word_instruction(InstructionCode::Shld, n),
             (InstructionCode::Sphl, _) =>
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Sphl)),
-            (InstructionCode::Sta, &Some(AssemblerToken::Word(low_byte))) => {
-                self.source.next();
-                if let Some(&AssemblerToken::Word(high_byte)) = self.source.peek() {
-                    self.source.next();
-                    Ok(Statement::InstructionExprStmt(Intel8080Instruction::Sta {
-                        address: [ low_byte, high_byte ],
-                    }))
-                } else {
-                    Err(Error::from(AssemblerError::InvalidInstructionArgument))
-                }
-            },
-            (InstructionCode::Sta, _) =>
-                Err(Error::from(AssemblerError::InvalidInstructionArgument)),
+                Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Sphl, None, None))),
+            (InstructionCode::Sta, n@_) => self.parse_two_word_instruction(InstructionCode::Sta, n),
             (InstructionCode::Stax,
-                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::B }))) |
+                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::B }))) |
             (InstructionCode::Stax,
-                &Some(AssemblerToken::DataStore(Location::Register { register: r@RegisterType::D }))) => {
-                self.source.next();
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Stax { register: r }))
-            },
+                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::D }))) =>
+                self.parse_instruction_with_location(l, InstructionCode::Stax),
             (InstructionCode::Stax, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Stc, _) =>
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Stc)),
+                Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Stc, None, None))),
             (InstructionCode::Sub,
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::A }))) |
             (InstructionCode::Sub,
@@ -795,20 +651,16 @@ impl Parser {
             (InstructionCode::Sub,
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::L }))) |
             (InstructionCode::Sub,
-                &Some(AssemblerToken::DataStore(l@Location::Memory))) => {
-                self.source.next();
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Sub { source: l }))
-            },
+                &Some(AssemblerToken::DataStore(l@Location::Memory))) =>
+                self.parse_instruction_with_location(l, InstructionCode::Sub),
             (InstructionCode::Sub, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
-            (InstructionCode::Sui, &Some(AssemblerToken::Word(byte))) => {
-                self.source.next();
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Sui { byte }))
-            },
+            (InstructionCode::Sui, &Some(AssemblerToken::Word(byte))) =>
+                self.parse_instruction_with_word(byte, InstructionCode::Sui),
             (InstructionCode::Sui, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Xchg, _) =>
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Xchg)),
+                Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Xchg, None, None))),
             (InstructionCode::Xra,
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::A }))) |
             (InstructionCode::Xra,
@@ -824,23 +676,38 @@ impl Parser {
             (InstructionCode::Xra,
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::L }))) |
             (InstructionCode::Xra,
-                &Some(AssemblerToken::DataStore(l@Location::Memory))) => {
-                self.source.next();
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Xra { source: l }))
-            },
+                &Some(AssemblerToken::DataStore(l@Location::Memory))) =>
+                self.parse_instruction_with_location(l, InstructionCode::Xra),
             (InstructionCode::Xra, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
-            (InstructionCode::Xri, &Some(AssemblerToken::Word(byte))) => {
-                self.source.next();
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Xri { byte }))
-            },
+            (InstructionCode::Xri, &Some(AssemblerToken::Word(byte))) =>
+                self.parse_instruction_with_word(byte, InstructionCode::Xri),
             (InstructionCode::Xri, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Xthl, _) =>
-                Ok(Statement::InstructionExprStmt(Intel8080Instruction::Xthl)),
-                */
-            _ => panic!("Not implemented yet"),
+                Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Xthl, None, None))),
         } 
+    }
+
+    #[inline]
+    fn parse_instruction_with_location(&mut self, l: Location, i: InstructionCode)
+        -> Result<Statement, Error> {
+        self.source.next();
+        Ok(Statement::InstructionExprStmt(Instruction(
+            i,
+            Some(InstructionArgument::DataStore(l)),
+            None,
+        )))
+    }
+
+    #[inline]
+    fn parse_instruction_with_word(&mut self, word: u8, i: InstructionCode) -> Result<Statement, Error> {
+        self.source.next();
+        Ok(Statement::InstructionExprStmt(Instruction(
+            i,
+            Some(InstructionArgument::from(word)),
+            None,
+        )))
     }
 
     #[inline]
@@ -857,6 +724,7 @@ impl Parser {
                                                 next: &Option<AssemblerToken>,
                                                 a2: Option<InstructionArgument>
                                                 ) -> Result<Statement, Error> {
+        self.source.next();
         match next {
             &Some(AssemblerToken::Word(word)) => {
                 self.source.next();
