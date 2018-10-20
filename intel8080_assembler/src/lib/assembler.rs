@@ -213,6 +213,15 @@ impl Assembler {
         }
     }
 
+    fn word_value_to_u8(&self, value: WordValue) -> u8 {
+        match value {
+            WordValue::Operand(WordExpression::Label(l)) =>
+                (*self.words.get(&l).unwrap()),
+            WordValue::Operand(WordExpression::Literal(res)) => res,
+            _ => panic!("Not implemented yet"),
+        }
+    }
+
     fn two_word_value_to_u16(&self, value: TwoWordValue) -> u16 {
         match value {
             TwoWordValue::Operand(TwoWordExpression::Label(l)) =>
@@ -229,6 +238,17 @@ impl Assembler {
         }
     }
 
+    fn add_mvi_instruction(&self, res: &mut Vec<u8>, register: RegisterType, word: WordValue) {
+        let opcode = match register {
+            RegisterType::B => 0x06,
+            RegisterType::C => 0x0e,
+            _ => panic!("Not implemented yet")
+        };
+        let byte = self.word_value_to_u8(word);
+        res.push(opcode);
+        res.push(byte);
+    }
+
     fn bytes_for_instruction(&self, instruction: Instruction) -> Vec<u8> {
         let mut res = Vec::with_capacity(3);
         match instruction {
@@ -242,41 +262,59 @@ impl Assembler {
                 res.push(0x01);
                 res.push((byte & 0x0f) as u8);
                 res.push(((byte & 0xf0) >> 8) as u8);
-            }
+            },
+            Instruction(
+                InstructionCode::Stax,
+                Some(InstructionArgument::DataStore(Location::Register { register: RegisterType::B })),
+                _
+            ) => res.push(0x02),
+            Instruction(
+                InstructionCode::Inx,
+                Some(InstructionArgument::DataStore(Location::Register { register: RegisterType::B })),
+                _
+            ) => res.push(0x03),
+            Instruction(
+                InstructionCode::Inr,
+                Some(InstructionArgument::DataStore(Location::Register { register: RegisterType::B })),
+                _
+            ) => res.push(0x04),
+            Instruction(
+                InstructionCode::Dcr,
+                Some(InstructionArgument::DataStore(Location::Register { register: RegisterType::B })),
+                _
+            ) => res.push(0x05),
+            Instruction(
+                InstructionCode::Mvi,
+                Some(InstructionArgument::DataStore(Location::Register { register: r })),
+                Some(InstructionArgument::Word(v)),
+            ) => self.add_mvi_instruction(&mut res, r, v),
+            Instruction(InstructionCode::Rlc, _, _) => res.push(0x07),
+            Instruction(
+                InstructionCode::Dad,
+                Some(InstructionArgument::DataStore(Location::Register { register: RegisterType::B })),
+                _
+            ) => res.push(0x09),
+            Instruction(
+                InstructionCode::Ldax,
+                Some(InstructionArgument::DataStore(Location::Register { register: RegisterType::B })),
+                _
+            ) => res.push(0x0a),
+            Instruction(
+                InstructionCode::Dcx,
+                Some(InstructionArgument::DataStore(Location::Register { register: RegisterType::B })),
+                _
+            ) => res.push(0x0b),
+            Instruction(
+                InstructionCode::Inr,
+                Some(InstructionArgument::DataStore(Location::Register { register: RegisterType::C })),
+                _
+            ) => res.push(0x0c),
+            Instruction(
+                InstructionCode::Dcr,
+                Some(InstructionArgument::DataStore(Location::Register { register: RegisterType::C })),
+                _
+            ) => res.push(0x0d),
             /*
-                    Intel8080Instruction::Lxi { register: RegisterType::B, low_byte, high_byte } => {
-                        res.push(0x01);
-                        res.push(low_byte);
-                        res.push(high_byte);
-                    },
-                    Intel8080Instruction::Stax { register: RegisterType::B } => res.push(0x02),
-                    Intel8080Instruction::Inx { register: RegisterType::B } => res.push(0x03),
-                    Intel8080Instruction::Inr { source: Location::Register { register: RegisterType::B } } =>
-                        res.push(0x04),
-                    Intel8080Instruction::Dcr { source: Location::Register { register: RegisterType::B } } =>
-                        res.push(0x05),
-                    Intel8080Instruction::Mvi {
-                        source: Location::Register { register: RegisterType::B },
-                        byte
-                    } => {
-                        res.push(0x06);
-                        res.push(byte);
-                    },
-                    Intel8080Instruction::Rlc => res.push(0x07),
-                    Intel8080Instruction::Dad { register: RegisterType::B } => res.push(0x09),
-                    Intel8080Instruction::Ldax { register: RegisterType::B } => res.push(0x0a),
-                    Intel8080Instruction::Dcx { register: RegisterType::B } => res.push(0x0b),
-                    Intel8080Instruction::Inr { source: Location::Register { register: RegisterType::C } } =>
-                        res.push(0x0c),
-                    Intel8080Instruction::Dcr { source: Location::Register { register: RegisterType::C } } =>
-                        res.push(0x0d),
-                    Intel8080Instruction::Mvi {
-                        source: Location::Register { register: RegisterType::C },
-                        byte
-                    } => {
-                        res.push(0x0e);
-                        res.push(byte);
-                    },
                     Intel8080Instruction::Rrc => res.push(0x0f),
                     Intel8080Instruction::Lxi { register: RegisterType::D, low_byte, high_byte } => {
                         res.push(0x11);
