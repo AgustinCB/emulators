@@ -238,28 +238,80 @@ impl Assembler {
         }
     }
 
-    fn add_inr_instruction(&self, res: &mut Vec<u8>, register: RegisterType) {
+    fn add_lxi_instruction(&self, res: &mut Vec<u8>, register: RegisterType, two_words: TwoWordValue) {
         let opcode = match register {
-            RegisterType::B => 0x04,
-            RegisterType::C => 0x0c,
+            RegisterType::B => 0x01,
+            RegisterType::D => 0x11,
+            RegisterType::H => 0x21,
+            RegisterType::Sp => 0x31,
+            _ => panic!("Not implemented yet")
+        };
+        let byte = self.two_word_value_to_u16(two_words);
+        res.push(opcode);
+        res.push((byte & 0x0f) as u8);
+        res.push(((byte & 0xf0) >> 8) as u8);
+    }
+
+    fn add_stax_instruction(&self, res: &mut Vec<u8>, register: RegisterType) {
+        let opcode = match register {
+            RegisterType::B => 0x02,
+            RegisterType::D => 0x12,
             _ => panic!("Not implemented yet")
         };
         res.push(opcode);
     }
 
-    fn add_dcr_instruction(&self, res: &mut Vec<u8>, register: RegisterType) {
+    fn add_inx_instruction(&self, res: &mut Vec<u8>, register: RegisterType) {
         let opcode = match register {
-            RegisterType::B => 0x05,
-            RegisterType::C => 0x0d,
+            RegisterType::B => 0x03,
+            RegisterType::D => 0x13,
+            RegisterType::H => 0x23,
+            RegisterType::Sp => 0x33,
             _ => panic!("Not implemented yet")
         };
         res.push(opcode);
     }
 
-    fn add_mvi_instruction(&self, res: &mut Vec<u8>, register: RegisterType, word: WordValue) {
-        let opcode = match register {
-            RegisterType::B => 0x06,
-            RegisterType::C => 0x0e,
+    fn add_inr_instruction(&self, res: &mut Vec<u8>, location: Location) {
+        let opcode = match location {
+            Location::Register { register: RegisterType::B } => 0x04,
+            Location::Register { register: RegisterType::C } => 0x0c,
+            Location::Register { register: RegisterType::D } => 0x14,
+            Location::Register { register: RegisterType::E } => 0x1c,
+            Location::Register { register: RegisterType::H } => 0x24,
+            Location::Register { register: RegisterType::L } => 0x2c,
+            Location::Memory => 0x34,
+            Location::Register { register: RegisterType::A } => 0x3c,
+            _ => panic!("Not implemented yet")
+        };
+        res.push(opcode);
+    }
+
+    fn add_dcr_instruction(&self, res: &mut Vec<u8>, location: Location) {
+        let opcode = match location {
+            Location::Register { register: RegisterType::B } => 0x05,
+            Location::Register { register: RegisterType::C } => 0x0d,
+            Location::Register { register: RegisterType::D } => 0x15,
+            Location::Register { register: RegisterType::E } => 0x1d,
+            Location::Register { register: RegisterType::H } => 0x25,
+            Location::Register { register: RegisterType::L } => 0x2d,
+            Location::Memory => 0x35,
+            Location::Register { register: RegisterType::A } => 0x3d,
+            _ => panic!("Not implemented yet")
+        };
+        res.push(opcode);
+    }
+
+    fn add_mvi_instruction(&self, res: &mut Vec<u8>, location: Location, word: WordValue) {
+        let opcode = match location {
+            Location::Register { register: RegisterType::B } => 0x06,
+            Location::Register { register: RegisterType::C } => 0x0e,
+            Location::Register { register: RegisterType::D } => 0x16,
+            Location::Register { register: RegisterType::E } => 0x1e,
+            Location::Register { register: RegisterType::H } => 0x26,
+            Location::Register { register: RegisterType::L } => 0x2e,
+            Location::Memory => 0x36,
+            Location::Register { register: RegisterType::A } => 0x3e,
             _ => panic!("Not implemented yet")
         };
         let byte = self.word_value_to_u8(word);
@@ -267,16 +319,236 @@ impl Assembler {
         res.push(byte);
     }
 
-    fn add_lxi_instruction(&self, res: &mut Vec<u8>, register: RegisterType, two_words: TwoWordValue) {
+    fn add_dad_instruction(&self, res: &mut Vec<u8>, register: RegisterType) {
         let opcode = match register {
-            RegisterType::B => 0x01,
-            RegisterType::D => 0x11,
+            RegisterType::B => 0x09,
+            RegisterType::D => 0x19,
+            RegisterType::H => 0x29,
+            RegisterType::Sp => 0x39,
             _ => panic!("Not implemented yet")
         };
-        let byte = self.two_word_value_to_u16(two_words);
         res.push(opcode);
-        res.push((byte & 0x0f) as u8);
-        res.push(((byte & 0xf0) >> 8) as u8);
+    }
+
+    fn add_ldax_instruction(&self, res: &mut Vec<u8>, register: RegisterType) {
+        let opcode = match register {
+            RegisterType::B => 0x0a,
+            RegisterType::D => 0x1a,
+            _ => panic!("Not implemented yet")
+        };
+        res.push(opcode);
+    }
+
+    fn add_dcx_instruction(&self, res: &mut Vec<u8>, register: RegisterType) {
+        let opcode = match register {
+            RegisterType::B => 0x0b,
+            RegisterType::D => 0x1b,
+            RegisterType::H => 0x2b,
+            RegisterType::Sp => 0x3b,
+            _ => panic!("Not implemented yet")
+        };
+        res.push(opcode);
+    }
+
+    fn add_simple_two_word_instruction(&self, opcode: u8, res: &mut Vec<u8>, value: TwoWordValue) {
+        let two_word = self.two_word_value_to_u16(value);
+        res.push(opcode);
+        res.push((two_word & 0x0f) as u8);
+        res.push(((two_word & 0xf0) >> 8) as u8);
+    }
+
+    fn add_mov_instruction(&self, res: &mut Vec<u8>, source: Location, destiny: Location) {
+        match (destiny, source) {
+            (Location::Register { register: RegisterType::B },
+                Location::Register { register: RegisterType::B }) => res.push(0x40),
+            (Location::Register { register: RegisterType::B },
+                Location::Register { register: RegisterType::C }) => res.push(0x41),
+            (Location::Register { register: RegisterType::B },
+                Location::Register { register: RegisterType::D }) => res.push(0x42),
+            (Location::Register { register: RegisterType::B },
+                Location::Register { register: RegisterType::E }) => res.push(0x43),
+            (Location::Register { register: RegisterType::B },
+                Location::Register { register: RegisterType::H }) => res.push(0x44),
+            (Location::Register { register: RegisterType::B },
+                Location::Register { register: RegisterType::L }) => res.push(0x45),
+            (Location::Register { register: RegisterType::B },
+                Location::Memory) => res.push(0x46),
+            (Location::Register { register: RegisterType::B },
+                Location::Register { register: RegisterType::A }) => res.push(0x47),
+            (Location::Register { register: RegisterType::C },
+                Location::Register { register: RegisterType::B }) => res.push(0x48),
+            (Location::Register { register: RegisterType::C },
+                Location::Register { register: RegisterType::C }) => res.push(0x49),
+            (Location::Register { register: RegisterType::C },
+                Location::Register { register: RegisterType::D }) => res.push(0x4a),
+            (Location::Register { register: RegisterType::C },
+                Location::Register { register: RegisterType::E }) => res.push(0x4b),
+            (Location::Register { register: RegisterType::C },
+                Location::Register { register: RegisterType::H }) => res.push(0x4c),
+            (Location::Register { register: RegisterType::C },
+                Location::Register { register: RegisterType::L }) => res.push(0x4d),
+            (Location::Register { register: RegisterType::C },
+                Location::Memory) => res.push(0x4e),
+            (Location::Register { register: RegisterType::C },
+                Location::Register { register: RegisterType::A }) => res.push(0x4f),
+            (Location::Register { register: RegisterType::D },
+                Location::Register { register: RegisterType::B }) => res.push(0x50),
+            (Location::Register { register: RegisterType::D },
+                Location::Register { register: RegisterType::C }) => res.push(0x51),
+            (Location::Register { register: RegisterType::D },
+                Location::Register { register: RegisterType::D }) => res.push(0x52),
+            (Location::Register { register: RegisterType::D },
+                Location::Register { register: RegisterType::E }) => res.push(0x53),
+            (Location::Register { register: RegisterType::D },
+                Location::Register { register: RegisterType::H }) => res.push(0x54),
+            (Location::Register { register: RegisterType::D },
+                Location::Register { register: RegisterType::L }) => res.push(0x55),
+            (Location::Register { register: RegisterType::D },
+                Location::Memory) => res.push(0x56),
+            (Location::Register { register: RegisterType::D },
+                Location::Register { register: RegisterType::A }) => res.push(0x57),
+            (Location::Register { register: RegisterType::E },
+                Location::Register { register: RegisterType::B }) => res.push(0x58),
+            (Location::Register { register: RegisterType::E },
+                Location::Register { register: RegisterType::C }) => res.push(0x59),
+            (Location::Register { register: RegisterType::E },
+                Location::Register { register: RegisterType::D }) => res.push(0x5a),
+            (Location::Register { register: RegisterType::E },
+                Location::Register { register: RegisterType::E }) => res.push(0x5b),
+            (Location::Register { register: RegisterType::E },
+                Location::Register { register: RegisterType::H }) => res.push(0x5c),
+            (Location::Register { register: RegisterType::E },
+                Location::Register { register: RegisterType::L }) => res.push(0x5d),
+            (Location::Register { register: RegisterType::E },
+                Location::Memory) => res.push(0x5e),
+            (Location::Register { register: RegisterType::E },
+                Location::Register { register: RegisterType::A }) => res.push(0x5f),
+            (Location::Register { register: RegisterType::H },
+                Location::Register { register: RegisterType::B }) => res.push(0x60),
+            (Location::Register { register: RegisterType::H },
+                Location::Register { register: RegisterType::C }) => res.push(0x61),
+            (Location::Register { register: RegisterType::H },
+                Location::Register { register: RegisterType::D }) => res.push(0x62),
+            (Location::Register { register: RegisterType::H },
+                Location::Register { register: RegisterType::E }) => res.push(0x63),
+            (Location::Register { register: RegisterType::H },
+                Location::Register { register: RegisterType::H }) => res.push(0x64),
+            (Location::Register { register: RegisterType::H },
+                Location::Register { register: RegisterType::L }) => res.push(0x65),
+            (Location::Register { register: RegisterType::H },
+                Location::Memory) => res.push(0x66),
+            (Location::Register { register: RegisterType::H },
+                Location::Register { register: RegisterType::A }) => res.push(0x67),
+            (Location::Register { register: RegisterType::L },
+                Location::Register { register: RegisterType::B }) => res.push(0x68),
+            (Location::Register { register: RegisterType::L },
+                Location::Register { register: RegisterType::C }) => res.push(0x69),
+            (Location::Register { register: RegisterType::L },
+                Location::Register { register: RegisterType::D }) => res.push(0x6a),
+            (Location::Register { register: RegisterType::L },
+                Location::Register { register: RegisterType::E }) => res.push(0x6b),
+            (Location::Register { register: RegisterType::L },
+                Location::Register { register: RegisterType::H }) => res.push(0x6c),
+            (Location::Register { register: RegisterType::L },
+                Location::Register { register: RegisterType::L }) => res.push(0x6d),
+            (Location::Register { register: RegisterType::L },
+                Location::Memory) => res.push(0x6e),
+            (Location::Register { register: RegisterType::L },
+                Location::Register { register: RegisterType::A }) => res.push(0x6f),
+            (Location::Memory,
+                Location::Register { register: RegisterType::B }) => res.push(0x70),
+            (Location::Memory,
+                Location::Register { register: RegisterType::C }) => res.push(0x71),
+            (Location::Memory,
+                Location::Register { register: RegisterType::D }) => res.push(0x72),
+            (Location::Memory,
+                Location::Register { register: RegisterType::E }) => res.push(0x73),
+            (Location::Memory,
+                Location::Register { register: RegisterType::H }) => res.push(0x74),
+            (Location::Memory,
+                Location::Register { register: RegisterType::L }) => res.push(0x75),
+            (Location::Memory,
+                Location::Memory) => res.push(0x76),
+            (Location::Memory,
+                Location::Register { register: RegisterType::A }) => res.push(0x77),
+            (Location::Register { register: RegisterType::A },
+                Location::Register { register: RegisterType::B }) => res.push(0x78),
+            (Location::Register { register: RegisterType::A },
+                Location::Register { register: RegisterType::C }) => res.push(0x79),
+            (Location::Register { register: RegisterType::A },
+                Location::Register { register: RegisterType::D }) => res.push(0x7a),
+            (Location::Register { register: RegisterType::A },
+                Location::Register { register: RegisterType::E }) => res.push(0x7b),
+            (Location::Register { register: RegisterType::A },
+                Location::Register { register: RegisterType::H }) => res.push(0x7c),
+            (Location::Register { register: RegisterType::A },
+                Location::Register { register: RegisterType::L }) => res.push(0x7d),
+            (Location::Register { register: RegisterType::A },
+                Location::Memory) => res.push(0x7e),
+            (Location::Register { register: RegisterType::A },
+                Location::Register { register: RegisterType::A }) => res.push(0x7f),
+            _ => panic!("Not implemented yet"),
+        }
+    }
+
+    fn add_add_instruction(&self, res: &mut Vec<u8>, location: Location) {
+        let opcode = match location {
+            Location::Register { register: RegisterType::B } => 0x80,
+            Location::Register { register: RegisterType::C } => 0x81,
+            Location::Register { register: RegisterType::D } => 0x82,
+            Location::Register { register: RegisterType::E } => 0x83,
+            Location::Register { register: RegisterType::H } => 0x84,
+            Location::Register { register: RegisterType::L } => 0x85,
+            Location::Memory => 0x86,
+            Location::Register { register: RegisterType::A } => 0x87,
+            _ => panic!("Not implemented yet")
+        };
+        res.push(opcode);
+    }
+
+    fn add_adc_instruction(&self, res: &mut Vec<u8>, location: Location) {
+        let opcode = match location {
+            Location::Register { register: RegisterType::B } => 0x88,
+            Location::Register { register: RegisterType::C } => 0x89,
+            Location::Register { register: RegisterType::D } => 0x8a,
+            Location::Register { register: RegisterType::E } => 0x8b,
+            Location::Register { register: RegisterType::H } => 0x8c,
+            Location::Register { register: RegisterType::L } => 0x8d,
+            Location::Memory => 0x8e,
+            Location::Register { register: RegisterType::A } => 0x8f,
+            _ => panic!("Not implemented yet")
+        };
+        res.push(opcode);
+    }
+
+    fn add_sub_instruction(&self, res: &mut Vec<u8>, location: Location) {
+        let opcode = match location {
+            Location::Register { register: RegisterType::B } => 0x90,
+            Location::Register { register: RegisterType::C } => 0x91,
+            Location::Register { register: RegisterType::D } => 0x92,
+            Location::Register { register: RegisterType::E } => 0x93,
+            Location::Register { register: RegisterType::H } => 0x94,
+            Location::Register { register: RegisterType::L } => 0x95,
+            Location::Memory => 0x96,
+            Location::Register { register: RegisterType::A } => 0x97,
+            _ => panic!("Not implemented yet")
+        };
+        res.push(opcode);
+    }
+
+    fn add_sbb_instruction(&self, res: &mut Vec<u8>, location: Location) {
+        let opcode = match location {
+            Location::Register { register: RegisterType::B } => 0x98,
+            Location::Register { register: RegisterType::C } => 0x99,
+            Location::Register { register: RegisterType::D } => 0x9a,
+            Location::Register { register: RegisterType::E } => 0x9b,
+            Location::Register { register: RegisterType::H } => 0x9c,
+            Location::Register { register: RegisterType::L } => 0x9d,
+            Location::Memory => 0x9e,
+            Location::Register { register: RegisterType::A } => 0x9f,
+            _ => panic!("Not implemented yet")
+        };
+        res.push(opcode);
     }
 
     fn bytes_for_instruction(&self, instruction: Instruction) -> Vec<u8> {
@@ -290,463 +562,80 @@ impl Assembler {
             ) => self.add_lxi_instruction(&mut res, register, v),
             Instruction(
                 InstructionCode::Stax,
-                Some(InstructionArgument::DataStore(Location::Register { register: RegisterType::B })),
+                Some(InstructionArgument::DataStore(Location::Register { register })),
                 _
-            ) => res.push(0x02),
+            ) => self.add_stax_instruction(&mut res, register),
             Instruction(
                 InstructionCode::Inx,
-                Some(InstructionArgument::DataStore(Location::Register { register: RegisterType::B })),
-                _
-            ) => res.push(0x03),
-            Instruction(
-                InstructionCode::Inr,
                 Some(InstructionArgument::DataStore(Location::Register { register })),
                 _
-            ) => self.add_inr_instruction(&mut res, register),
-            Instruction(
-                InstructionCode::Dcr,
-                Some(InstructionArgument::DataStore(Location::Register { register })),
-                _
-            ) => self.add_dcr_instruction(&mut res, register),
+            ) => self.add_inx_instruction(&mut res, register),
+            Instruction(InstructionCode::Inr, Some(InstructionArgument::DataStore(location)), _) =>
+                self.add_inr_instruction(&mut res, location),
+            Instruction(InstructionCode::Dcr, Some(InstructionArgument::DataStore(location)), _) =>
+                self.add_dcr_instruction(&mut res, location),
             Instruction(
                 InstructionCode::Mvi,
-                Some(InstructionArgument::DataStore(Location::Register { register })),
+                Some(InstructionArgument::DataStore(location)),
                 Some(InstructionArgument::Word(v)),
-            ) => self.add_mvi_instruction(&mut res, register, v),
+            ) => self.add_mvi_instruction(&mut res, location, v),
             Instruction(InstructionCode::Rlc, _, _) => res.push(0x07),
             Instruction(
                 InstructionCode::Dad,
-                Some(InstructionArgument::DataStore(Location::Register { register: RegisterType::B })),
+                Some(InstructionArgument::DataStore(Location::Register { register })),
                 _
-            ) => res.push(0x09),
+            ) => self.add_dad_instruction(&mut res, register),
             Instruction(
                 InstructionCode::Ldax,
-                Some(InstructionArgument::DataStore(Location::Register { register: RegisterType::B })),
+                Some(InstructionArgument::DataStore(Location::Register { register })),
                 _
-            ) => res.push(0x0a),
+            ) => self.add_ldax_instruction(&mut res, register),
             Instruction(
                 InstructionCode::Dcx,
-                Some(InstructionArgument::DataStore(Location::Register { register: RegisterType::B })),
+                Some(InstructionArgument::DataStore(Location::Register { register })),
                 _
-            ) => res.push(0x0b),
-            Instruction(InstructionCode::Rlc, _, _) => res.push(0x0f),
+            ) => self.add_dcx_instruction(&mut res, register),
+            Instruction(InstructionCode::Rrc, _, _) => res.push(0x0f),
             Instruction(InstructionCode::Ral, _, _) => res.push(0x17),
+            Instruction(InstructionCode::Rar, _, _) => res.push(0x1f),
+            Instruction(
+                InstructionCode::Shld,
+                Some(InstructionArgument::TwoWord(v)),
+                _
+            ) => self.add_simple_two_word_instruction(0x22, &mut res, v),
+            Instruction(InstructionCode::Daa, _, _) => res.push(0x27),
+            Instruction(
+                InstructionCode::Lhld,
+                Some(InstructionArgument::TwoWord(v)),
+                _
+            ) => self.add_simple_two_word_instruction(0x2a, &mut res, v),
+            Instruction(InstructionCode::Cma, _, _) => res.push(0x2f),
+            Instruction(
+                InstructionCode::Sta,
+                Some(InstructionArgument::TwoWord(v)),
+                _
+            ) => self.add_simple_two_word_instruction(0x32, &mut res, v),
+            Instruction(InstructionCode::Stc, _, _) => res.push(0x37),
+            Instruction(
+                InstructionCode::Lda,
+                Some(InstructionArgument::TwoWord(v)),
+                _
+            ) => self.add_simple_two_word_instruction(0x3a, &mut res, v),
+            Instruction(InstructionCode::Cmc, _, _) => res.push(0x3f),
+            Instruction(
+                InstructionCode::Mov,
+                Some(InstructionArgument::DataStore(d)),
+                Some(InstructionArgument::DataStore(s))
+            ) => self.add_mov_instruction(&mut res, s, d),
+            Instruction(InstructionCode::Add, Some(InstructionArgument::DataStore(location)), _) =>
+                self.add_add_instruction(&mut res, location),
+            Instruction(InstructionCode::Adc, Some(InstructionArgument::DataStore(location)), _) =>
+                self.add_adc_instruction(&mut res, location),
+            Instruction(InstructionCode::Sub, Some(InstructionArgument::DataStore(location)), _) =>
+                self.add_sub_instruction(&mut res, location),
+            Instruction(InstructionCode::Sbb, Some(InstructionArgument::DataStore(location)), _) =>
+                self.add_sbb_instruction(&mut res, location),
             /*
-                    Intel8080Instruction::Stax { register: RegisterType::D } => res.push(0x12),
-                    Intel8080Instruction::Inx { register: RegisterType::D } => res.push(0x13),
-                    Intel8080Instruction::Inr { source: Location::Register { register: RegisterType::D } } =>
-                        res.push(0x14),
-                    Intel8080Instruction::Dcr { source: Location::Register { register: RegisterType::D } } =>
-                        res.push(0x15),
-                    Intel8080Instruction::Dad { register: RegisterType::D } => res.push(0x19),
-                    Intel8080Instruction::Ldax { register: RegisterType::D } => res.push(0x1a),
-                    Intel8080Instruction::Dcx { register: RegisterType::D } => res.push(0x1b),
-                    Intel8080Instruction::Inr { source: Location::Register { register: RegisterType::E } } =>
-                        res.push(0x1c),
-                    Intel8080Instruction::Dcr { source: Location::Register { register: RegisterType::E } } =>
-                        res.push(0x1d),
-                    Intel8080Instruction::Mvi {
-                        source: Location::Register { register: RegisterType::E },
-                        byte
-                    } => {
-                        res.push(0x1e);
-                        res.push(byte);
-                    },
-                    Intel8080Instruction::Rar => res.push(0x1f),
-                    Intel8080Instruction::Lxi { register: RegisterType::H, low_byte, high_byte } => {
-                        res.push(0x21);
-                        res.push(low_byte);
-                        res.push(high_byte);
-                    },
-                    Intel8080Instruction::Shld { address: [low_byte, high_byte] } => {
-                        res.push(0x22);
-                        res.push(low_byte);
-                        res.push(high_byte);
-                    },
-                    Intel8080Instruction::Inx { register: RegisterType::H } => res.push(0x23),
-                    Intel8080Instruction::Inr { source: Location::Register { register: RegisterType::H } } =>
-                        res.push(0x24),
-                    Intel8080Instruction::Dcr { source: Location::Register { register: RegisterType::H } } =>
-                        res.push(0x25),
-                    Intel8080Instruction::Mvi {
-                        source: Location::Register { register: RegisterType::H },
-                        byte
-                    } => {
-                        res.push(0x26);
-                        res.push(byte);
-                    },
-                    Intel8080Instruction::Daa => res.push(0x27),
-                    Intel8080Instruction::Dad { register: RegisterType::H } => res.push(0x29),
-                    Intel8080Instruction::Lhld { address: [low_byte, high_byte] } => {
-                        res.push(0x2a);
-                        res.push(low_byte);
-                        res.push(high_byte);
-                    },
-                    Intel8080Instruction::Dcx { register: RegisterType::H } => res.push(0x2b),
-                    Intel8080Instruction::Inr { source: Location::Register { register: RegisterType::L } } =>
-                        res.push(0x2c),
-                    Intel8080Instruction::Dcr { source: Location::Register { register: RegisterType::L } } =>
-                        res.push(0x2d),
-                    Intel8080Instruction::Mvi {
-                        source: Location::Register { register: RegisterType::L },
-                        byte
-                    } => {
-                        res.push(0x2e);
-                        res.push(byte);
-                    },
-                    Intel8080Instruction::Cma => res.push(0x2f),
-                    Intel8080Instruction::Lxi { register: RegisterType::Sp, low_byte, high_byte } => {
-                        res.push(0x31);
-                        res.push(low_byte);
-                        res.push(high_byte);
-                    },
-                    Intel8080Instruction::Sta { address: [low_byte, high_byte] } => {
-                        res.push(0x32);
-                        res.push(low_byte);
-                        res.push(high_byte);
-                    },
-                    Intel8080Instruction::Inx { register: RegisterType::Sp } => res.push(0x33),
-                    Intel8080Instruction::Inr { source: Location::Memory } => res.push(0x34),
-                    Intel8080Instruction::Dcr { source: Location::Memory } => res.push(0x35),
-                    Intel8080Instruction::Mvi { source: Location::Memory, byte } => {
-                        res.push(0x36);
-                        res.push(byte);
-                    },
-                    Intel8080Instruction::Stc => res.push(0x37),
-                    Intel8080Instruction::Dad { register: RegisterType::Sp } => res.push(0x39),
-                    Intel8080Instruction::Lda { address: [low_byte, high_byte] } => {
-                        res.push(0x3a);
-                        res.push(low_byte);
-                        res.push(high_byte);
-                    },
-                    Intel8080Instruction::Dcx { register: RegisterType::Sp } => res.push(0x3b),
-                    Intel8080Instruction::Inr { source: Location::Register { register: RegisterType::A } } =>
-                        res.push(0x3c),
-                    Intel8080Instruction::Dcr { source: Location::Register { register: RegisterType::A } } =>
-                        res.push(0x3d),
-                    Intel8080Instruction::Mvi {
-                        source: Location::Register { register: RegisterType::A },
-                        byte
-                    } => {
-                        res.push(0x3e);
-                        res.push(byte);
-                    },
-                    Intel8080Instruction::Cmc => res.push(0x3f),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::B },
-                        source: Location::Register { register: RegisterType::B }
-                    } => res.push(0x40),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::B },
-                        source: Location::Register { register: RegisterType::C }
-                    } => res.push(0x41),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::B },
-                        source: Location::Register { register: RegisterType::D }
-                    } => res.push(0x42),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::B },
-                        source: Location::Register { register: RegisterType::E }
-                    } => res.push(0x43),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::B },
-                        source: Location::Register { register: RegisterType::H }
-                    } => res.push(0x44),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::B },
-                        source: Location::Register { register: RegisterType::L }
-                    } => res.push(0x45),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::B },
-                        source: Location::Memory,
-                    } => res.push(0x46),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::B },
-                        source: Location::Register { register: RegisterType::A }
-                    } => res.push(0x47),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::C },
-                        source: Location::Register { register: RegisterType::B }
-                    } => res.push(0x48),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::C },
-                        source: Location::Register { register: RegisterType::C }
-                    } => res.push(0x49),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::C },
-                        source: Location::Register { register: RegisterType::D }
-                    } => res.push(0x4a),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::C },
-                        source: Location::Register { register: RegisterType::E }
-                    } => res.push(0x4b),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::C },
-                        source: Location::Register { register: RegisterType::H }
-                    } => res.push(0x4c),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::C },
-                        source: Location::Register { register: RegisterType::L }
-                    } => res.push(0x4d),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::C },
-                        source: Location::Memory,
-                    } => res.push(0x4e),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::C },
-                        source: Location::Register { register: RegisterType::A }
-                    } => res.push(0x4f),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::D },
-                        source: Location::Register { register: RegisterType::B }
-                    } => res.push(0x50),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::D },
-                        source: Location::Register { register: RegisterType::C }
-                    } => res.push(0x51),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::D },
-                        source: Location::Register { register: RegisterType::D }
-                    } => res.push(0x52),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::D },
-                        source: Location::Register { register: RegisterType::E }
-                    } => res.push(0x53),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::D },
-                        source: Location::Register { register: RegisterType::H }
-                    } => res.push(0x54),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::D },
-                        source: Location::Register { register: RegisterType::L }
-                    } => res.push(0x55),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::D },
-                        source: Location::Memory,
-                    } => res.push(0x56),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::D },
-                        source: Location::Register { register: RegisterType::A }
-                    } => res.push(0x57),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::E },
-                        source: Location::Register { register: RegisterType::B }
-                    } => res.push(0x58),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::E },
-                        source: Location::Register { register: RegisterType::C }
-                    } => res.push(0x59),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::E },
-                        source: Location::Register { register: RegisterType::D }
-                    } => res.push(0x5a),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::E },
-                        source: Location::Register { register: RegisterType::E }
-                    } => res.push(0x5b),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::E },
-                        source: Location::Register { register: RegisterType::H }
-                    } => res.push(0x5c),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::E },
-                        source: Location::Register { register: RegisterType::L }
-                    } => res.push(0x5d),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::E },
-                        source: Location::Memory,
-                    } => res.push(0x5e),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::E },
-                        source: Location::Register { register: RegisterType::A }
-                    } => res.push(0x5f),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::H },
-                        source: Location::Register { register: RegisterType::B }
-                    } => res.push(0x60),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::H },
-                        source: Location::Register { register: RegisterType::C }
-                    } => res.push(0x61),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::H },
-                        source: Location::Register { register: RegisterType::D }
-                    } => res.push(0x62),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::H },
-                        source: Location::Register { register: RegisterType::E }
-                    } => res.push(0x63),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::H },
-                        source: Location::Register { register: RegisterType::H }
-                    } => res.push(0x64),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::H },
-                        source: Location::Register { register: RegisterType::L }
-                    } => res.push(0x65),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::H },
-                        source: Location::Memory,
-                    } => res.push(0x66),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::H },
-                        source: Location::Register { register: RegisterType::A }
-                    } => res.push(0x67),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::L },
-                        source: Location::Register { register: RegisterType::B }
-                    } => res.push(0x68),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::L },
-                        source: Location::Register { register: RegisterType::C }
-                    } => res.push(0x69),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::L },
-                        source: Location::Register { register: RegisterType::D }
-                    } => res.push(0x6a),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::L },
-                        source: Location::Register { register: RegisterType::E }
-                    } => res.push(0x6b),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::L },
-                        source: Location::Register { register: RegisterType::H }
-                    } => res.push(0x6c),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::L },
-                        source: Location::Register { register: RegisterType::L }
-                    } => res.push(0x6d),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::L },
-                        source: Location::Memory,
-                    } => res.push(0x6e),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::L },
-                        source: Location::Register { register: RegisterType::A }
-                    } => res.push(0x6f),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Memory,
-                        source: Location::Register { register: RegisterType::B }
-                    } => res.push(0x70),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Memory,
-                        source: Location::Register { register: RegisterType::C }
-                    } => res.push(0x71),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Memory,
-                        source: Location::Register { register: RegisterType::D }
-                    } => res.push(0x72),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Memory,
-                        source: Location::Register { register: RegisterType::E }
-                    } => res.push(0x73),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Memory,
-                        source: Location::Register { register: RegisterType::H }
-                    } => res.push(0x74),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Memory,
-                        source: Location::Register { register: RegisterType::L }
-                    } => res.push(0x75),
-                    Intel8080Instruction::Hlt => res.push(0x76),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Memory,
-                        source: Location::Register { register: RegisterType::A }
-                    } => res.push(0x77),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::A },
-                        source: Location::Register { register: RegisterType::B }
-                    } => res.push(0x78),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::A },
-                        source: Location::Register { register: RegisterType::C }
-                    } => res.push(0x79),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::A },
-                        source: Location::Register { register: RegisterType::D }
-                    } => res.push(0x7a),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::A },
-                        source: Location::Register { register: RegisterType::E }
-                    } => res.push(0x7b),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::A },
-                        source: Location::Register { register: RegisterType::H }
-                    } => res.push(0x7c),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::A },
-                        source: Location::Register { register: RegisterType::L }
-                    } => res.push(0x7d),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::A },
-                        source: Location::Memory,
-                    } => res.push(0x7e),
-                    Intel8080Instruction::Mov {
-                        destiny: Location::Register { register: RegisterType::A },
-                        source: Location::Register { register: RegisterType::A }
-                    } => res.push(0x7f),
-                    Intel8080Instruction::Add { source: Location::Register { register: RegisterType::B } } =>
-                        res.push(0x80),
-                    Intel8080Instruction::Add { source: Location::Register { register: RegisterType::C } } =>
-                        res.push(0x81),
-                    Intel8080Instruction::Add { source: Location::Register { register: RegisterType::D } } =>
-                        res.push(0x82),
-                    Intel8080Instruction::Add { source: Location::Register { register: RegisterType::E } } =>
-                        res.push(0x83),
-                    Intel8080Instruction::Add { source: Location::Register { register: RegisterType::H } } =>
-                        res.push(0x84),
-                    Intel8080Instruction::Add { source: Location::Register { register: RegisterType::L } } =>
-                        res.push(0x85),
-                    Intel8080Instruction::Add { source: Location::Memory } => res.push(0x86),
-                    Intel8080Instruction::Add { source: Location::Register { register: RegisterType::A } } =>
-                        res.push(0x87),
-                    Intel8080Instruction::Adc { source: Location::Register { register: RegisterType::B } } =>
-                        res.push(0x88),
-                    Intel8080Instruction::Adc { source: Location::Register { register: RegisterType::C } } =>
-                        res.push(0x89),
-                    Intel8080Instruction::Adc { source: Location::Register { register: RegisterType::D } } =>
-                        res.push(0x8a),
-                    Intel8080Instruction::Adc { source: Location::Register { register: RegisterType::E } } =>
-                        res.push(0x8b),
-                    Intel8080Instruction::Adc { source: Location::Register { register: RegisterType::H } } =>
-                        res.push(0x8c),
-                    Intel8080Instruction::Adc { source: Location::Register { register: RegisterType::L } } =>
-                        res.push(0x8d),
-                    Intel8080Instruction::Adc { source: Location::Memory } => res.push(0x8e),
-                    Intel8080Instruction::Adc { source: Location::Register { register: RegisterType::A } } =>
-                        res.push(0x8f),
-                    Intel8080Instruction::Sub { source: Location::Register { register: RegisterType::B } } =>
-                        res.push(0x90),
-                    Intel8080Instruction::Sub { source: Location::Register { register: RegisterType::C } } =>
-                        res.push(0x91),
-                    Intel8080Instruction::Sub { source: Location::Register { register: RegisterType::D } } =>
-                        res.push(0x92),
-                    Intel8080Instruction::Sub { source: Location::Register { register: RegisterType::E } } =>
-                        res.push(0x93),
-                    Intel8080Instruction::Sub { source: Location::Register { register: RegisterType::H } } =>
-                        res.push(0x94),
-                    Intel8080Instruction::Sub { source: Location::Register { register: RegisterType::L } } =>
-                        res.push(0x95),
-                    Intel8080Instruction::Sub { source: Location::Memory } =>
-                        res.push(0x96),
-                    Intel8080Instruction::Sub { source: Location::Register { register: RegisterType::A } } =>
-                        res.push(0x97),
-                    Intel8080Instruction::Sbb { source: Location::Register { register: RegisterType::B } } =>
-                        res.push(0x98),
-                    Intel8080Instruction::Sbb { source: Location::Register { register: RegisterType::C } } =>
-                        res.push(0x99),
-                    Intel8080Instruction::Sbb { source: Location::Register { register: RegisterType::D } } =>
-                        res.push(0x9a),
-                    Intel8080Instruction::Sbb { source: Location::Register { register: RegisterType::E } } =>
-                        res.push(0x9b),
-                    Intel8080Instruction::Sbb { source: Location::Register { register: RegisterType::H } } =>
-                        res.push(0x9c),
-                    Intel8080Instruction::Sbb { source: Location::Register { register: RegisterType::L } } =>
-                        res.push(0x9d),
-                    Intel8080Instruction::Sbb { source: Location::Memory } =>
-                        res.push(0x9e),
-                    Intel8080Instruction::Sbb { source: Location::Register { register: RegisterType::A } } =>
-                        res.push(0x9f),
                     Intel8080Instruction::Ana { source: Location::Register { register: RegisterType::B } } =>
                         res.push(0xa0),
                     Intel8080Instruction::Ana { source: Location::Register { register: RegisterType::C } } =>
