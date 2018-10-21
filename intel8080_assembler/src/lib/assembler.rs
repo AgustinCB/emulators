@@ -551,6 +551,74 @@ impl Assembler {
         res.push(opcode);
     }
 
+    fn add_ana_instruction(&self, res: &mut Vec<u8>, location: Location) {
+        let opcode = match location {
+            Location::Register { register: RegisterType::B } => 0xa0,
+            Location::Register { register: RegisterType::C } => 0xa1,
+            Location::Register { register: RegisterType::D } => 0xa2,
+            Location::Register { register: RegisterType::E } => 0xa3,
+            Location::Register { register: RegisterType::H } => 0xa4,
+            Location::Register { register: RegisterType::L } => 0xa5,
+            Location::Memory => 0xa6,
+            Location::Register { register: RegisterType::A } => 0xa7,
+            _ => panic!("Not implemented yet")
+        };
+        res.push(opcode);
+    }
+
+    fn add_xra_instruction(&self, res: &mut Vec<u8>, location: Location) {
+        let opcode = match location {
+            Location::Register { register: RegisterType::B } => 0xa8,
+            Location::Register { register: RegisterType::C } => 0xa9,
+            Location::Register { register: RegisterType::D } => 0xaa,
+            Location::Register { register: RegisterType::E } => 0xab,
+            Location::Register { register: RegisterType::H } => 0xac,
+            Location::Register { register: RegisterType::L } => 0xad,
+            Location::Memory => 0xae,
+            Location::Register { register: RegisterType::A } => 0xaf,
+            _ => panic!("Not implemented yet")
+        };
+        res.push(opcode);
+    }
+
+    fn add_ora_instruction(&self, res: &mut Vec<u8>, location: Location) {
+        let opcode = match location {
+            Location::Register { register: RegisterType::B } => 0xb0,
+            Location::Register { register: RegisterType::C } => 0xb1,
+            Location::Register { register: RegisterType::D } => 0xb2,
+            Location::Register { register: RegisterType::E } => 0xb3,
+            Location::Register { register: RegisterType::H } => 0xb4,
+            Location::Register { register: RegisterType::L } => 0xb5,
+            Location::Memory => 0xb6,
+            Location::Register { register: RegisterType::A } => 0xb7,
+            _ => panic!("Not implemented yet")
+        };
+        res.push(opcode);
+    }
+
+    fn add_cmp_instruction(&self, res: &mut Vec<u8>, location: Location) {
+        let opcode = match location {
+            Location::Register { register: RegisterType::B } => 0xb8,
+            Location::Register { register: RegisterType::C } => 0xb9,
+            Location::Register { register: RegisterType::D } => 0xba,
+            Location::Register { register: RegisterType::E } => 0xbb,
+            Location::Register { register: RegisterType::H } => 0xbc,
+            Location::Register { register: RegisterType::L } => 0xbd,
+            Location::Memory => 0xbe,
+            Location::Register { register: RegisterType::A } => 0xbf,
+            _ => panic!("Not implemented yet")
+        };
+        res.push(opcode);
+    }
+
+    fn add_pop_instruction(&self, res: &mut Vec<u8>, register: RegisterType) {
+        let opcode = match register {
+            RegisterType::B => 0xc1,
+            _ => panic!("Not implemented yet")
+        };
+        res.push(opcode);
+    }
+
     fn bytes_for_instruction(&self, instruction: Instruction) -> Vec<u8> {
         let mut res = Vec::with_capacity(3);
         match instruction {
@@ -635,88 +703,36 @@ impl Assembler {
                 self.add_sub_instruction(&mut res, location),
             Instruction(InstructionCode::Sbb, Some(InstructionArgument::DataStore(location)), _) =>
                 self.add_sbb_instruction(&mut res, location),
+            Instruction(InstructionCode::Ana, Some(InstructionArgument::DataStore(location)), _) =>
+                self.add_ana_instruction(&mut res, location),
+            Instruction(InstructionCode::Xra, Some(InstructionArgument::DataStore(location)), _) =>
+                self.add_xra_instruction(&mut res, location),
+            Instruction(InstructionCode::Ora, Some(InstructionArgument::DataStore(location)), _) =>
+                self.add_ora_instruction(&mut res, location),
+            Instruction(InstructionCode::Cmp, Some(InstructionArgument::DataStore(location)), _) =>
+                self.add_cmp_instruction(&mut res, location),
+            Instruction(InstructionCode::Rnz, _, _) => res.push(0xc0),
+            Instruction(
+                InstructionCode::Pop,
+                Some(InstructionArgument::DataStore(Location::Register { register })),
+                _
+            ) => self.add_pop_instruction(&mut res, register),
+            Instruction(
+                InstructionCode::Jnz,
+                Some(InstructionArgument::TwoWord(v)),
+                _
+            ) => self.add_simple_two_word_instruction(0xc2, &mut res, v),
+            Instruction(
+                InstructionCode::Jmp,
+                Some(InstructionArgument::TwoWord(v)),
+                _
+            ) => self.add_simple_two_word_instruction(0xc3, &mut res, v),
+            Instruction(
+                InstructionCode::Cnz,
+                Some(InstructionArgument::TwoWord(v)),
+                _
+            ) => self.add_simple_two_word_instruction(0xc4, &mut res, v),
             /*
-                    Intel8080Instruction::Ana { source: Location::Register { register: RegisterType::B } } =>
-                        res.push(0xa0),
-                    Intel8080Instruction::Ana { source: Location::Register { register: RegisterType::C } } =>
-                        res.push(0xa1),
-                    Intel8080Instruction::Ana { source: Location::Register { register: RegisterType::D } } =>
-                        res.push(0xa2),
-                    Intel8080Instruction::Ana { source: Location::Register { register: RegisterType::E } } =>
-                        res.push(0xa3),
-                    Intel8080Instruction::Ana { source: Location::Register { register: RegisterType::H } } =>
-                        res.push(0xa4),
-                    Intel8080Instruction::Ana { source: Location::Register { register: RegisterType::L } } =>
-                        res.push(0xa5),
-                    Intel8080Instruction::Ana { source: Location::Memory } =>
-                        res.push(0xa6),
-                    Intel8080Instruction::Ana { source: Location::Register { register: RegisterType::A } } =>
-                        res.push(0xa7),
-                    Intel8080Instruction::Xra { source: Location::Register { register: RegisterType::B } } =>
-                        res.push(0xa8),
-                    Intel8080Instruction::Xra { source: Location::Register { register: RegisterType::C } } =>
-                        res.push(0xa9),
-                    Intel8080Instruction::Xra { source: Location::Register { register: RegisterType::D } } =>
-                        res.push(0xaa),
-                    Intel8080Instruction::Xra { source: Location::Register { register: RegisterType::E } } =>
-                        res.push(0xab),
-                    Intel8080Instruction::Xra { source: Location::Register { register: RegisterType::H } } =>
-                        res.push(0xac),
-                    Intel8080Instruction::Xra { source: Location::Register { register: RegisterType::L } } =>
-                        res.push(0xad),
-                    Intel8080Instruction::Xra { source: Location::Memory } =>
-                        res.push(0xae),
-                    Intel8080Instruction::Xra { source: Location::Register { register: RegisterType::A } } =>
-                        res.push(0xaf),
-                    Intel8080Instruction::Ora { source: Location::Register { register: RegisterType::B } } =>
-                        res.push(0xb0),
-                    Intel8080Instruction::Ora { source: Location::Register { register: RegisterType::C } } =>
-                        res.push(0xb1),
-                    Intel8080Instruction::Ora { source: Location::Register { register: RegisterType::D } } =>
-                        res.push(0xb2),
-                    Intel8080Instruction::Ora { source: Location::Register { register: RegisterType::E } } =>
-                        res.push(0xb3),
-                    Intel8080Instruction::Ora { source: Location::Register { register: RegisterType::H } } =>
-                        res.push(0xb4),
-                    Intel8080Instruction::Ora { source: Location::Register { register: RegisterType::L } } =>
-                        res.push(0xb5),
-                    Intel8080Instruction::Ora { source: Location::Memory } =>
-                        res.push(0xb6),
-                    Intel8080Instruction::Ora { source: Location::Register { register: RegisterType::A } } =>
-                        res.push(0xb7),
-                    Intel8080Instruction::Cmp { source: Location::Register { register: RegisterType::B } } =>
-                        res.push(0xb8),
-                    Intel8080Instruction::Cmp { source: Location::Register { register: RegisterType::C } } =>
-                        res.push(0xb9),
-                    Intel8080Instruction::Cmp { source: Location::Register { register: RegisterType::D } } =>
-                        res.push(0xba),
-                    Intel8080Instruction::Cmp { source: Location::Register { register: RegisterType::E } } =>
-                        res.push(0xbb),
-                    Intel8080Instruction::Cmp { source: Location::Register { register: RegisterType::H } } =>
-                        res.push(0xbc),
-                    Intel8080Instruction::Cmp { source: Location::Register { register: RegisterType::L } } =>
-                        res.push(0xbd),
-                    Intel8080Instruction::Cmp { source: Location::Memory } =>
-                        res.push(0xbe),
-                    Intel8080Instruction::Cmp { source: Location::Register { register: RegisterType::A } } =>
-                        res.push(0xbf),
-                    Intel8080Instruction::Rnz => res.push(0xc0),
-                    Intel8080Instruction::Pop { register: RegisterType::B } => res.push(0xc1),
-                    Intel8080Instruction::Jnz { address: [low_byte, high_byte] } => {
-                        res.push(0xc2);
-                        res.push(low_byte);
-                        res.push(high_byte);
-                    },
-                    Intel8080Instruction::Jmp { address: [low_byte, high_byte] } => {
-                        res.push(0xc3);
-                        res.push(low_byte);
-                        res.push(high_byte);
-                    },
-                    Intel8080Instruction::Cnz { address: [low_byte, high_byte] } => {
-                        res.push(0xc4);
-                        res.push(low_byte);
-                        res.push(high_byte);
-                    },
                     Intel8080Instruction::Push { register: RegisterType::B } => res.push(0xc5),
                     Intel8080Instruction::Adi { byte } => {
                         res.push(0xc6);
