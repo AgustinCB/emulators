@@ -357,6 +357,11 @@ impl Assembler {
         res.push(((two_word & 0xf0) >> 8) as u8);
     }
 
+    fn add_simple_word_instruction(&self, opcode: u8, res: &mut Vec<u8>, value: WordValue) {
+        res.push(opcode);
+        res.push(self.word_value_to_u8(value));
+    }
+
     fn add_mov_instruction(&self, res: &mut Vec<u8>, source: Location, destiny: Location) {
         match (destiny, source) {
             (Location::Register { register: RegisterType::B },
@@ -614,9 +619,26 @@ impl Assembler {
     fn add_pop_instruction(&self, res: &mut Vec<u8>, register: RegisterType) {
         let opcode = match register {
             RegisterType::B => 0xc1,
+            RegisterType::D => 0xd1,
             _ => panic!("Not implemented yet")
         };
         res.push(opcode);
+    }
+
+    fn add_push_instruction(&self, res: &mut Vec<u8>, register: RegisterType) {
+        let opcode = match register {
+            RegisterType::B => 0xc5,
+            _ => panic!("Not implemented yet")
+        };
+        res.push(opcode);
+    }
+
+    fn add_rst_instruction(&self, res: &mut Vec<u8>, value: WordValue) {
+        match self.word_value_to_u8(value) {
+            0 => res.push(0xc7),
+            1 => res.push(0xcf),
+            _ => panic!("Not implemented yet"),
+        }
     }
 
     fn bytes_for_instruction(&self, instruction: Instruction) -> Vec<u8> {
@@ -666,29 +688,17 @@ impl Assembler {
             Instruction(InstructionCode::Rrc, _, _) => res.push(0x0f),
             Instruction(InstructionCode::Ral, _, _) => res.push(0x17),
             Instruction(InstructionCode::Rar, _, _) => res.push(0x1f),
-            Instruction(
-                InstructionCode::Shld,
-                Some(InstructionArgument::TwoWord(v)),
-                _
-            ) => self.add_simple_two_word_instruction(0x22, &mut res, v),
+            Instruction(InstructionCode::Shld, Some(InstructionArgument::TwoWord(v)), _) =>
+                self.add_simple_two_word_instruction(0x22, &mut res, v),
             Instruction(InstructionCode::Daa, _, _) => res.push(0x27),
-            Instruction(
-                InstructionCode::Lhld,
-                Some(InstructionArgument::TwoWord(v)),
-                _
-            ) => self.add_simple_two_word_instruction(0x2a, &mut res, v),
+            Instruction(InstructionCode::Lhld, Some(InstructionArgument::TwoWord(v)), _) =>
+                self.add_simple_two_word_instruction(0x2a, &mut res, v),
             Instruction(InstructionCode::Cma, _, _) => res.push(0x2f),
-            Instruction(
-                InstructionCode::Sta,
-                Some(InstructionArgument::TwoWord(v)),
-                _
-            ) => self.add_simple_two_word_instruction(0x32, &mut res, v),
+            Instruction(InstructionCode::Sta, Some(InstructionArgument::TwoWord(v)), _) =>
+                self.add_simple_two_word_instruction(0x32, &mut res, v),
             Instruction(InstructionCode::Stc, _, _) => res.push(0x37),
-            Instruction(
-                InstructionCode::Lda,
-                Some(InstructionArgument::TwoWord(v)),
-                _
-            ) => self.add_simple_two_word_instruction(0x3a, &mut res, v),
+            Instruction(InstructionCode::Lda, Some(InstructionArgument::TwoWord(v)), _) =>
+                self.add_simple_two_word_instruction(0x3a, &mut res, v),
             Instruction(InstructionCode::Cmc, _, _) => res.push(0x3f),
             Instruction(
                 InstructionCode::Mov,
@@ -717,66 +727,39 @@ impl Assembler {
                 Some(InstructionArgument::DataStore(Location::Register { register })),
                 _
             ) => self.add_pop_instruction(&mut res, register),
+            Instruction(InstructionCode::Jnz, Some(InstructionArgument::TwoWord(v)), _) =>
+                self.add_simple_two_word_instruction(0xc2, &mut res, v),
+            Instruction(InstructionCode::Jmp, Some(InstructionArgument::TwoWord(v)), _) =>
+                self.add_simple_two_word_instruction(0xc3, &mut res, v),
+            Instruction(InstructionCode::Cnz, Some(InstructionArgument::TwoWord(v)), _) =>
+                self.add_simple_two_word_instruction(0xc4, &mut res, v),
             Instruction(
-                InstructionCode::Jnz,
-                Some(InstructionArgument::TwoWord(v)),
+                InstructionCode::Push,
+                Some(InstructionArgument::DataStore(Location::Register { register })),
                 _
-            ) => self.add_simple_two_word_instruction(0xc2, &mut res, v),
-            Instruction(
-                InstructionCode::Jmp,
-                Some(InstructionArgument::TwoWord(v)),
-                _
-            ) => self.add_simple_two_word_instruction(0xc3, &mut res, v),
-            Instruction(
-                InstructionCode::Cnz,
-                Some(InstructionArgument::TwoWord(v)),
-                _
-            ) => self.add_simple_two_word_instruction(0xc4, &mut res, v),
+            ) => self.add_push_instruction(&mut res, register),
+            Instruction(InstructionCode::Adi, Some(InstructionArgument::Word(v)), _) =>
+                self.add_simple_word_instruction(0xc6, &mut res, v),
+            Instruction(InstructionCode::Rst, Some(InstructionArgument::Word(v)), _) =>
+                self.add_rst_instruction(&mut res, v),
+            Instruction(InstructionCode::Rz, _, _) => res.push(0xc8),
+            Instruction(InstructionCode::Ret, _, _) => res.push(0xc9),
+            Instruction(InstructionCode::Jz, Some(InstructionArgument::TwoWord(v)), _) =>
+                self.add_simple_two_word_instruction(0xca, &mut res, v),
+            Instruction(InstructionCode::Cz, Some(InstructionArgument::TwoWord(v)), _) =>
+                self.add_simple_two_word_instruction(0xcc, &mut res, v),
+            Instruction(InstructionCode::Call, Some(InstructionArgument::TwoWord(v)), _) =>
+                self.add_simple_two_word_instruction(0xcd, &mut res, v),
+            Instruction(InstructionCode::Aci, Some(InstructionArgument::Word(v)), _) =>
+                self.add_simple_word_instruction(0xce, &mut res, v),
+            Instruction(InstructionCode::Ret, _, _) => res.push(0xd0),
+            Instruction(InstructionCode::Jnc, Some(InstructionArgument::TwoWord(v)), _) =>
+                self.add_simple_two_word_instruction(0xd2, &mut res, v),
+            Instruction(InstructionCode::Out, Some(InstructionArgument::Word(v)), _) =>
+                self.add_simple_word_instruction(0xd3, &mut res, v),
+            Instruction(InstructionCode::Cnc, Some(InstructionArgument::TwoWord(v)), _) =>
+                self.add_simple_two_word_instruction(0xd4, &mut res, v),
             /*
-                    Intel8080Instruction::Push { register: RegisterType::B } => res.push(0xc5),
-                    Intel8080Instruction::Adi { byte } => {
-                        res.push(0xc6);
-                        res.push(byte);
-                    },
-                    Intel8080Instruction::Rst { byte: 0 } => res.push(0xc7),
-                    Intel8080Instruction::Rz => res.push(0xc8),
-                    Intel8080Instruction::Ret => res.push(0xc9),
-                    Intel8080Instruction::Jz { address: [low_byte, high_byte] } => {
-                        res.push(0xca);
-                        res.push(low_byte);
-                        res.push(high_byte);
-                    },
-                    Intel8080Instruction::Cz { address: [low_byte, high_byte] } => {
-                        res.push(0xcc);
-                        res.push(low_byte);
-                        res.push(high_byte);
-                    },
-                    Intel8080Instruction::Call { address: [low_byte, high_byte] } => {
-                        res.push(0xcd);
-                        res.push(low_byte);
-                        res.push(high_byte);
-                    },
-                    Intel8080Instruction::Aci { byte } => {
-                        res.push(0xce);
-                        res.push(byte)
-                    },
-                    Intel8080Instruction::Rst { byte: 1 } => res.push(0xcf),
-                    Intel8080Instruction::Rnc => res.push(0xd0),
-                    Intel8080Instruction::Pop { register: RegisterType::D } => res.push(0xd1),
-                    Intel8080Instruction::Jnc { address: [low_byte, high_byte] } => {
-                        res.push(0xd2);
-                        res.push(low_byte);
-                        res.push(high_byte);
-                    },
-                    Intel8080Instruction::Out { byte } => {
-                        res.push(0xd3);
-                        res.push(byte);
-                    },
-                    Intel8080Instruction::Cnc { address: [high_byte, low_byte] } => {
-                        res.push(0xd4);
-                        res.push(low_byte);
-                        res.push(high_byte);
-                    },
                     Intel8080Instruction::Push { register: RegisterType::D } => res.push(0xd5),
                     Intel8080Instruction::Sui { byte } => {
                         res.push(0xd6);
