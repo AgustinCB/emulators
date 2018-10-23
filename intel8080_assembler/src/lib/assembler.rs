@@ -620,6 +620,8 @@ impl Assembler {
         let opcode = match register {
             RegisterType::B => 0xc1,
             RegisterType::D => 0xd1,
+            RegisterType::H => 0xe1,
+            RegisterType::Psw => 0xf1,
             _ => panic!("Not implemented yet")
         };
         res.push(opcode);
@@ -628,6 +630,9 @@ impl Assembler {
     fn add_push_instruction(&self, res: &mut Vec<u8>, register: RegisterType) {
         let opcode = match register {
             RegisterType::B => 0xc5,
+            RegisterType::D => 0xd5,
+            RegisterType::H => 0xe5,
+            RegisterType::Psw => 0xf5,
             _ => panic!("Not implemented yet")
         };
         res.push(opcode);
@@ -637,6 +642,12 @@ impl Assembler {
         match self.word_value_to_u8(value) {
             0 => res.push(0xc7),
             1 => res.push(0xcf),
+            2 => res.push(0xd7),
+            3 => res.push(0xdf),
+            4 => res.push(0xe7),
+            5 => res.push(0xef),
+            6 => res.push(0xf7),
+            7 => res.push(0xff),
             _ => panic!("Not implemented yet"),
         }
     }
@@ -752,117 +763,60 @@ impl Assembler {
                 self.add_simple_two_word_instruction(0xcd, &mut res, v),
             Instruction(InstructionCode::Aci, Some(InstructionArgument::Word(v)), _) =>
                 self.add_simple_word_instruction(0xce, &mut res, v),
-            Instruction(InstructionCode::Ret, _, _) => res.push(0xd0),
+            Instruction(InstructionCode::Rnc, _, _) => res.push(0xd0),
             Instruction(InstructionCode::Jnc, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0xd2, &mut res, v),
             Instruction(InstructionCode::Out, Some(InstructionArgument::Word(v)), _) =>
                 self.add_simple_word_instruction(0xd3, &mut res, v),
             Instruction(InstructionCode::Cnc, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0xd4, &mut res, v),
-            /*
-                    Intel8080Instruction::Push { register: RegisterType::D } => res.push(0xd5),
-                    Intel8080Instruction::Sui { byte } => {
-                        res.push(0xd6);
-                        res.push(byte);
-                    },
-                    Intel8080Instruction::Rst { byte: 2 } => res.push(0xd7),
-                    Intel8080Instruction::Rc => res.push(0xd8),
-                    Intel8080Instruction::Jc { address: [low_byte, high_byte] } => {
-                        res.push(0xda);
-                        res.push(low_byte);
-                        res.push(high_byte);
-                    },
-                    Intel8080Instruction::In { byte } => {
-                        res.push(0xdb);
-                        res.push(byte);
-                    },
-                    Intel8080Instruction::Cc { address: [low_byte, high_byte] } => {
-                        res.push(0xdc);
-                        res.push(low_byte);
-                        res.push(high_byte);
-                    },
-                    Intel8080Instruction::Sbi { byte } => {
-                        res.push(0xde);
-                        res.push(byte);
-                    },
-                    Intel8080Instruction::Rst { byte: 3 } => res.push(0xdf),
-                    Intel8080Instruction::Rpo => res.push(0xe0),
-                    Intel8080Instruction::Pop { register: RegisterType::H } => res.push(0xe1),
-                    Intel8080Instruction::Jpo { address: [low_byte, high_byte] } => {
-                        res.push(0xe2);
-                        res.push(low_byte);
-                        res.push(high_byte);
-                    },
-                    Intel8080Instruction::Xthl => res.push(0xe3),
-                    Intel8080Instruction::Cpo { address: [low_byte, high_byte] } => {
-                        res.push(0xe4);
-                        res.push(low_byte);
-                        res.push(high_byte);
-                    },
-                    Intel8080Instruction::Push { register: RegisterType::H } => res.push(0xe5),
-                    Intel8080Instruction::Ani { byte } => {
-                        res.push(0xe6);
-                        res.push(byte);
-                    },
-                    Intel8080Instruction::Rst { byte: 4 } => res.push(0xe7),
-                    Intel8080Instruction::Rpe => res.push(0xe8),
-                    Intel8080Instruction::Pchl => res.push(0xe9),
-                    Intel8080Instruction::Jpe { address: [low_byte, high_byte] } => {
-                        res.push(0xea);
-                        res.push(low_byte);
-                        res.push(high_byte);
-                    },
-                    Intel8080Instruction::Xchg => res.push(0xeb),
-                    Intel8080Instruction::Cpe { address: [low_byte, high_byte] } => {
-                        res.push(0xec);
-                        res.push(low_byte);
-                        res.push(high_byte);
-                    },
-                    Intel8080Instruction::Xri { byte } => {
-                        res.push(0xee);
-                        res.push(byte);
-                    },
-                    Intel8080Instruction::Rst { byte: 5 } => res.push(0xef),
-                    Intel8080Instruction::Rp => res.push(0xf0),
-                    Intel8080Instruction::Pop { register: RegisterType::Psw } => res.push(0xf1),
-                    Intel8080Instruction::Jp { address: [low_byte, high_byte] } => {
-                        res.push(0xf2);
-                        res.push(low_byte);
-                        res.push(high_byte);
-                    },
-                    Intel8080Instruction::Di => res.push(0xf3),
-                    Intel8080Instruction::Cp { address: [low_byte, high_byte] } => {
-                        res.push(0xf4);
-                        res.push(low_byte);
-                        res.push(high_byte);
-                    },
-                    Intel8080Instruction::Push { register: RegisterType::Psw } => res.push(0xf5),
-                    Intel8080Instruction::Ori { byte } => {
-                        res.push(0xf6);
-                        res.push(byte);
-                    },
-                    Intel8080Instruction::Rst { byte: 6 } => res.push(0xf7),
-                    Intel8080Instruction::Rm => res.push(0xf8),
-                    Intel8080Instruction::Sphl => res.push(0xf9),
-                    Intel8080Instruction::Jm { address: [low_byte, high_byte] } => {
-                        res.push(0xfa);
-                        res.push(low_byte);
-                        res.push(high_byte);
-                    },
-                    Intel8080Instruction::Ei => res.push(0xfb),
-                    Intel8080Instruction::Cm { address: [low_byte, high_byte] } => {
-                        res.push(0xfc);
-                        res.push(low_byte);
-                        res.push(high_byte);
-                    },
-                    Intel8080Instruction::Cpi { byte } => {
-                        res.push(0xfe);
-                        res.push(byte);
-                    },
-                    Intel8080Instruction::Rst { byte: 7 } => res.push(0xff),
-                    */
-                    _ => panic!("unfined method"),
-                }
-                res
-            }
+            Instruction(InstructionCode::Sui, Some(InstructionArgument::Word(v)), _) =>
+                self.add_simple_word_instruction(0xd6, &mut res, v),
+            Instruction(InstructionCode::Rc, _, _) => res.push(0xd8),
+            Instruction(InstructionCode::Jc, Some(InstructionArgument::TwoWord(v)), _) =>
+                self.add_simple_two_word_instruction(0xda, &mut res, v),
+            Instruction(InstructionCode::In, Some(InstructionArgument::Word(v)), _) =>
+                self.add_simple_word_instruction(0xdb, &mut res, v),
+            Instruction(InstructionCode::Cc, Some(InstructionArgument::TwoWord(v)), _) =>
+                self.add_simple_two_word_instruction(0xdc, &mut res, v),
+            Instruction(InstructionCode::Sbi, Some(InstructionArgument::Word(v)), _) =>
+                self.add_simple_word_instruction(0xde, &mut res, v),
+            Instruction(InstructionCode::Rpo, _, _) => res.push(0xe0),
+            Instruction(InstructionCode::Jpo, Some(InstructionArgument::TwoWord(v)), _) =>
+                self.add_simple_two_word_instruction(0xe2, &mut res, v),
+            Instruction(InstructionCode::Xthl, _, _) => res.push(0xe3),
+            Instruction(InstructionCode::Cpo, Some(InstructionArgument::TwoWord(v)), _) =>
+                self.add_simple_two_word_instruction(0xe4, &mut res, v),
+            Instruction(InstructionCode::Ani, Some(InstructionArgument::Word(v)), _) =>
+                self.add_simple_word_instruction(0xe6, &mut res, v),
+            Instruction(InstructionCode::Rpe, _, _) => res.push(0xe8),
+            Instruction(InstructionCode::Pchl, _, _) => res.push(0xe9),
+            Instruction(InstructionCode::Jpe, Some(InstructionArgument::TwoWord(v)), _) =>
+                self.add_simple_two_word_instruction(0xea, &mut res, v),
+            Instruction(InstructionCode::Xchg, _, _) => res.push(0xeb),
+            Instruction(InstructionCode::Cpe, Some(InstructionArgument::TwoWord(v)), _) =>
+                self.add_simple_two_word_instruction(0xec, &mut res, v),
+            Instruction(InstructionCode::Xri, Some(InstructionArgument::Word(v)), _) =>
+                self.add_simple_word_instruction(0xee, &mut res, v),
+            Instruction(InstructionCode::Rp, _, _) => res.push(0xf0),
+            Instruction(InstructionCode::Jp, Some(InstructionArgument::TwoWord(v)), _) =>
+                self.add_simple_two_word_instruction(0xf2, &mut res, v),
+            Instruction(InstructionCode::Di, _, _) => res.push(0xf3),
+            Instruction(InstructionCode::Cp, Some(InstructionArgument::TwoWord(v)), _) =>
+                self.add_simple_two_word_instruction(0xf4, &mut res, v),
+            Instruction(InstructionCode::Ori, Some(InstructionArgument::Word(v)), _) =>
+                self.add_simple_word_instruction(0xf6, &mut res, v),
+            Instruction(InstructionCode::Rm, _, _) => res.push(0xf8),
+            Instruction(InstructionCode::Sphl, _, _) => res.push(0xf9),
+            Instruction(InstructionCode::Jm, Some(InstructionArgument::TwoWord(v)), _) =>
+                self.add_simple_two_word_instruction(0xfa, &mut res, v),
+            Instruction(InstructionCode::Ei, _, _) => res.push(0xfb),
+            Instruction(InstructionCode::Cm, Some(InstructionArgument::TwoWord(v)), _) =>
+                self.add_simple_two_word_instruction(0xfc, &mut res, v),
+            Instruction(InstructionCode::Cpi, Some(InstructionArgument::TwoWord(v)), _) =>
+                self.add_simple_two_word_instruction(0xfe, &mut res, v),
+            _ => panic!("unfined method"),
+        }
+        res
+    }
 }
