@@ -218,7 +218,9 @@ impl Assembler {
             WordValue::Operand(WordExpression::Label(l)) =>
                 (*self.words.get(&l).unwrap()),
             WordValue::Operand(WordExpression::Literal(res)) => res,
-            _ => panic!("Not implemented yet"),
+            WordValue::Rest(expr1, expr2) | WordValue::Sum(expr1, expr2) =>
+                self.word_value_to_u8(WordValue::Operand(expr1)) +
+                    self.word_value_to_u8(WordValue::Operand(expr2)),
         }
     }
 
@@ -227,7 +229,9 @@ impl Assembler {
             TwoWordValue::Operand(TwoWordExpression::Label(l)) =>
                 (*self.two_words.get(&l).unwrap()),
             TwoWordValue::Operand(TwoWordExpression::Literal(res)) => res,
-            _ => panic!("Not implemented yet"),
+            TwoWordValue::Rest(expr1, expr2) | TwoWordValue::Sum(expr1, expr2) =>
+                self.two_word_value_to_u16(TwoWordValue::Operand(expr1)) +
+                    self.two_word_value_to_u16(TwoWordValue::Operand(expr2)),
         }
     }
 
