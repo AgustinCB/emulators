@@ -28,189 +28,27 @@ impl Assembler {
     pub fn assemble(mut self, statements: Vec<Statement>) -> Result<[u8; ROM_MEMORY_LIMIT], Error> {
         for expression in statements {
             match expression {
-                Statement::WordDefinitionStatement(label, value) =>
-                    self.assemble_byte_definition(label, value),
                 Statement::InstructionExprStmt(instruction) => {
                     self.add_instruction(instruction);
-                    Ok(())
                 },
-                Statement::OrgStatement(TwoWordValue::Operand(TwoWordExpression::Literal(value))) => {
-                    self.pc = value;
-                    Ok(())
-                },
-                Statement::OrgStatement(TwoWordValue::Operand(TwoWordExpression::Label(label_value))) => {
-                    if let Some(&value) = self.two_words.get(&label_value) {
-                        self.pc = value;
-                        Ok(())
-                    } else {
-                        Err(AssemblerError::LabelDoesntExist)
-                    }
-                },
-                Statement::OrgStatement(
-                    TwoWordValue::Sum(TwoWordExpression::Literal(op1), TwoWordExpression::Literal(op2))
-                ) => {
-                    self.pc = op1.wrapping_add(op2);
-                    Ok(())
-                },
-                Statement::OrgStatement(
-                    TwoWordValue::Sum(TwoWordExpression::Label(label), TwoWordExpression::Literal(op))
-                ) |
-                Statement::OrgStatement(
-                    TwoWordValue::Sum(TwoWordExpression::Literal(op), TwoWordExpression::Label(label))
-                ) => {
-                    if let Some(&label_op) = self.labels.get(&label) {
-                        self.pc = op.wrapping_add(label_op);
-                        Ok(())
-                    } else {
-                        Err(AssemblerError::LabelDoesntExist)
-                    }
-                },
-                Statement::OrgStatement(
-                    TwoWordValue::Sum(TwoWordExpression::Label(op1), TwoWordExpression::Label(op2))
-                ) => {
-                    if let (Some(&op1), Some(&op2)) =
-                        (self.labels.get(&op1), self.labels.get(&op2)) {
-                        self.pc = op1.wrapping_add(op2);
-                        Ok(())
-                    } else {
-                        Err(AssemblerError::LabelDoesntExist)
-                    }
-                },
-                Statement::TwoWordDefinitionStatement(label, value) => self.assemble_word_definition(label, value),
                 Statement::LabelDefinitionStatement(label) => {
                     self.labels.insert(label, self.pc);
-                    Ok(())
                 },
-                _ => panic!("Not implemented yet!"),
-            }?
+                Statement::OrgStatement(tw) => {
+                    let value = self.two_word_value_to_u16(tw);
+                    self.pc = value;
+                },
+                Statement::TwoWordDefinitionStatement(label, value) => {
+                    let value = self.two_word_value_to_u16(value);
+                    self.two_words.insert(label, value);
+                },
+                Statement::WordDefinitionStatement(label, value) => {
+                    let value = self.word_value_to_u8(value);
+                    self.words.insert(label, value);
+                },
+            };
         }
         Ok(self.rom)
-    }
-
-    #[inline]
-    fn assemble_byte_definition(&mut self, label: LabelExpression, value: WordValue)
-        -> Result<(), AssemblerError> {
-        match value {
-            WordValue::Operand(WordExpression::Literal(value)) => {
-                self.words.insert(label, value);
-                Ok(())
-            },
-            WordValue::Operand(WordExpression::Label(label_value)) => {
-                if let Some(&value) = self.words.get(&label_value) {
-                    self.words.insert(label, value);
-                    Ok(())
-                } else {
-                    Err(AssemblerError::LabelDoesntExist)
-                }
-            },
-            WordValue::Rest(WordExpression::Literal(op1), WordExpression::Literal(op2)) => {
-                self.words.insert(label, op1.wrapping_sub(op2));
-                Ok(())
-            },
-            WordValue::Rest(WordExpression::Label(op_label), WordExpression::Literal(op)) |
-            WordValue::Rest(WordExpression::Literal(op), WordExpression::Label(op_label)) => {
-                if let Some(&op_label) = self.words.get(&op_label) {
-                    self.words.insert(label, op.wrapping_sub(op_label));
-                    Ok(())
-                } else {
-                    Err(AssemblerError::LabelDoesntExist)
-                }
-            },
-            WordValue::Rest(WordExpression::Label(op1), WordExpression::Label(op2)) => {
-                if let (Some(&op1), Some(&op2)) =
-                (self.words.get(&op1), self.words.get(&op2)) {
-                    self.words.insert(label, op1.wrapping_sub(op2));
-                    Ok(())
-                } else {
-                    Err(AssemblerError::LabelDoesntExist)
-                }
-            },
-            WordValue::Sum(WordExpression::Literal(op1), WordExpression::Literal(op2)) => {
-                self.words.insert(label, op1.wrapping_add(op2));
-                Ok(())
-            },
-            WordValue::Sum(WordExpression::Label(op_label), WordExpression::Literal(op)) |
-            WordValue::Sum(WordExpression::Literal(op), WordExpression::Label(op_label)) => {
-                if let Some(&op_label) = self.words.get(&op_label) {
-                    self.words.insert(label, op.wrapping_add(op_label));
-                    Ok(())
-                } else {
-                    Err(AssemblerError::LabelDoesntExist)
-                }
-            },
-            WordValue::Sum(WordExpression::Label(op1), WordExpression::Label(op2)) => {
-                if let (Some(&op1), Some(&op2)) =
-                (self.words.get(&op1), self.words.get(&op2)) {
-                    self.words.insert(label, op1.wrapping_add(op2));
-                    Ok(())
-                } else {
-                    Err(AssemblerError::LabelDoesntExist)
-                }
-            },
-        }
-    }
-
-    #[inline]
-    fn assemble_word_definition(&mut self, label: LabelExpression, value: TwoWordValue)
-        -> Result<(), AssemblerError> {
-        match value {
-            TwoWordValue::Operand(TwoWordExpression::Literal(value)) => {
-                self.two_words.insert(label, value);
-                Ok(())
-            },
-            TwoWordValue::Operand(TwoWordExpression::Label(label_value)) => {
-                if let Some(&value) = self.two_words.get(&label_value) {
-                    self.two_words.insert(label, value);
-                    Ok(())
-                } else {
-                    Err(AssemblerError::LabelDoesntExist)
-                }
-            },
-            TwoWordValue::Rest(TwoWordExpression::Literal(op1), TwoWordExpression::Literal(op2)) => {
-                self.two_words.insert(label, op1.wrapping_sub(op2));
-                Ok(())
-            },
-            TwoWordValue::Rest(TwoWordExpression::Label(op_label), TwoWordExpression::Literal(op)) |
-            TwoWordValue::Rest(TwoWordExpression::Literal(op), TwoWordExpression::Label(op_label)) => {
-                if let Some(&op_label) = self.two_words.get(&op_label) {
-                    self.two_words.insert(label, op.wrapping_sub(op_label));
-                    Ok(())
-                } else {
-                    Err(AssemblerError::LabelDoesntExist)
-                }
-            },
-            TwoWordValue::Rest(TwoWordExpression::Label(op1), TwoWordExpression::Label(op2)) => {
-                if let (Some(&op1), Some(&op2)) =
-                    (self.two_words.get(&op1), self.two_words.get(&op2)) {
-                    self.two_words.insert(label, op1.wrapping_sub(op2));
-                    Ok(())
-                } else {
-                    Err(AssemblerError::LabelDoesntExist)
-                }
-            },
-            TwoWordValue::Sum(TwoWordExpression::Literal(op1), TwoWordExpression::Literal(op2)) => {
-                self.two_words.insert(label, op1.wrapping_add(op2));
-                Ok(())
-            },
-            TwoWordValue::Sum(TwoWordExpression::Label(op_label), TwoWordExpression::Literal(op)) |
-            TwoWordValue::Sum(TwoWordExpression::Literal(op), TwoWordExpression::Label(op_label)) => {
-                if let Some(&op_label) = self.two_words.get(&op_label) {
-                    self.two_words.insert(label, op.wrapping_add(op_label));
-                    Ok(())
-                } else {
-                    Err(AssemblerError::LabelDoesntExist)
-                }
-            },
-            TwoWordValue::Sum(TwoWordExpression::Label(op1), TwoWordExpression::Label(op2)) => {
-                if let (Some(&op1), Some(&op2)) =
-                    (self.two_words.get(&op1), self.two_words.get(&op2)) {
-                    self.two_words.insert(label, op1.wrapping_add(op2));
-                    Ok(())
-                } else {
-                    Err(AssemblerError::LabelDoesntExist)
-                }
-            },
-        }
     }
 
     fn word_value_to_u8(&self, value: WordValue) -> u8 {
@@ -218,7 +56,10 @@ impl Assembler {
             WordValue::Operand(WordExpression::Label(l)) =>
                 (*self.words.get(&l).unwrap()),
             WordValue::Operand(WordExpression::Literal(res)) => res,
-            WordValue::Rest(expr1, expr2) | WordValue::Sum(expr1, expr2) =>
+            WordValue::Rest(expr1, expr2) =>
+                self.word_value_to_u8(WordValue::Operand(expr1)) -
+                    self.word_value_to_u8(WordValue::Operand(expr2)),
+            WordValue::Sum(expr1, expr2) =>
                 self.word_value_to_u8(WordValue::Operand(expr1)) +
                     self.word_value_to_u8(WordValue::Operand(expr2)),
         }
@@ -229,7 +70,10 @@ impl Assembler {
             TwoWordValue::Operand(TwoWordExpression::Label(l)) =>
                 (*self.two_words.get(&l).unwrap()),
             TwoWordValue::Operand(TwoWordExpression::Literal(res)) => res,
-            TwoWordValue::Rest(expr1, expr2) | TwoWordValue::Sum(expr1, expr2) =>
+            TwoWordValue::Rest(expr1, expr2) =>
+                self.two_word_value_to_u16(TwoWordValue::Operand(expr1)) -
+                    self.two_word_value_to_u16(TwoWordValue::Operand(expr2)),
+            TwoWordValue::Sum(expr1, expr2) =>
                 self.two_word_value_to_u16(TwoWordValue::Operand(expr1)) +
                     self.two_word_value_to_u16(TwoWordValue::Operand(expr2)),
         }
