@@ -1,0 +1,13 @@
+#!/bin/bash
+
+set -euo pipefail
+
+folder=$(mktemp -d)
+trap "rm $folder; exit" EXIT
+cargo run cpudiag.asm "$folder"/cpudiag.rom
+cd ../disassembler
+cargo run intel8080 ../space_invaders/cpudiag.rom > "$folder"/cpudiag.expected.asm
+cargo run intel8080 "$folder"/cpudiag.rom > "$folder"/cpudiag.actual.asm
+cd ../intel8080_assembler
+
+diff "$folder"/cpudiag.expected.asm "$folder"/cpudiag.actual.asm | less

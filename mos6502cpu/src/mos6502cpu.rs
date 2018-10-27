@@ -1,6 +1,6 @@
 use bit_utils::two_bytes_to_word;
 use cpu::{Cpu, Cycles, Instruction};
-use failure::{Error, Fail};
+use failure::Error;
 use std::cmp::min;
 use std::cell::RefCell;
 use std::rc::Rc;

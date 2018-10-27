@@ -1,5 +1,5 @@
 use std::fmt;
-use super::failure::{Error, Fail};
+use super::failure::Error;
 use super::cpu::{Cycles, Instruction};
 
 #[derive(Debug, Fail)]

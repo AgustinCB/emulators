@@ -1,4 +1,4 @@
-use {Memory, Mos6502Cpu, CpuError, CpuResult};
+use {Mos6502Cpu, CpuError, CpuResult};
 use bit_utils::{two_bytes_to_word, two_complement, word_to_two_bytes};
 use instruction::AddressingMode;
 use mos6502cpu::{INTERRUPT_HANDLERS_START, ProcessorStatus};

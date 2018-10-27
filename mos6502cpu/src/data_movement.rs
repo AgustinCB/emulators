@@ -1,4 +1,4 @@
-use {Memory, Mos6502Cpu, CpuError, CpuResult};
+use {Mos6502Cpu, CpuError, CpuResult};
 use instruction::AddressingMode;
 
 impl Mos6502Cpu {
