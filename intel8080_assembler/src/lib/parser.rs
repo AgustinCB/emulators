@@ -62,7 +62,10 @@ impl Parser {
                 self.parse_byte_definition(label),
             (AssemblerToken::InstructionCode(instruction), ref next) =>
                 self.parse_instruction(instruction, next),
-            _ => Err(Error::from(AssemblerError::UndefinedError)),
+            (_, next@_) => {
+                eprintln!("INPUT {:?}, NEXT {:?}", input, next);
+                Err(Error::from(AssemblerError::UndefinedError))
+            },
         }?;
         self.expressions.push(expression);
         Ok(())
@@ -210,8 +213,23 @@ impl Parser {
         }
     }
 
+    fn consume_comma(&mut self) -> Result<(), Error> {
+        match self.source.next() {
+            Some(AssemblerToken::Comma) => Ok(()),
+            Some(token) => Err(Error::from(AssemblerError::ExpectingCharacter {
+                expected: AssemblerToken::Comma,
+                got: Some(token),
+            })),
+            None => Err(Error::from(AssemblerError::ExpectingCharacter {
+                expected: AssemblerToken::Comma,
+                got: None,
+            })),
+        }
+    }
+
     fn parse_instruction(&mut self, instruction: &InstructionCode, next: &Option<AssemblerToken>)
         -> Result<Statement, Error> {
+        println!("INSTRUCTION {:?}", instruction);
         match (instruction, next) {
             (InstructionCode::Adc,
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::A }))) |
@@ -452,6 +470,7 @@ impl Parser {
             (InstructionCode::Mov,
                 &Some(AssemblerToken::DataStore(d@Location::Memory))) => {
                 self.source.next();
+                self.consume_comma()?;
                 match self.source.peek() {
                     Some(&AssemblerToken::DataStore(s@Location::Register {
                         register: RegisterType::A
@@ -724,7 +743,6 @@ impl Parser {
                                                 next: &Option<AssemblerToken>,
                                                 a2: Option<InstructionArgument>
                                                 ) -> Result<Statement, Error> {
-        self.source.next();
         match next {
             &Some(AssemblerToken::Word(word)) => {
                 self.source.next();

@@ -13,6 +13,11 @@ pub enum AssemblerError {
         c: char,
         line: usize,
     },
+    #[fail(display = "Expecting {:?}, got {:?}", expected, got)]
+    ExpectingCharacter {
+        expected: AssemblerToken,
+        got: Option<AssemblerToken>,
+    },
     #[fail(display = "Expecting number")]
     ExpectingNumber,
     #[fail(display = "Invalid argument for instruction")]
