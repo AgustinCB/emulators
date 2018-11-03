@@ -7,6 +7,7 @@ use super::failure::Error;
 pub struct Lexer<R: Read> {
     source: Peekable<Bytes<R>>,
     tokens: Vec<AssemblerToken>,
+    line: usize,
 }
 
 impl<R: Read> Lexer<R> {
@@ -14,6 +15,7 @@ impl<R: Read> Lexer<R> {
         Lexer {
             source: source.bytes().peekable(),
             tokens: Vec::new(),
+            line: 1,
         }
     }
 
@@ -27,6 +29,10 @@ impl<R: Read> Lexer<R> {
 
     fn scan_token(&mut self, input: char) -> Result<(), Error> {
         let token = match input {
+            '\n' => {
+                self.line += 1;
+                Ok(None)
+            },
             c if c.is_whitespace() => Ok(None),
             c if c.is_digit(10) => self.maybe_scan_number(input),
             c if c.is_alphabetic() || c == '_' => self.either_label_or_keyword(input),
@@ -34,7 +40,7 @@ impl<R: Read> Lexer<R> {
             ',' => Ok(Some(AssemblerToken::Comma)),
             '+' => Ok(Some(AssemblerToken::Plus)),
             '-' => Ok(Some(AssemblerToken::Minus)),
-            _ => Err(Error::from(AssemblerError::UnexpectedCharacter { c: input })),
+            _ => Err(Error::from(AssemblerError::UnexpectedCharacter { c: input, line: self.line })),
         }?;
         if let Some(t) = token {
             self.tokens.push(t);
@@ -139,7 +145,12 @@ impl<R: Read> Lexer<R> {
     fn maybe_scan_number(&mut self, first_digit: char)-> Result<Option<AssemblerToken>, Error> {
         let rest = self.consume(|c| c.is_digit(16))?;
         let number_string = format!("{}{}", first_digit, rest);
-        let radix = if self.check(|c| c == 'H') { 16 } else { 10 };
+        let radix = if self.check(|c| c == 'H') {
+            self.source.next();
+            16
+        } else {
+            10
+        };
         let number = u16::from_str_radix(&number_string, radix)?;
         if self.at_end_of_statement() {
             if number <= (u8::max_value() as u16) {
@@ -148,7 +159,7 @@ impl<R: Read> Lexer<R> {
                 Ok(Some(AssemblerToken::TwoWord(number)))
             }
         } else if let Some(Ok(c)) = self.source.peek() {
-            Err(Error::from(AssemblerError::UnexpectedCharacter { c: (*c) as char }))
+            Err(Error::from(AssemblerError::UnexpectedCharacter { c: (*c) as char, line: self.line }))
         } else {
             Err(Error::from(AssemblerError::UndefinedError))
         }

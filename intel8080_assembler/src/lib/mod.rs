@@ -8,9 +8,10 @@ pub struct LabelExpression(String);
 
 #[derive(Debug, Fail)]
 pub enum AssemblerError {
-    #[fail(display = "Unexpected character: {}", c)]
+    #[fail(display = "Unexpected character: {} at line {}", c, line)]
     UnexpectedCharacter {
         c: char,
+        line: usize,
     },
     #[fail(display = "Expecting number")]
     ExpectingNumber,

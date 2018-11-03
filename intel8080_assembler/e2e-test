@@ -3,7 +3,7 @@
 set -euo pipefail
 
 folder=$(mktemp -d)
-trap "rm $folder; exit" EXIT
+trap "rm -fr $folder; exit" EXIT
 cargo run cpudiag.asm "$folder"/cpudiag.rom
 cd ../disassembler
 cargo run intel8080 ../space_invaders/cpudiag.rom > "$folder"/cpudiag.expected.asm
