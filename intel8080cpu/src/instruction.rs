@@ -831,7 +831,7 @@ impl ToString for Intel8080Instruction {
             Intel8080Instruction::Lda { address } =>
                 format!("LDA ${:02x}{:02x}", address[1], address[0]),
             Intel8080Instruction::Stc => String::from("STC"),
-            Intel8080Instruction::Cmc => String::from("SMC"),
+            Intel8080Instruction::Cmc => String::from("CMC"),
             Intel8080Instruction::Mov { destiny, source } =>
                 format!("MOV {},{}", destiny.to_string(), source.to_string()),
             Intel8080Instruction::Hlt => format!("HLT"),
