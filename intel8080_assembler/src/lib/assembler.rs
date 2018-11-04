@@ -661,9 +661,11 @@ impl Assembler {
             Instruction(InstructionCode::Ei, _, _) => res.push(0xfb),
             Instruction(InstructionCode::Cm, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0xfc, &mut res, v),
+            Instruction(InstructionCode::Cpi, Some(InstructionArgument::Word(v)), _) =>
+                self.add_simple_word_instruction(0xfe, &mut res, v),
             Instruction(InstructionCode::Cpi, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0xfe, &mut res, v),
-            _ => panic!("unfined method"),
+            i => panic!("unfined method {:?}", i),
         }
         res
     }

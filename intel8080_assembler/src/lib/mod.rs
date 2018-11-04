@@ -130,28 +130,33 @@ pub enum AssemblerToken {
     Plus,
 }
 
+#[derive(Debug)]
 pub enum WordExpression {
     Literal(u8),
     Label(LabelExpression),
 }
 
+#[derive(Debug)]
 pub enum WordValue {
     Operand(WordExpression),
     Sum(WordExpression, WordExpression),
     Rest(WordExpression, WordExpression),
 }
 
+#[derive(Debug)]
 pub enum TwoWordExpression {
     Literal(u16),
     Label(LabelExpression),
 }
 
+#[derive(Debug)]
 pub enum TwoWordValue {
     Operand(TwoWordExpression),
     Sum(TwoWordExpression, TwoWordExpression),
     Rest(TwoWordExpression, TwoWordExpression),
 }
 
+#[derive(Debug)]
 pub enum InstructionArgument {
     Word(WordValue),
     TwoWord(TwoWordValue),
@@ -172,6 +177,7 @@ impl From<u16> for InstructionArgument {
     }
 }
 
+#[derive(Debug)]
 pub struct Instruction(InstructionCode, Option<InstructionArgument>, Option<InstructionArgument>);
 
 pub enum Statement {
