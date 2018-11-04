@@ -457,7 +457,9 @@ impl Parser {
                     Some(InstructionArgument::DataStore(l))
                 )
             },
-            (InstructionCode::Lxi, _) => Err(Error::from(AssemblerError::InvalidInstructionArgument)),
+            (InstructionCode::Lxi, n) => Err(Error::from(AssemblerError::ExpectingNumber {
+                got: (*n).clone(),
+            })),
             (InstructionCode::Mov,
                 &Some(AssemblerToken::DataStore(d@Location::Register { register: RegisterType::A }))) |
             (InstructionCode::Mov,
@@ -537,7 +539,9 @@ impl Parser {
                         Some(InstructionArgument::from(byte))
                     )))
                 } else {
-                    Err(Error::from(AssemblerError::InvalidInstructionArgument))
+                    Err(Error::from(AssemblerError::ExpectingNumber {
+                        got: self.source.next(),
+                    }))
                 }
             },
             (InstructionCode::Mvi, _) =>
@@ -758,8 +762,9 @@ impl Parser {
                 self.source.next();
                 Ok(create_branch_instruction(i, two_word, a2))
             },
-            _ =>
-                Err(Error::from(AssemblerError::InvalidInstructionArgument)),
+            n => Err(Error::from(AssemblerError::ExpectingNumber {
+                got: (*n).clone()
+            })),
         }
     }
 }
