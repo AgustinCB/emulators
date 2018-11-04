@@ -899,7 +899,7 @@ impl ToString for Intel8080Instruction {
             Intel8080Instruction::Cp { address } =>
                 format!("CP ${:02x}{:02x}", address[1], address[0]),
             Intel8080Instruction::Ori { byte } => format!("ORI #${:02x}", byte),
-            Intel8080Instruction::Rm => String::from("RN"),
+            Intel8080Instruction::Rm => String::from("RM"),
             Intel8080Instruction::Sphl => String::from("SPHL"),
             Intel8080Instruction::Jm { address } =>
                 format!("JM ${:02x}{:02x}", address[1], address[0]),

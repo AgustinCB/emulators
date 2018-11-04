@@ -87,7 +87,8 @@ impl Parser {
                     |o| Statement::WordDefinitionStatement(label.clone(), o),
                     |v| Statement::WordDefinitionStatement(label.clone(), WordValue::Operand(v))
                 ),
-            _ => Err(Error::from(AssemblerError::ExpectingNumber)),
+            Some(n) => Err(Error::from(AssemblerError::ExpectingNumber { got: Some(n) })),
+            None => Err(Error::from(AssemblerError::ExpectingNumber { got: None })),
         }?;
         self.source.next();
         Ok(res)
@@ -109,7 +110,8 @@ impl Parser {
                     |o| Statement::TwoWordDefinitionStatement(label.clone(), o),
                     |v| Statement::TwoWordDefinitionStatement(label.clone(), TwoWordValue::Operand(v))
                 ),
-            _ => Err(Error::from(AssemblerError::ExpectingNumber)),
+            Some(n) => Err(Error::from(AssemblerError::ExpectingNumber { got: Some(n) })),
+            None => Err(Error::from(AssemblerError::ExpectingNumber { got: None })),
         }?;
         self.source.next();
         Ok(res)
@@ -177,7 +179,8 @@ impl Parser {
                     WordExpression::Label(other_label.clone())
                 )
             },
-            _ => Err(Error::from(AssemblerError::ExpectingNumber)),
+            Some(n) => Err(Error::from(AssemblerError::ExpectingNumber { got: Some((*n).clone()) })),
+            None => Err(Error::from(AssemblerError::ExpectingNumber { got: None })),
         }
     }
 
@@ -209,18 +212,19 @@ impl Parser {
                     TwoWordExpression::Label(other_label.clone())
                 )
             },
-            _ => Err(Error::from(AssemblerError::ExpectingNumber)),
+            Some(n) => Err(Error::from(AssemblerError::ExpectingNumber { got: Some((*n).clone()) })),
+            None => Err(Error::from(AssemblerError::ExpectingNumber { got: None })),
         }
     }
 
     fn consume_comma(&mut self) -> Result<(), Error> {
         match self.source.next() {
             Some(AssemblerToken::Comma) => Ok(()),
-            Some(token) => Err(Error::from(AssemblerError::ExpectingCharacter {
+            Some(token) => Err(Error::from(AssemblerError::ExpectingToken {
                 expected: AssemblerToken::Comma,
                 got: Some(token),
             })),
-            None => Err(Error::from(AssemblerError::ExpectingCharacter {
+            None => Err(Error::from(AssemblerError::ExpectingToken {
                 expected: AssemblerToken::Comma,
                 got: None,
             })),
@@ -275,8 +279,8 @@ impl Parser {
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Adi, &Some(AssemblerToken::Word(byte))) =>
                 self.parse_instruction_with_word(byte, InstructionCode::Adi),
-            (InstructionCode::Adi, _) =>
-                Err(Error::from(AssemblerError::InvalidInstructionArgument)),
+            (InstructionCode::Adi, n) =>
+                Err(Error::from(AssemblerError::ExpectingNumber { got: (*n).clone() })),
             (InstructionCode::Ana,
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::A }))) |
             (InstructionCode::Ana,
@@ -298,8 +302,8 @@ impl Parser {
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Ani, &Some(AssemblerToken::Word(byte))) =>
                 self.parse_instruction_with_word(byte, InstructionCode::Ani),
-            (InstructionCode::Ani, _) =>
-                Err(Error::from(AssemblerError::InvalidInstructionArgument)),
+            (InstructionCode::Ani, n) =>
+                Err(Error::from(AssemblerError::ExpectingNumber { got: (*n).clone() })),
             (InstructionCode::Call, n@_) => self.parse_two_word_instruction(InstructionCode::Call, n),
             (InstructionCode::Cc, n@_) => self.parse_two_word_instruction(InstructionCode::Cc, n),
             (InstructionCode::Cm, n@_) => self.parse_two_word_instruction(InstructionCode::Cm, n),
@@ -328,8 +332,8 @@ impl Parser {
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Cpi, &Some(AssemblerToken::Word(byte))) =>
                 self.parse_instruction_with_word(byte, InstructionCode::Cpi),
-            (InstructionCode::Cpi, _) =>
-                Err(Error::from(AssemblerError::InvalidInstructionArgument)),
+            (InstructionCode::Cpi, n) =>
+                Err(Error::from(AssemblerError::ExpectingNumber { got: (*n).clone() })),
             (InstructionCode::Cnc, n@_) => self.parse_two_word_instruction(InstructionCode::Cnc, n),
             (InstructionCode::Cnz, n@_) => self.parse_two_word_instruction(InstructionCode::Cnz, n),
             (InstructionCode::Cp, n@_) => self.parse_two_word_instruction(InstructionCode::Cp, n),
@@ -445,6 +449,7 @@ impl Parser {
             (InstructionCode::Lxi,
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::Sp}))) => {
                 self.source.next();
+                self.consume_comma()?;
                 let next = self.source.peek().map(|t| (*t).clone());
                 self.parse_two_word_instruction_with_argument(
                     InstructionCode::Lxi,
@@ -523,6 +528,7 @@ impl Parser {
             (InstructionCode::Mvi,
                 &Some(AssemblerToken::DataStore(s@Location::Memory))) => {
                 self.source.next();
+                self.consume_comma()?;
                 if let Some(&AssemblerToken::Word(byte)) = self.source.peek() {
                     self.source.next();
                     Ok(Statement::InstructionExprStmt(Instruction(
@@ -640,8 +646,8 @@ impl Parser {
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Sbi, &Some(AssemblerToken::Word(byte))) =>
                 self.parse_instruction_with_word(byte, InstructionCode::Sbi),
-            (InstructionCode::Sbi, _) =>
-                Err(Error::from(AssemblerError::InvalidInstructionArgument)),
+            (InstructionCode::Sbi, n) =>
+                Err(Error::from(AssemblerError::ExpectingNumber { got: (*n).clone() })),
             (InstructionCode::Shld, n@_) => self.parse_two_word_instruction(InstructionCode::Shld, n),
             (InstructionCode::Sphl, _) =>
                 Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Sphl, None, None))),
