@@ -96,10 +96,7 @@ impl Assembler {
             RegisterType::Sp => 0x31,
             _ => panic!("Not implemented yet")
         };
-        let byte = self.two_word_value_to_u16(two_words);
-        res.push(opcode);
-        res.push((byte & 0x0f) as u8);
-        res.push(((byte & 0xf0) >> 8) as u8);
+        self.add_simple_two_word_instruction(opcode, res, two_words);
     }
 
     fn add_stax_instruction(&self, res: &mut Vec<u8>, register: RegisterType) {
@@ -203,8 +200,8 @@ impl Assembler {
     fn add_simple_two_word_instruction(&self, opcode: u8, res: &mut Vec<u8>, value: TwoWordValue) {
         let two_word = self.two_word_value_to_u16(value);
         res.push(opcode);
-        res.push((two_word & 0x0f) as u8);
-        res.push(((two_word & 0xf0) >> 8) as u8);
+        res.push((two_word & 0x00ff) as u8);
+        res.push(((two_word & 0xff00) >> 8) as u8);
     }
 
     fn add_simple_word_instruction(&self, opcode: u8, res: &mut Vec<u8>, value: WordValue) {
