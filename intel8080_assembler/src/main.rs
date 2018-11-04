@@ -23,6 +23,6 @@ fn main() {
     let assembler = Assembler::new();
     let output = assembler.assemble(statements).unwrap();
 
-    let mut output_file = File::open(&args[2]).unwrap();
+    let mut output_file = File::create(&args[2]).unwrap();
     output_file.write(&output).unwrap();
 }

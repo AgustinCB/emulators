@@ -233,7 +233,6 @@ impl Parser {
 
     fn parse_instruction(&mut self, instruction: &InstructionCode, next: &Option<AssemblerToken>)
         -> Result<Statement, Error> {
-        println!("INSTRUCTION {:?}", instruction);
         match (instruction, next) {
             (InstructionCode::Adc,
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::A }))) |

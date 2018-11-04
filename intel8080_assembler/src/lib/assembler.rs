@@ -2,9 +2,11 @@ extern crate failure;
 extern crate intel8080cpu;
 
 use failure::Error;
-use intel8080cpu::{Location, RegisterType, ROM_MEMORY_LIMIT};
+use intel8080cpu::{Location, RegisterType};
 use std::collections::HashMap;
 use super::*;
+
+const ROM_MEMORY_LIMIT: usize = 65536;
 
 pub struct Assembler {
     words: HashMap<LabelExpression, u8>,
@@ -82,7 +84,7 @@ impl Assembler {
     fn add_instruction(&mut self, instruction: Instruction) {
         for byte in self.bytes_for_instruction(instruction) {
             self.rom[self.pc as usize] = byte;
-            self.pc += 1;
+            self.pc = self.pc.wrapping_add(1);
         }
     }
 
