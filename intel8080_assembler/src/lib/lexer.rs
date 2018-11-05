@@ -35,7 +35,8 @@ impl<R: Read> Lexer<R> {
             },
             c if c.is_whitespace() => Ok(None),
             c if c.is_digit(10) => self.maybe_scan_number(input),
-            c if c.is_alphabetic() || c == '_' => self.either_label_or_keyword(input),
+            c if c.is_alphabetic() || c == '?' || c == '@' =>
+                self.either_label_or_keyword(input),
             ':' => Ok(Some(AssemblerToken::Colon)),
             ',' => Ok(Some(AssemblerToken::Comma)),
             '+' => Ok(Some(AssemblerToken::Plus)),
@@ -148,7 +149,13 @@ impl<R: Read> Lexer<R> {
         let radix = if self.check(|c| c == 'H') {
             self.source.next();
             16
-        } else {
+        } else if self.check(|c| c == 'O') {
+            self.source.next();
+            8
+        } else if self.check(|c| c == 'B') {
+            self.source.next();
+            2
+        }else {
             10
         };
         let number = u16::from_str_radix(&number_string, radix)?;
