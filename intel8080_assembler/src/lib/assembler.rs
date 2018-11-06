@@ -72,6 +72,7 @@ impl Assembler {
             TwoWordValue::Operand(TwoWordExpression::Label(l)) =>
                 (*self.two_words.get(&l).unwrap()),
             TwoWordValue::Operand(TwoWordExpression::Literal(res)) => res,
+            TwoWordValue::Operand(TwoWordExpression::Dollar) => self.pc,
             TwoWordValue::Rest(expr1, expr2) =>
                 self.two_word_value_to_u16(TwoWordValue::Operand(expr1)) -
                     self.two_word_value_to_u16(TwoWordValue::Operand(expr2)),

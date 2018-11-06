@@ -121,6 +121,7 @@ pub enum AssemblerToken {
     Comma,
     DataStore(Location),
     Db,
+    Dollar,
     Dw,
     InstructionCode(InstructionCode),
     LabelToken(LabelExpression),
@@ -147,6 +148,7 @@ pub enum WordValue {
 pub enum TwoWordExpression {
     Literal(u16),
     Label(LabelExpression),
+    Dollar,
 }
 
 #[derive(Debug)]

@@ -110,6 +110,12 @@ impl Parser {
                     |o| Statement::TwoWordDefinitionStatement(label.clone(), o),
                     |v| Statement::TwoWordDefinitionStatement(label.clone(), TwoWordValue::Operand(v))
                 ),
+            Some(AssemblerToken::Dollar) =>
+                self.parse_statement_with_two_words_operation(
+                    TwoWordExpression::Dollar,
+                    |o| Statement::TwoWordDefinitionStatement(label.clone(), o),
+                    |v| Statement::TwoWordDefinitionStatement(label.clone(), TwoWordValue::Operand(v))
+                ),
             Some(n) => Err(Error::from(AssemblerError::ExpectingNumber { got: Some(n) })),
             None => Err(Error::from(AssemblerError::ExpectingNumber { got: None })),
         }?;
@@ -210,6 +216,13 @@ impl Parser {
                     operation,
                     value,
                     TwoWordExpression::Label(other_label.clone())
+                )
+            },
+            Some(&AssemblerToken::Dollar) => {
+                operation!(
+                    operation,
+                    value,
+                    TwoWordExpression::Dollar
                 )
             },
             Some(n) => Err(Error::from(AssemblerError::ExpectingNumber { got: Some((*n).clone()) })),
