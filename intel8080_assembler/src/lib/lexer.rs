@@ -150,10 +150,10 @@ impl<R: Read> Lexer<R> {
         let radix = if self.check(|c| c == 'H') {
             self.source.next();
             16
-        } else if self.check(|c| c == 'O') {
+        } else if self.check(|c| c == 'O') || self.check(|c| c == 'Q') {
             self.source.next();
             8
-        } else if self.check(|c| c == 'B') {
+        } else if self.check(|c| c == 'N') {
             self.source.next();
             2
         }else {
