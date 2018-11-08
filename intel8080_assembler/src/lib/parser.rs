@@ -57,9 +57,9 @@ impl Parser {
                 Ok(Statement::LabelDefinitionStatement(label.clone()))
             },
             (&AssemblerToken::LabelToken(ref label), Some(AssemblerToken::Dw)) =>
-                self.parse_word_definition(label),
+                self.parse_two_word_definition(label),
             (&AssemblerToken::LabelToken(ref label), Some(AssemblerToken::Db)) =>
-                self.parse_byte_definition(label),
+                self.parse_word_definition(label),
             (AssemblerToken::InstructionCode(instruction), ref next) =>
                 self.parse_instruction(instruction, next),
             (_, next@_) => {
@@ -71,7 +71,7 @@ impl Parser {
         Ok(())
     }
 
-    fn parse_byte_definition(&mut self, label: &LabelExpression) -> Result<Statement, Error> {
+    fn parse_word_definition(&mut self, label: &LabelExpression) -> Result<Statement, Error> {
         self.source.next();
         let next = self.source.peek().map(|t| (*t).clone());
         let res = match next {
@@ -94,7 +94,7 @@ impl Parser {
         Ok(res)
     }
 
-    fn parse_word_definition(&mut self, label: &LabelExpression) -> Result<Statement, Error> {
+    fn parse_two_word_definition(&mut self, label: &LabelExpression) -> Result<Statement, Error> {
         self.source.next();
         let next = self.source.peek().map(|t| (*t).clone());
         let res = match next {
