@@ -13,10 +13,13 @@ pub struct Parser {
 }
 
 #[inline]
-fn create_branch_instruction(i: InstructionCode, tw: u16, a2: Option<InstructionArgument>) -> Statement {
+fn create_branch_instruction(
+    i: InstructionCode,
+    tw: InstructionArgument,
+    a2: Option<InstructionArgument>) -> Statement {
     match a2 {
-        None => Statement::InstructionExprStmt(Instruction(i, Some(InstructionArgument::from(tw)), None)),
-        _ => Statement::InstructionExprStmt(Instruction(i, a2, Some(InstructionArgument::from(tw)))),
+        None => Statement::InstructionExprStmt(Instruction(i, Some(tw), None)),
+        _ => Statement::InstructionExprStmt(Instruction(i, a2, Some(tw))),
     }
 }
 
@@ -768,11 +771,17 @@ impl Parser {
         match next {
             &Some(AssemblerToken::Word(word)) => {
                 self.source.next();
-                Ok(create_branch_instruction(i, word as u16, a2))
+                Ok(create_branch_instruction(i, InstructionArgument::from(word as u16), a2))
             },
             &Some(AssemblerToken::TwoWord(two_word)) => {
                 self.source.next();
-                Ok(create_branch_instruction(i, two_word, a2))
+                Ok(create_branch_instruction(i, InstructionArgument::from(two_word), a2))
+            },
+            &Some(AssemblerToken::Dollar) => {
+                self.source.next();
+                Ok(create_branch_instruction(i, InstructionArgument::TwoWord(
+                    TwoWordValue::Operand(TwoWordExpression::Dollar)
+                ), a2))
             },
             n => Err(Error::from(AssemblerError::ExpectingNumber {
                 got: (*n).clone()
