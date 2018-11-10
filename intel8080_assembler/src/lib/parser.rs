@@ -98,26 +98,30 @@ impl Parser {
     }
 
     fn parse_two_word_definition(&mut self, label: &LabelExpression) -> Result<Statement, Error> {
+        self.parse_statement_with_two_word_value(
+            |o| Statement::TwoWordDefinitionStatement(label.clone(), o),
+            |v| Statement::TwoWordDefinitionStatement(label.clone(), TwoWordValue::Operand(v))
+        )
+    }
+
+    fn parse_statement_with_two_word_value<O, D>
+        (&mut self, op: O, default: D) -> Result<Statement, Error>
+        where O: FnOnce(TwoWordValue) -> Statement,
+              D: FnOnce(TwoWordExpression) -> Statement {
         self.source.next();
         let next = self.source.peek().map(|t| (*t).clone());
         let res = match next {
             Some(AssemblerToken::TwoWord(value)) =>
                 self.parse_statement_with_two_words_operation(
-                    TwoWordExpression::Literal(value),
-                    |o| Statement::TwoWordDefinitionStatement(label.clone(), o),
-                    |v| Statement::TwoWordDefinitionStatement(label.clone(), TwoWordValue::Operand(v))
+                    TwoWordExpression::Literal(value), op, default
                 ),
             Some(AssemblerToken::LabelToken(ref value_label)) =>
                 self.parse_statement_with_two_words_operation(
-                    TwoWordExpression::Label(value_label.clone()),
-                    |o| Statement::TwoWordDefinitionStatement(label.clone(), o),
-                    |v| Statement::TwoWordDefinitionStatement(label.clone(), TwoWordValue::Operand(v))
+                    TwoWordExpression::Label(value_label.clone()), op, default
                 ),
             Some(AssemblerToken::Dollar) =>
                 self.parse_statement_with_two_words_operation(
-                    TwoWordExpression::Dollar,
-                    |o| Statement::TwoWordDefinitionStatement(label.clone(), o),
-                    |v| Statement::TwoWordDefinitionStatement(label.clone(), TwoWordValue::Operand(v))
+                    TwoWordExpression::Dollar, op, default
                 ),
             Some(n) => Err(Error::from(AssemblerError::ExpectingNumber { got: Some(n) })),
             None => Err(Error::from(AssemblerError::ExpectingNumber { got: None })),
@@ -466,6 +470,14 @@ impl Parser {
                 self.source.next();
                 self.consume_comma()?;
                 let next = self.source.peek().map(|t| (*t).clone());
+                /*self.parse_statement_with_two_word_value(
+                    |o| Statement::InstructionExprStmt(Instruction(
+                        InstructionCode::Lxi, Some(InstructionArgument::TwoWord(o)), Some(InstructionArgument::DataStore(l))
+                    )),
+                    |v| Statement::InstructionExprStmt(Instruction(
+                        InstructionCode::Lxi, Some(InstructionArgument::TwoWord(TwoWordValue::Operand(o))), Some(InstructionArgument::DataStore(l))
+                    ))
+                )*/
                 self.parse_two_word_instruction_with_argument(
                     InstructionCode::Lxi,
                     &next,

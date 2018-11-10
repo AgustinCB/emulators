@@ -131,34 +131,34 @@ pub enum AssemblerToken {
     Plus,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum WordExpression {
     Literal(u8),
     Label(LabelExpression),
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum WordValue {
     Operand(WordExpression),
     Sum(WordExpression, WordExpression),
     Rest(WordExpression, WordExpression),
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum TwoWordExpression {
     Literal(u16),
     Label(LabelExpression),
     Dollar,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum TwoWordValue {
     Operand(TwoWordExpression),
     Sum(TwoWordExpression, TwoWordExpression),
     Rest(TwoWordExpression, TwoWordExpression),
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum InstructionArgument {
     Word(WordValue),
     TwoWord(TwoWordValue),
