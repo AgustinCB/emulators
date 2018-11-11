@@ -12,17 +12,6 @@ pub struct Parser {
     expressions: Vec<Statement>,
 }
 
-#[inline]
-fn create_branch_instruction(
-    i: InstructionCode,
-    tw: InstructionArgument,
-    a2: Option<InstructionArgument>) -> Statement {
-    match a2 {
-        None => Statement::InstructionExprStmt(Instruction(i, Some(tw), None)),
-        _ => Statement::InstructionExprStmt(Instruction(i, a2, Some(tw))),
-    }
-}
-
 impl Parser {
     pub fn new(source: Vec<AssemblerToken>) -> Parser {
         Parser {
@@ -98,6 +87,7 @@ impl Parser {
     }
 
     fn parse_two_word_definition(&mut self, label: &LabelExpression) -> Result<Statement, Error> {
+        self.source.next();
         self.parse_statement_with_two_word_value(
             |o| Statement::TwoWordDefinitionStatement(label.clone(), o),
             |v| Statement::TwoWordDefinitionStatement(label.clone(), TwoWordValue::Operand(v))
@@ -108,12 +98,15 @@ impl Parser {
         (&mut self, op: O, default: D) -> Result<Statement, Error>
         where O: FnOnce(TwoWordValue) -> Statement,
               D: FnOnce(TwoWordExpression) -> Statement {
-        self.source.next();
         let next = self.source.peek().map(|t| (*t).clone());
         let res = match next {
             Some(AssemblerToken::TwoWord(value)) =>
                 self.parse_statement_with_two_words_operation(
                     TwoWordExpression::Literal(value), op, default
+                ),
+            Some(AssemblerToken::Word(value)) =>
+                self.parse_statement_with_two_words_operation(
+                    TwoWordExpression::Literal(value as u16), op, default
                 ),
             Some(AssemblerToken::LabelToken(ref value_label)) =>
                 self.parse_statement_with_two_words_operation(
@@ -323,9 +316,9 @@ impl Parser {
                 self.parse_instruction_with_word(byte, InstructionCode::Ani),
             (InstructionCode::Ani, n) =>
                 Err(Error::from(AssemblerError::ExpectingNumber { got: (*n).clone() })),
-            (InstructionCode::Call, n@_) => self.parse_two_word_instruction(InstructionCode::Call, n),
-            (InstructionCode::Cc, n@_) => self.parse_two_word_instruction(InstructionCode::Cc, n),
-            (InstructionCode::Cm, n@_) => self.parse_two_word_instruction(InstructionCode::Cm, n),
+            (InstructionCode::Call, _) => self.parse_two_word_instruction(InstructionCode::Call),
+            (InstructionCode::Cc, _) => self.parse_two_word_instruction(InstructionCode::Cc),
+            (InstructionCode::Cm, _) => self.parse_two_word_instruction(InstructionCode::Cm),
             (InstructionCode::Cma, _) =>
                 Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Cma, None, None))),
             (InstructionCode::Cmc, _) =>
@@ -353,12 +346,12 @@ impl Parser {
                 self.parse_instruction_with_word(byte, InstructionCode::Cpi),
             (InstructionCode::Cpi, n) =>
                 Err(Error::from(AssemblerError::ExpectingNumber { got: (*n).clone() })),
-            (InstructionCode::Cnc, n@_) => self.parse_two_word_instruction(InstructionCode::Cnc, n),
-            (InstructionCode::Cnz, n@_) => self.parse_two_word_instruction(InstructionCode::Cnz, n),
-            (InstructionCode::Cp, n@_) => self.parse_two_word_instruction(InstructionCode::Cp, n),
-            (InstructionCode::Cpe, n@_) => self.parse_two_word_instruction(InstructionCode::Cpe, n),
-            (InstructionCode::Cpo, n@_) => self.parse_two_word_instruction(InstructionCode::Cpo, n),
-            (InstructionCode::Cz, n@_) => self.parse_two_word_instruction(InstructionCode::Cz, n),
+            (InstructionCode::Cnc, _) => self.parse_two_word_instruction(InstructionCode::Cnc),
+            (InstructionCode::Cnz, _) => self.parse_two_word_instruction(InstructionCode::Cnz),
+            (InstructionCode::Cp, _) => self.parse_two_word_instruction(InstructionCode::Cp),
+            (InstructionCode::Cpe, _) => self.parse_two_word_instruction(InstructionCode::Cpe),
+            (InstructionCode::Cpo, _) => self.parse_two_word_instruction(InstructionCode::Cpo),
+            (InstructionCode::Cz, _) => self.parse_two_word_instruction(InstructionCode::Cz),
             (InstructionCode::Daa, _) =>
                 Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Daa, None, None))),
             (InstructionCode::Dad,
@@ -442,23 +435,23 @@ impl Parser {
                 self.parse_instruction_with_location(l, InstructionCode::Inx),
             (InstructionCode::Inx, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
-            (InstructionCode::Jc, n@_) => self.parse_two_word_instruction(InstructionCode::Jc, n),
-            (InstructionCode::Jm, n@_) => self.parse_two_word_instruction(InstructionCode::Jm, n),
-            (InstructionCode::Jmp, n@_) => self.parse_two_word_instruction(InstructionCode::Jmp, n),
-            (InstructionCode::Jnc, n@_) => self.parse_two_word_instruction(InstructionCode::Jnc, n),
-            (InstructionCode::Jnz, n@_) => self.parse_two_word_instruction(InstructionCode::Jnz, n),
-            (InstructionCode::Jp, n@_) => self.parse_two_word_instruction(InstructionCode::Jp, n),
-            (InstructionCode::Jpe, n@_) => self.parse_two_word_instruction(InstructionCode::Jpe, n),
-            (InstructionCode::Jpo, n@_) => self.parse_two_word_instruction(InstructionCode::Jpo, n),
-            (InstructionCode::Jz, n@_) => self.parse_two_word_instruction(InstructionCode::Jz, n),
-            (InstructionCode::Lda, n@_) => self.parse_two_word_instruction(InstructionCode::Lda, n),
+            (InstructionCode::Jc, _) => self.parse_two_word_instruction(InstructionCode::Jc),
+            (InstructionCode::Jm, _) => self.parse_two_word_instruction(InstructionCode::Jm),
+            (InstructionCode::Jmp, _) => self.parse_two_word_instruction(InstructionCode::Jmp),
+            (InstructionCode::Jnc, _) => self.parse_two_word_instruction(InstructionCode::Jnc),
+            (InstructionCode::Jnz, _) => self.parse_two_word_instruction(InstructionCode::Jnz),
+            (InstructionCode::Jp, _) => self.parse_two_word_instruction(InstructionCode::Jp),
+            (InstructionCode::Jpe, _) => self.parse_two_word_instruction(InstructionCode::Jpe),
+            (InstructionCode::Jpo, _) => self.parse_two_word_instruction(InstructionCode::Jpo),
+            (InstructionCode::Jz, _) => self.parse_two_word_instruction(InstructionCode::Jz),
+            (InstructionCode::Lda, _) => self.parse_two_word_instruction(InstructionCode::Lda),
             (InstructionCode::Ldax,
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::B }))) |
             (InstructionCode::Ldax,
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::D }))) =>
                 self.parse_instruction_with_location(l, InstructionCode::Ldax),
             (InstructionCode::Ldax, _) => Err(Error::from(AssemblerError::InvalidInstructionArgument)),
-            (InstructionCode::Lhld, n@_) => self.parse_two_word_instruction(InstructionCode::Lhld, n),
+            (InstructionCode::Lhld, _) => self.parse_two_word_instruction(InstructionCode::Lhld),
             (InstructionCode::Lxi,
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::B }))) |
             (InstructionCode::Lxi,
@@ -469,19 +462,13 @@ impl Parser {
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::Sp}))) => {
                 self.source.next();
                 self.consume_comma()?;
-                let next = self.source.peek().map(|t| (*t).clone());
-                /*self.parse_statement_with_two_word_value(
+                self.parse_statement_with_two_word_value(
                     |o| Statement::InstructionExprStmt(Instruction(
-                        InstructionCode::Lxi, Some(InstructionArgument::TwoWord(o)), Some(InstructionArgument::DataStore(l))
+                        InstructionCode::Lxi, Some(InstructionArgument::DataStore(l)), Some(InstructionArgument::TwoWord(o))
                     )),
                     |v| Statement::InstructionExprStmt(Instruction(
-                        InstructionCode::Lxi, Some(InstructionArgument::TwoWord(TwoWordValue::Operand(o))), Some(InstructionArgument::DataStore(l))
+                        InstructionCode::Lxi, Some(InstructionArgument::DataStore(l)), Some(InstructionArgument::TwoWord(TwoWordValue::Operand(v)))
                     ))
-                )*/
-                self.parse_two_word_instruction_with_argument(
-                    InstructionCode::Lxi,
-                    &next,
-                    Some(InstructionArgument::DataStore(l))
                 )
             },
             (InstructionCode::Lxi, n) => Err(Error::from(AssemblerError::ExpectingNumber {
@@ -679,10 +666,10 @@ impl Parser {
                 self.parse_instruction_with_word(byte, InstructionCode::Sbi),
             (InstructionCode::Sbi, n) =>
                 Err(Error::from(AssemblerError::ExpectingNumber { got: (*n).clone() })),
-            (InstructionCode::Shld, n@_) => self.parse_two_word_instruction(InstructionCode::Shld, n),
+            (InstructionCode::Shld, _) => self.parse_two_word_instruction(InstructionCode::Shld),
             (InstructionCode::Sphl, _) =>
                 Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Sphl, None, None))),
-            (InstructionCode::Sta, n@_) => self.parse_two_word_instruction(InstructionCode::Sta, n),
+            (InstructionCode::Sta, _) => self.parse_two_word_instruction(InstructionCode::Sta),
             (InstructionCode::Stax,
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::B }))) |
             (InstructionCode::Stax,
@@ -767,37 +754,14 @@ impl Parser {
     }
 
     #[inline]
-    fn parse_two_word_instruction(&mut self,
-                                  i: InstructionCode,
-                                  next: &Option<AssemblerToken>
-                                  ) -> Result<Statement, Error> {
-        self.parse_two_word_instruction_with_argument(i, next, None)
-    }
-
-    #[inline]
-    fn parse_two_word_instruction_with_argument(&mut self,
-                                                i: InstructionCode,
-                                                next: &Option<AssemblerToken>,
-                                                a2: Option<InstructionArgument>
-                                                ) -> Result<Statement, Error> {
-        match next {
-            &Some(AssemblerToken::Word(word)) => {
-                self.source.next();
-                Ok(create_branch_instruction(i, InstructionArgument::from(word as u16), a2))
-            },
-            &Some(AssemblerToken::TwoWord(two_word)) => {
-                self.source.next();
-                Ok(create_branch_instruction(i, InstructionArgument::from(two_word), a2))
-            },
-            &Some(AssemblerToken::Dollar) => {
-                self.source.next();
-                Ok(create_branch_instruction(i, InstructionArgument::TwoWord(
-                    TwoWordValue::Operand(TwoWordExpression::Dollar)
-                ), a2))
-            },
-            n => Err(Error::from(AssemblerError::ExpectingNumber {
-                got: (*n).clone()
-            })),
-        }
+    fn parse_two_word_instruction(&mut self, i: InstructionCode) -> Result<Statement, Error> {
+        self.parse_statement_with_two_word_value(
+            |o| Statement::InstructionExprStmt(Instruction(
+                i.clone(), Some(InstructionArgument::TwoWord(o)), None
+            )),
+            |v| Statement::InstructionExprStmt(Instruction(
+                i.clone(), Some(InstructionArgument::TwoWord(TwoWordValue::Operand(v))), None
+            ))
+        )
     }
 }
