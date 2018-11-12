@@ -100,26 +100,33 @@ impl Parser {
               D: FnOnce(TwoWordExpression) -> Statement {
         let next = self.source.peek().map(|t| (*t).clone());
         let res = match next {
-            Some(AssemblerToken::TwoWord(value)) =>
+            Some(AssemblerToken::TwoWord(value)) => {
+                self.source.next();
                 self.parse_statement_with_two_words_operation(
                     TwoWordExpression::Literal(value), op, default
-                ),
-            Some(AssemblerToken::Word(value)) =>
+                )
+            },
+            Some(AssemblerToken::Word(value)) => {
+                self.source.next();
                 self.parse_statement_with_two_words_operation(
                     TwoWordExpression::Literal(value as u16), op, default
-                ),
-            Some(AssemblerToken::LabelToken(ref value_label)) =>
+                )
+            },
+            Some(AssemblerToken::LabelToken(ref value_label)) => {
+                self.source.next();
                 self.parse_statement_with_two_words_operation(
                     TwoWordExpression::Label(value_label.clone()), op, default
-                ),
-            Some(AssemblerToken::Dollar) =>
+                )
+            },
+            Some(AssemblerToken::Dollar) => {
+                self.source.next();
                 self.parse_statement_with_two_words_operation(
                     TwoWordExpression::Dollar, op, default
-                ),
+                )
+            },
             Some(n) => Err(Error::from(AssemblerError::ExpectingNumber { got: Some(n) })),
             None => Err(Error::from(AssemblerError::ExpectingNumber { got: None })),
         }?;
-        self.source.next();
         Ok(res)
     }
 
@@ -209,6 +216,13 @@ impl Parser {
                     operation,
                     value,
                     TwoWordExpression::Literal(other_value)
+                )
+            },
+            Some(&AssemblerToken::Word(other_value)) => {
+                operation!(
+                    operation,
+                    value,
+                    TwoWordExpression::Literal(other_value as u16)
                 )
             },
             Some(&AssemblerToken::LabelToken(ref other_label)) => {
