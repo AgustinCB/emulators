@@ -18,7 +18,8 @@ numberExpression    → ( numberVariable | sumExpression | restExpression );
 sumExpression       → numberVariable "+" numberVariable ;
 restExpression      → numberVariable "-" numberVariable ;
 numberVariable      → numberLiteral
-                    | label ;
+                    | label 
+                    | "$" ;
 label               → [A-Za-z_]+ ;
 numberLiteral       → decimalNumber | hexadecimalNumber | octalNumber | binaryNumber ;
 decimalNumber       → [0-9]+ ;
