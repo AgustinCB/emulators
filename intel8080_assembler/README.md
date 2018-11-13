@@ -20,8 +20,10 @@ restExpression      → numberVariable "-" numberVariable ;
 numberVariable      → numberLiteral
                     | label ;
 label               → [A-Za-z_]+ ;
-numberLiteral       → decimalNumber | hexadecimalNumber ;
+numberLiteral       → decimalNumber | hexadecimalNumber | octalNumber | binaryNumber ;
 decimalNumber       → [0-9]+ ;
 hexadecimalNumber   → [0-9] ( [0-9A-Fa-f] )* "H" ;
+octalNumber         → [0-7]+ ("O" | "Q") ;
+binaryNumber        → [0-1]+ "N" ;
 dataExpression      → "A" | "B" | "C" | "D" | "E" | "H" | "L" | "M" | "P" | "SP" ;
 ```
