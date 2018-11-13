@@ -2,12 +2,13 @@
 
 set -euo pipefail
 
+file_path=${1:?First argument should be the file}
+file=$(basename "$1")
 folder=$(mktemp -d)
 trap "rm -fr $folder; exit" EXIT
-cargo run cpudiag.asm "$folder"/cpudiag.rom
+cargo run "$file_path" "$folder"/"$file".rom
 cd ../disassembler
-cargo run intel8080 ../space_invaders/cpudiag.rom > "$folder"/cpudiag.expected.asm
-cargo run intel8080 "$folder"/cpudiag.rom > "$folder"/cpudiag.actual.asm
+cargo run intel8080 "$folder"/"$file".rom | grep -v NOP > "$folder"/cpudiag.actual.asm
 cd ../intel8080_assembler
 
-diff "$folder"/cpudiag.expected.asm "$folder"/cpudiag.actual.asm
+diff ./tests/"$file".out "$folder"/cpudiag.actual.asm
