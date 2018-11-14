@@ -19,7 +19,8 @@ sumExpression       → numberVariable "+" numberVariable ;
 restExpression      → numberVariable "-" numberVariable ;
 numberVariable      → numberLiteral
                     | label 
-                    | "$" ;
+                    | "$" 
+                    | "'" [\x00-\x7F] "'";
 label               → [A-Za-z_]+ ;
 numberLiteral       → decimalNumber | hexadecimalNumber | octalNumber | binaryNumber ;
 decimalNumber       → [0-9]+ ;

@@ -1,6 +1,7 @@
 use intel8080cpu::Location;
 use std::io::{Bytes, Read};
 use std::iter::Peekable;
+use std::str::FromStr;
 use super::{InstructionCode, AssemblerToken, LabelExpression, AssemblerError};
 use super::failure::Error;
 
@@ -37,6 +38,7 @@ impl<R: Read> Lexer<R> {
             c if c.is_digit(10) => self.maybe_scan_number(input),
             c if c.is_alphabetic() || c == '?' || c == '@' =>
                 self.either_label_or_keyword(input),
+            '\'' => self.scan_char(),
             ':' => Ok(Some(AssemblerToken::Colon)),
             ',' => Ok(Some(AssemblerToken::Comma)),
             '+' => Ok(Some(AssemblerToken::Plus)),
@@ -48,6 +50,14 @@ impl<R: Read> Lexer<R> {
             self.tokens.push(t);
         }
         Ok(())
+    }
+
+    #[inline]
+    fn scan_char(&mut self) -> Result<Option<AssemblerToken>, Error> {
+        let rest = self.consume(|c| c != '\'')?;
+        self.source.next();
+        let value = char::from_str(&rest)?;
+        Ok(Some(AssemblerToken::Char(value)))
     }
 
     #[inline]
@@ -144,7 +154,7 @@ impl<R: Read> Lexer<R> {
     }
 
     #[inline]
-    fn maybe_scan_number(&mut self, first_digit: char)-> Result<Option<AssemblerToken>, Error> {
+    fn maybe_scan_number(&mut self, first_digit: char) -> Result<Option<AssemblerToken>, Error> {
         let rest = self.consume(|c| c.is_digit(16))?;
         let number_string = format!("{}{}", first_digit, rest);
         let radix = if self.check(|c| c == 'H') {
@@ -156,7 +166,7 @@ impl<R: Read> Lexer<R> {
         } else if self.check(|c| c == 'N') {
             self.source.next();
             2
-        }else {
+        } else {
             10
         };
         let number = u16::from_str_radix(&number_string, radix)?;

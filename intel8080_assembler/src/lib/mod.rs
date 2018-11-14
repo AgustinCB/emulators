@@ -22,6 +22,14 @@ pub enum AssemblerError {
     ExpectingNumber {
         got: Option<AssemblerToken>,
     },
+    #[fail(display = "Expecting single character at line {}", line)]
+    ExpectingCharacter {
+        line: usize,
+    },
+    #[fail(display = "Expecting single quote at line {}", line)]
+    ExpectingSingleQuote {
+        line: usize,
+    },
     #[fail(display = "Invalid argument for instruction")]
     InvalidInstructionArgument,
     #[fail(display = "Invalid operation token.")]
@@ -116,7 +124,7 @@ pub enum InstructionCode {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum AssemblerToken {
-    Word(u8),
+    Char(char),
     Colon,
     Comma,
     DataStore(Location),
@@ -127,14 +135,16 @@ pub enum AssemblerToken {
     LabelToken(LabelExpression),
     Minus,
     Org,
-    TwoWord(u16),
     Plus,
+    TwoWord(u16),
+    Word(u8),
 }
 
 #[derive(Clone, Debug)]
 pub enum WordExpression {
     Literal(u8),
     Label(LabelExpression),
+    Char(char),
 }
 
 #[derive(Clone, Debug)]

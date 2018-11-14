@@ -112,6 +112,12 @@ impl Parser {
                     TwoWordExpression::Literal(value as u16), op, default
                 )
             },
+            Some(AssemblerToken::Char(char_value)) => {
+                self.source.next();
+                self.parse_statement_with_two_words_operation(
+                    TwoWordExpression::Literal(char_value as u16), op, default
+                )
+            },
             Some(AssemblerToken::LabelToken(ref value_label)) => {
                 self.source.next();
                 self.parse_statement_with_two_words_operation(

@@ -58,6 +58,7 @@ impl Assembler {
             WordValue::Operand(WordExpression::Label(l)) =>
                 (*self.words.get(&l).unwrap()),
             WordValue::Operand(WordExpression::Literal(res)) => res,
+            WordValue::Operand(WordExpression::Char(res)) => res as u8,
             WordValue::Rest(expr1, expr2) =>
                 self.word_value_to_u8(WordValue::Operand(expr1)) -
                     self.word_value_to_u8(WordValue::Operand(expr2)),
