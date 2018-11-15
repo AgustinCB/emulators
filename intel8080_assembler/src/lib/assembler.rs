@@ -71,7 +71,12 @@ impl Assembler {
     fn two_word_value_to_u16(&self, value: TwoWordValue) -> u16 {
         match value {
             TwoWordValue::Operand(TwoWordExpression::Label(l)) =>
-                (*self.two_words.get(&l).unwrap()),
+                (self.two_words
+                    .get(&l)
+                    .map(|n| *n)
+                    .or_else(|| self.words.get(&l).map(|n| (*n) as u16))
+                    .unwrap()
+                ),
             TwoWordValue::Operand(TwoWordExpression::Literal(res)) => res,
             TwoWordValue::Operand(TwoWordExpression::Dollar) => self.pc,
             TwoWordValue::Rest(expr1, expr2) =>
