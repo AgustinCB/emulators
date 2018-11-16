@@ -10,7 +10,6 @@ const ROM_MEMORY_LIMIT: usize = 65536;
 
 pub struct Assembler {
     words: HashMap<LabelExpression, u8>,
-    labels: HashMap<LabelExpression, u16>,
     pc: u16,
     rom: [u8; ROM_MEMORY_LIMIT],
     two_words: HashMap<LabelExpression, u16>,
@@ -20,7 +19,6 @@ impl Assembler {
     pub fn new() -> Assembler {
         Assembler {
             words: HashMap::new(),
-            labels: HashMap::new(),
             pc: 0,
             rom: [0; ROM_MEMORY_LIMIT],
             two_words: HashMap::new(),
@@ -34,7 +32,7 @@ impl Assembler {
                     self.add_instruction(instruction);
                 },
                 Statement::LabelDefinitionStatement(label) => {
-                    self.labels.insert(label, self.pc);
+                    self.two_words.insert(label, self.pc);
                 },
                 Statement::OrgStatement(tw) => {
                     let value = self.two_word_value_to_u16(tw);
