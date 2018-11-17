@@ -14,13 +14,19 @@ dataStatement       → label ( "DB" | "DW" ) numberExpression ;
 labelStatement      → label ":" ;
 argumentExpression  → numberExpression
                     | dataExpression ;
-numberExpression    → ( numberVariable | sumExpression | restExpression ); 
-sumExpression       → numberVariable "+" numberVariable ;
-restExpression      → numberVariable "-" numberVariable ;
+numberExpression    → operation;
+
+operation           → andOperation ( ("OR" | "XOR") operation )? ;
+andOperation        → notOperation ( "AND" andOperation )? ;
+notOperation        → ( "NOT" )? sumOperation ;
+sumOperation        → lastOperations ( ( "+" | "-" ) sumOperation )? ;
+lastOperations      → numberVariable ( ( "*" | "/" | "MOD" | "SHL" | "SHR" ) 
+                           lastOperations )? ; 
 numberVariable      → numberLiteral
                     | label 
                     | "$" 
                     | "'" [\x00-\x7F] "'";
+
 label               → [A-Za-z_]+ ;
 numberLiteral       → decimalNumber | hexadecimalNumber | octalNumber | binaryNumber ;
 decimalNumber       → [0-9]+ ;
