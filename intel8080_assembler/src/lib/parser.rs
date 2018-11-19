@@ -65,25 +65,10 @@ impl Parser {
 
     fn parse_word_definition(&mut self, label: &LabelExpression) -> Result<Statement, Error> {
         self.source.next();
-        let next = self.source.peek().map(|t| (*t).clone());
-        let res = match next {
-            Some(AssemblerToken::Word(value)) =>
-                self.parse_statement_with_word_operation(
-                    WordExpression::Literal(value),
-                    |o| Statement::WordDefinitionStatement(label.clone(), o),
-                    |v| Statement::WordDefinitionStatement(label.clone(), WordValue::Operand(v))
-                ),
-            Some(AssemblerToken::LabelToken(ref value_label)) =>
-                self.parse_statement_with_word_operation(
-                    WordExpression::Label(value_label.clone()),
-                    |o| Statement::WordDefinitionStatement(label.clone(), o),
-                    |v| Statement::WordDefinitionStatement(label.clone(), WordValue::Operand(v))
-                ),
-            Some(n) => Err(Error::from(AssemblerError::ExpectingNumber { got: Some(n) })),
-            None => Err(Error::from(AssemblerError::ExpectingNumber { got: None })),
-        }?;
-        self.source.next();
-        Ok(res)
+        self.parse_statement_with_two_word_value(
+            |o| Statement::WordDefinitionStatement(label.clone(), o),
+            |v| Statement::WordDefinitionStatement(label.clone(), TwoWordValue::Operand(v))
+        )
     }
 
     fn parse_two_word_definition(&mut self, label: &LabelExpression) -> Result<Statement, Error> {
@@ -136,23 +121,6 @@ impl Parser {
         Ok(res)
     }
 
-    fn parse_statement_with_word_operation<O, D>
-    (&mut self, value: WordExpression, op: O, default: D) -> Result<Statement, Error>
-        where O: FnOnce(WordValue) -> Statement,
-              D: FnOnce(WordExpression) -> Statement {
-        let next = self.source.peek().map(|t| (*t).clone());
-        match next {
-            Some(ref op_token@AssemblerToken::Plus) |
-            Some(ref op_token@AssemblerToken::Minus) => {
-                self.source.next();
-                let r = self.parse_word_operands(op_token, value)?;
-                self.source.next();
-                Ok(op(r))
-            },
-            _ => Ok(default(value)),
-        }
-    }
-
     fn parse_statement_with_two_words_operation<O, D>
         (&mut self, value: TwoWordExpression, op: O, default: D) -> Result<Statement, Error>
         where O: FnOnce(TwoWordValue) -> Statement,
@@ -167,39 +135,6 @@ impl Parser {
                 Ok(op(r))
             },
             _ => Ok(default(value)),
-        }
-    }
-
-    fn parse_word_operands(&mut self, operation: &AssemblerToken, value: WordExpression)
-                                -> Result<WordValue, Error> {
-        macro_rules! operation {
-            ($op:ident,$value:ident,$operand:expr) => {
-                if let AssemblerToken::Plus = $op {
-                    Ok(WordValue::Sum($value, $operand))
-                } else if let AssemblerToken::Minus = $op {
-                    Ok(WordValue::Rest($value, $operand))
-                } else {
-                    Err(Error::from(AssemblerError::InvalidOperationToken))
-                }
-            }
-        }
-        match self.source.peek() {
-            Some(&AssemblerToken::Word(other_value)) => {
-                operation!(
-                    operation,
-                    value,
-                    WordExpression::Literal(other_value)
-                )
-            },
-            Some(&AssemblerToken::LabelToken(ref other_label)) => {
-                operation!(
-                    operation,
-                    value,
-                    WordExpression::Label(other_label.clone())
-                )
-            },
-            Some(n) => Err(Error::from(AssemblerError::ExpectingNumber { got: Some((*n).clone()) })),
-            None => Err(Error::from(AssemblerError::ExpectingNumber { got: None })),
         }
     }
 

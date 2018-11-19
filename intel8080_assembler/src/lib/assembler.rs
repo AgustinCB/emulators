@@ -9,7 +9,6 @@ use super::*;
 const ROM_MEMORY_LIMIT: usize = 65536;
 
 pub struct Assembler {
-    words: HashMap<LabelExpression, u8>,
     pc: u16,
     rom: [u8; ROM_MEMORY_LIMIT],
     two_words: HashMap<LabelExpression, u16>,
@@ -18,7 +17,6 @@ pub struct Assembler {
 impl Assembler {
     pub fn new() -> Assembler {
         Assembler {
-            words: HashMap::new(),
             pc: 0,
             rom: [0; ROM_MEMORY_LIMIT],
             two_words: HashMap::new(),
@@ -43,40 +41,29 @@ impl Assembler {
                     self.two_words.insert(label, value);
                 },
                 Statement::WordDefinitionStatement(label, value) => {
-                    let value = self.word_value_to_u8(value);
-                    self.words.insert(label, value);
+                    let value = self.two_word_value_to_u8(value) as u16;
+                    self.two_words.insert(label, value);
                 },
             };
         }
         Ok(self.rom)
     }
 
-    fn word_value_to_u8(&self, value: WordValue) -> u8 {
-        match value {
-            WordValue::Operand(WordExpression::Label(l)) =>
-                (*self.words.get(&l).unwrap()),
-            WordValue::Operand(WordExpression::Literal(res)) => res,
-            WordValue::Operand(WordExpression::Char(res)) => res as u8,
-            WordValue::Rest(expr1, expr2) =>
-                self.word_value_to_u8(WordValue::Operand(expr1)) -
-                    self.word_value_to_u8(WordValue::Operand(expr2)),
-            WordValue::Sum(expr1, expr2) =>
-                self.word_value_to_u8(WordValue::Operand(expr1)) +
-                    self.word_value_to_u8(WordValue::Operand(expr2)),
-        }
+    fn two_word_value_to_u8(&self, value: TwoWordValue) -> u8 {
+        self.two_word_value_to_u16(value) as u8
     }
 
     fn two_word_value_to_u16(&self, value: TwoWordValue) -> u16 {
         match value {
+            TwoWordValue::Operand(TwoWordExpression::Char(char_value)) => char_value as u16,
+            TwoWordValue::Operand(TwoWordExpression::Dollar) => self.pc,
             TwoWordValue::Operand(TwoWordExpression::Label(l)) =>
                 (self.two_words
                     .get(&l)
                     .map(|n| *n)
-                    .or_else(|| self.words.get(&l).map(|n| (*n) as u16))
                     .unwrap()
                 ),
             TwoWordValue::Operand(TwoWordExpression::Literal(res)) => res,
-            TwoWordValue::Operand(TwoWordExpression::Dollar) => self.pc,
             TwoWordValue::Rest(expr1, expr2) =>
                 self.two_word_value_to_u16(TwoWordValue::Operand(expr1)) -
                     self.two_word_value_to_u16(TwoWordValue::Operand(expr2)),
@@ -154,7 +141,7 @@ impl Assembler {
         res.push(opcode);
     }
 
-    fn add_mvi_instruction(&self, res: &mut Vec<u8>, location: Location, word: WordValue) {
+    fn add_mvi_instruction(&self, res: &mut Vec<u8>, location: Location, word: TwoWordValue) {
         let opcode = match location {
             Location::Register { register: RegisterType::B } => 0x06,
             Location::Register { register: RegisterType::C } => 0x0e,
@@ -166,7 +153,7 @@ impl Assembler {
             Location::Register { register: RegisterType::A } => 0x3e,
             _ => panic!("Not implemented yet")
         };
-        let byte = self.word_value_to_u8(word);
+        let byte = self.two_word_value_to_u8(word);
         res.push(opcode);
         res.push(byte);
     }
@@ -209,9 +196,9 @@ impl Assembler {
         res.push(((two_word & 0xff00) >> 8) as u8);
     }
 
-    fn add_simple_word_instruction(&self, opcode: u8, res: &mut Vec<u8>, value: WordValue) {
+    fn add_simple_word_instruction(&self, opcode: u8, res: &mut Vec<u8>, value: TwoWordValue) {
         res.push(opcode);
-        res.push(self.word_value_to_u8(value));
+        res.push(self.two_word_value_to_u8(value));
     }
 
     fn add_mov_instruction(&self, res: &mut Vec<u8>, source: Location, destiny: Location) {
@@ -490,8 +477,8 @@ impl Assembler {
         res.push(opcode);
     }
 
-    fn add_rst_instruction(&self, res: &mut Vec<u8>, value: WordValue) {
-        match self.word_value_to_u8(value) {
+    fn add_rst_instruction(&self, res: &mut Vec<u8>, value: TwoWordValue) {
+        match self.two_word_value_to_u8(value) {
             0 => res.push(0xc7),
             1 => res.push(0xcf),
             2 => res.push(0xd7),
@@ -530,7 +517,7 @@ impl Assembler {
             Instruction(
                 InstructionCode::Mvi,
                 Some(InstructionArgument::DataStore(location)),
-                Some(InstructionArgument::Word(v)),
+                Some(InstructionArgument::TwoWord(v)),
             ) => self.add_mvi_instruction(&mut res, location, v),
             Instruction(InstructionCode::Rlc, _, _) => res.push(0x07),
             Instruction(
@@ -601,9 +588,9 @@ impl Assembler {
                 Some(InstructionArgument::DataStore(Location::Register { register })),
                 _
             ) => self.add_push_instruction(&mut res, register),
-            Instruction(InstructionCode::Adi, Some(InstructionArgument::Word(v)), _) =>
+            Instruction(InstructionCode::Adi, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_word_instruction(0xc6, &mut res, v),
-            Instruction(InstructionCode::Rst, Some(InstructionArgument::Word(v)), _) =>
+            Instruction(InstructionCode::Rst, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_rst_instruction(&mut res, v),
             Instruction(InstructionCode::Rz, _, _) => res.push(0xc8),
             Instruction(InstructionCode::Ret, _, _) => res.push(0xc9),
@@ -613,25 +600,25 @@ impl Assembler {
                 self.add_simple_two_word_instruction(0xcc, &mut res, v),
             Instruction(InstructionCode::Call, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0xcd, &mut res, v),
-            Instruction(InstructionCode::Aci, Some(InstructionArgument::Word(v)), _) =>
+            Instruction(InstructionCode::Aci, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_word_instruction(0xce, &mut res, v),
             Instruction(InstructionCode::Rnc, _, _) => res.push(0xd0),
             Instruction(InstructionCode::Jnc, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0xd2, &mut res, v),
-            Instruction(InstructionCode::Out, Some(InstructionArgument::Word(v)), _) =>
+            Instruction(InstructionCode::Out, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_word_instruction(0xd3, &mut res, v),
             Instruction(InstructionCode::Cnc, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0xd4, &mut res, v),
-            Instruction(InstructionCode::Sui, Some(InstructionArgument::Word(v)), _) =>
+            Instruction(InstructionCode::Sui, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_word_instruction(0xd6, &mut res, v),
             Instruction(InstructionCode::Rc, _, _) => res.push(0xd8),
             Instruction(InstructionCode::Jc, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0xda, &mut res, v),
-            Instruction(InstructionCode::In, Some(InstructionArgument::Word(v)), _) =>
+            Instruction(InstructionCode::In, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_word_instruction(0xdb, &mut res, v),
             Instruction(InstructionCode::Cc, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0xdc, &mut res, v),
-            Instruction(InstructionCode::Sbi, Some(InstructionArgument::Word(v)), _) =>
+            Instruction(InstructionCode::Sbi, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_word_instruction(0xde, &mut res, v),
             Instruction(InstructionCode::Rpo, _, _) => res.push(0xe0),
             Instruction(InstructionCode::Jpo, Some(InstructionArgument::TwoWord(v)), _) =>
@@ -639,7 +626,7 @@ impl Assembler {
             Instruction(InstructionCode::Xthl, _, _) => res.push(0xe3),
             Instruction(InstructionCode::Cpo, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0xe4, &mut res, v),
-            Instruction(InstructionCode::Ani, Some(InstructionArgument::Word(v)), _) =>
+            Instruction(InstructionCode::Ani, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_word_instruction(0xe6, &mut res, v),
             Instruction(InstructionCode::Rpe, _, _) => res.push(0xe8),
             Instruction(InstructionCode::Pchl, _, _) => res.push(0xe9),
@@ -648,7 +635,7 @@ impl Assembler {
             Instruction(InstructionCode::Xchg, _, _) => res.push(0xeb),
             Instruction(InstructionCode::Cpe, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0xec, &mut res, v),
-            Instruction(InstructionCode::Xri, Some(InstructionArgument::Word(v)), _) =>
+            Instruction(InstructionCode::Xri, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_word_instruction(0xee, &mut res, v),
             Instruction(InstructionCode::Rp, _, _) => res.push(0xf0),
             Instruction(InstructionCode::Jp, Some(InstructionArgument::TwoWord(v)), _) =>
@@ -656,7 +643,7 @@ impl Assembler {
             Instruction(InstructionCode::Di, _, _) => res.push(0xf3),
             Instruction(InstructionCode::Cp, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0xf4, &mut res, v),
-            Instruction(InstructionCode::Ori, Some(InstructionArgument::Word(v)), _) =>
+            Instruction(InstructionCode::Ori, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_word_instruction(0xf6, &mut res, v),
             Instruction(InstructionCode::Rm, _, _) => res.push(0xf8),
             Instruction(InstructionCode::Sphl, _, _) => res.push(0xf9),
@@ -665,10 +652,8 @@ impl Assembler {
             Instruction(InstructionCode::Ei, _, _) => res.push(0xfb),
             Instruction(InstructionCode::Cm, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0xfc, &mut res, v),
-            Instruction(InstructionCode::Cpi, Some(InstructionArgument::Word(v)), _) =>
-                self.add_simple_word_instruction(0xfe, &mut res, v),
             Instruction(InstructionCode::Cpi, Some(InstructionArgument::TwoWord(v)), _) =>
-                self.add_simple_two_word_instruction(0xfe, &mut res, v),
+                self.add_simple_word_instruction(0xfe, &mut res, v),
             i => panic!("unfined method {:?}", i),
         }
         res

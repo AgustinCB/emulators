@@ -141,24 +141,11 @@ pub enum AssemblerToken {
 }
 
 #[derive(Clone, Debug)]
-pub enum WordExpression {
-    Literal(u8),
-    Label(LabelExpression),
-    Char(char),
-}
-
-#[derive(Clone, Debug)]
-pub enum WordValue {
-    Operand(WordExpression),
-    Sum(WordExpression, WordExpression),
-    Rest(WordExpression, WordExpression),
-}
-
-#[derive(Clone, Debug)]
 pub enum TwoWordExpression {
+    Char(char),
+    Dollar,
     Literal(u16),
     Label(LabelExpression),
-    Dollar,
 }
 
 #[derive(Clone, Debug)]
@@ -170,7 +157,6 @@ pub enum TwoWordValue {
 
 #[derive(Clone, Debug)]
 pub enum InstructionArgument {
-    Word(WordValue),
     TwoWord(TwoWordValue),
     DataStore(Location),
 }
@@ -178,7 +164,7 @@ pub enum InstructionArgument {
 impl From<u8> for InstructionArgument {
     #[inline]
     fn from(byte: u8) -> InstructionArgument {
-        InstructionArgument::Word(WordValue::Operand(WordExpression::Literal(byte)))
+        InstructionArgument::TwoWord(TwoWordValue::Operand(TwoWordExpression::Literal(byte as u16)))
     }
 }
 
@@ -193,7 +179,7 @@ impl From<u16> for InstructionArgument {
 pub struct Instruction(InstructionCode, Option<InstructionArgument>, Option<InstructionArgument>);
 
 pub enum Statement {
-    WordDefinitionStatement(LabelExpression, WordValue),
+    WordDefinitionStatement(LabelExpression, TwoWordValue),
     InstructionExprStmt(Instruction),
     LabelDefinitionStatement(LabelExpression),
     OrgStatement(TwoWordValue),
