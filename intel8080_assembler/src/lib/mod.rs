@@ -149,6 +149,22 @@ pub enum TwoWordExpression {
 }
 
 #[derive(Clone, Debug)]
+pub enum OperationExpression {
+    And(Box<OperationExpression>, Box<OperationExpression>),
+    Div(TwoWordExpression, TwoWordExpression),
+    Mod(TwoWordExpression, TwoWordExpression),
+    Mult(TwoWordExpression, TwoWordExpression),
+    Not(Box<OperationExpression>),
+    Operand(TwoWordExpression),
+    Or(Box<OperationExpression>, Box<OperationExpression>),
+    Rest(Box<OperationExpression>, Box<OperationExpression>),
+    Shl(TwoWordExpression, TwoWordExpression),
+    Shr(TwoWordExpression, TwoWordExpression),
+    Sum(Box<OperationExpression>, Box<OperationExpression>),
+    Xor(Box<OperationExpression>, Box<OperationExpression>),
+}
+
+#[derive(Clone, Debug)]
 pub enum TwoWordValue {
     Operand(TwoWordExpression),
     Sum(TwoWordExpression, TwoWordExpression),
