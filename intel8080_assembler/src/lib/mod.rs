@@ -137,7 +137,6 @@ pub enum AssemblerToken {
     Org,
     Plus,
     TwoWord(u16),
-    Word(u8),
 }
 
 #[derive(Clone, Debug)]
