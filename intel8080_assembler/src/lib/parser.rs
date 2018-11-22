@@ -132,6 +132,18 @@ impl Parser {
         }
     }
 
+    fn parse_operation(&mut self) -> Result<OperationExpression, Error> {
+        loop {
+            let next = self.source.peek().map(|t| (*t).clone());
+            match next {
+                Some(n) =>
+                    return Err(Error::from(AssemblerError::ExpectingOperation { got: Some(n) })),
+                None =>
+                    return Err(Error::from(AssemblerError::ExpectingOperation { got: None })),
+            }
+        }
+    }
+
     fn parse_two_words_operands(&mut self, operation: &AssemblerToken, value: TwoWordExpression)
                                 -> Result<TwoWordValue, Error> {
         macro_rules! operation {

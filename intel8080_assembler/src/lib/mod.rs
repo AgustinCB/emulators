@@ -22,6 +22,10 @@ pub enum AssemblerError {
     ExpectingNumber {
         got: Option<AssemblerToken>,
     },
+    #[fail(display = "Expecting number, got {:?}", got)]
+    ExpectingOperation {
+        got: Option<AssemblerToken>,
+    },
     #[fail(display = "Expecting single character at line {}", line)]
     ExpectingCharacter {
         line: usize,
