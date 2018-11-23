@@ -144,6 +144,19 @@ impl Parser {
         }
     }
 
+    fn maybe_parse_two_word(&mut self) -> Option<TwoWordExpression> {
+        let next = self.source.peek().map(|t| (*t).clone());
+        let res = match next {
+            Some(AssemblerToken::Char(c_value)) => Some(TwoWordExpression::Char(c_value)),
+            Some(AssemblerToken::Dollar) => Some(TwoWordExpression::Dollar),
+            Some(AssemblerToken::TwoWord(value)) => Some(TwoWordExpression::Literal(value)),
+            Some(AssemblerToken::LabelToken(label)) => Some(TwoWordExpression::Label(label)),
+            _ => None
+        };
+        res.iter().for_each(|_| { self.source.next(); });
+        res
+    }
+
     fn parse_two_words_operands(&mut self, operation: &AssemblerToken, value: TwoWordExpression)
                                 -> Result<TwoWordValue, Error> {
         macro_rules! operation {
