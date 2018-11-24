@@ -44,6 +44,8 @@ impl<R: Read> Lexer<R> {
             '+' => Ok(Some(AssemblerToken::Plus)),
             '-' => Ok(Some(AssemblerToken::Minus)),
             '$' => Ok(Some(AssemblerToken::Dollar)),
+            '*' => Ok(Some(AssemblerToken::Mult)),
+            '/' => Ok(Some(AssemblerToken::Div)),
             _ => Err(Error::from(AssemblerError::UnexpectedCharacter { c: input, line: self.line })),
         }?;
         if let Some(t) = token {
@@ -71,6 +73,9 @@ impl<R: Read> Lexer<R> {
             "DB" => Some(AssemblerToken::Db),
             "DW" => Some(AssemblerToken::Dw),
             "ORG" => Some(AssemblerToken::Org),
+            "MOD" => Some(AssemblerToken::Mod),
+            "SHL" => Some(AssemblerToken::Shl),
+            "SHR" => Some(AssemblerToken::Shr),
             "NOP" => Some(AssemblerToken::InstructionCode(InstructionCode::Noop)),
             "LXI" => Some(AssemblerToken::InstructionCode(InstructionCode::Lxi)),
             "STAX" => Some(AssemblerToken::InstructionCode(InstructionCode::Stax)),

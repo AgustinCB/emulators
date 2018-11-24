@@ -133,13 +133,18 @@ pub enum AssemblerToken {
     Comma,
     DataStore(Location),
     Db,
+    Div,
     Dollar,
     Dw,
     InstructionCode(InstructionCode),
     LabelToken(LabelExpression),
     Minus,
+    Mod,
+    Mult,
     Org,
     Plus,
+    Shl,
+    Shr,
     TwoWord(u16),
 }
 
