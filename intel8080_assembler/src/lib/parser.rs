@@ -134,24 +134,39 @@ impl Parser {
 
     fn parse_operation(&mut self) -> Result<OperationExpression, Error> {
         loop {
+            let two_word = self.parse_two_word().map(|tw| OperationExpression::Operand(tw))?;
             let next = self.source.peek().map(|t| (*t).clone());
             match next {
                 Some(n) =>
-                    return Err(Error::from(AssemblerError::ExpectingOperation { got: Some(n) })),
+                    return Ok(two_word),
                 None =>
                     return Err(Error::from(AssemblerError::ExpectingOperation { got: None })),
             }
         }
     }
 
-    fn maybe_parse_two_word(&mut self) -> Option<TwoWordExpression> {
+    fn parse_last_operations(&mut self) -> Result<OperationExpression, Error> {
+        let two_word = self.parse_two_word()?;
+        let next = self.source.peek().map(|t| (*t).clone());
+        match next {
+            Some(AssemblerToken::Mult) => {
+                self.source.next();
+                let right_side = self.parse_last_operations()?;
+                Ok(OperationExpression::Mult(two_word, Box::new(right_side)))
+            },
+            Some(_) => Ok(OperationExpression::Operand(two_word)),
+            None => Err(Error::from(AssemblerError::ExpectingOperation { got: None })),
+        }
+    }
+
+    fn parse_two_word(&mut self) -> Result<TwoWordExpression, Error> {
         let next = self.source.peek().map(|t| (*t).clone());
         let res = match next {
-            Some(AssemblerToken::Char(c_value)) => Some(TwoWordExpression::Char(c_value)),
-            Some(AssemblerToken::Dollar) => Some(TwoWordExpression::Dollar),
-            Some(AssemblerToken::TwoWord(value)) => Some(TwoWordExpression::Literal(value)),
-            Some(AssemblerToken::LabelToken(label)) => Some(TwoWordExpression::Label(label)),
-            _ => None
+            Some(AssemblerToken::Char(c_value)) => Ok(TwoWordExpression::Char(c_value)),
+            Some(AssemblerToken::Dollar) => Ok(TwoWordExpression::Dollar),
+            Some(AssemblerToken::TwoWord(value)) => Ok(TwoWordExpression::Literal(value)),
+            Some(AssemblerToken::LabelToken(label)) => Ok(TwoWordExpression::Label(label)),
+            got => Err(Error::from(AssemblerError::ExpectingNumber { got }))
         };
         res.iter().for_each(|_| { self.source.next(); });
         res
