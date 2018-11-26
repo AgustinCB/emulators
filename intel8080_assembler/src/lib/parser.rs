@@ -149,10 +149,30 @@ impl Parser {
         let two_word = self.parse_two_word()?;
         let next = self.source.peek().map(|t| (*t).clone());
         match next {
+            Some(AssemblerToken::Div) => {
+                self.source.next();
+                let right_side = self.parse_last_operations()?;
+                Ok(OperationExpression::Div(two_word, Box::new(right_side)))
+            },
+            Some(AssemblerToken::Mod) => {
+                self.source.next();
+                let right_side = self.parse_last_operations()?;
+                Ok(OperationExpression::Mod(two_word, Box::new(right_side)))
+            },
             Some(AssemblerToken::Mult) => {
                 self.source.next();
                 let right_side = self.parse_last_operations()?;
                 Ok(OperationExpression::Mult(two_word, Box::new(right_side)))
+            },
+            Some(AssemblerToken::Shl) => {
+                self.source.next();
+                let right_side = self.parse_last_operations()?;
+                Ok(OperationExpression::Shl(two_word, Box::new(right_side)))
+            },
+            Some(AssemblerToken::Shr) => {
+                self.source.next();
+                let right_side = self.parse_last_operations()?;
+                Ok(OperationExpression::Shr(two_word, Box::new(right_side)))
             },
             Some(_) => Ok(OperationExpression::Operand(two_word)),
             None => Err(Error::from(AssemblerError::ExpectingOperation { got: None })),
