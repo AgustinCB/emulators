@@ -133,15 +133,60 @@ impl Parser {
     }
 
     fn parse_operation(&mut self) -> Result<OperationExpression, Error> {
-        loop {
-            let two_word = self.parse_two_word().map(|tw| OperationExpression::Operand(tw))?;
-            let next = self.source.peek().map(|t| (*t).clone());
-            match next {
-                Some(n) =>
-                    return Ok(two_word),
-                None =>
-                    return Err(Error::from(AssemblerError::ExpectingOperation { got: None })),
+        let left_side = self.parse_and_operation()?;
+        let next = self.source.peek().map(|t| (*t).clone());
+        match next {
+            Some(AssemblerToken::Or) => {
+                let right_side = self.parse_operation()?;
+                Ok(OperationExpression::Or(Box::new(left_side), Box::new(right_side)))
+            },
+            Some(AssemblerToken::Xor) => {
+                let right_side = self.parse_operation()?;
+                Ok(OperationExpression::Xor(Box::new(left_side), Box::new(right_side)))
+            },
+            _ => Ok(left_side),
+        }
+    }
+
+    fn parse_and_operation(&mut self) -> Result<OperationExpression, Error> {
+        let left_side = self.parse_not_operation()?;
+        let next = self.source.peek().map(|t| (*t).clone());
+        match next {
+            Some(AssemblerToken::And) => {
+                let right_side = self.parse_and_operation()?;
+                Ok(OperationExpression::And(Box::new(left_side), Box::new(right_side)))
             }
+            _ => Ok(left_side)
+        }
+    }
+
+    fn parse_not_operation(&mut self) -> Result<OperationExpression, Error> {
+        let next = self.source.peek().map(|t| (*t).clone());
+        match next {
+            Some(AssemblerToken::Not) => {
+                let right_side = self.parse_sum_operations()?;
+                Ok(OperationExpression::Not(Box::new(right_side)))
+            },
+            _ => self.parse_sum_operations(),
+        }
+    }
+
+    fn parse_sum_operations(&mut self) -> Result<OperationExpression, Error> {
+        let left_side = self.parse_last_operations()?;
+        let next = self.source.peek().map(|t| (*t).clone());
+        match next {
+            Some(AssemblerToken::Plus) => {
+                self.source.next();
+                let right_side = self.parse_sum_operations()?;
+                Ok(OperationExpression::Sum(Box::new(left_side), Box::new(right_side)))
+            },
+            Some(AssemblerToken::Minus) => {
+                self.source.next();
+                let right_side = self.parse_sum_operations()?;
+                Ok(OperationExpression::Rest(Box::new(left_side), Box::new(right_side)))
+            },
+            Some(_) => Ok(left_side),
+            None => Err(Error::from(AssemblerError::ExpectingOperation { got: None })),
         }
     }
 

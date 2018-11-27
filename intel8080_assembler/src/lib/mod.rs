@@ -128,6 +128,7 @@ pub enum InstructionCode {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum AssemblerToken {
+    And,
     Char(char),
     Colon,
     Comma,
@@ -141,11 +142,14 @@ pub enum AssemblerToken {
     Minus,
     Mod,
     Mult,
+    Not,
+    Or,
     Org,
     Plus,
     Shl,
     Shr,
     TwoWord(u16),
+    Xor,
 }
 
 #[derive(Clone, Debug)]
