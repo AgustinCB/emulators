@@ -53,6 +53,30 @@ impl Assembler {
         self.two_word_value_to_u16(value) as u8
     }
 
+    fn operation_to_u16(&self, operation: OperationExpression) -> u16 {
+        match operation {
+            OperationExpression::Operand(op) => self.operand_to_u16(op),
+            OperationExpression::Div(op, left) =>
+                self.operand_to_u16(op).wrapping_div(self.operation_to_u16(*left)),
+            OperationExpression::Mult(op, left) =>
+                self.operand_to_u16(op).wrapping_mul(self.operation_to_u16(*left)),
+            _ => panic!("Not implemented yet"),
+        }
+    }
+
+    fn operand_to_u16(&self, operand: TwoWordExpression) -> u16 {
+        match operand {
+            TwoWordExpression::Char(char_value) => char_value as u16,
+            TwoWordExpression::Dollar => self.pc,
+            TwoWordExpression::Label(l) =>
+                self.two_words
+                    .get(&l)
+                    .map(|n| *n)
+                    .unwrap(),
+            TwoWordExpression::Literal(v) => v,
+        }
+    }
+
     fn two_word_value_to_u16(&self, value: TwoWordValue) -> u16 {
         match value {
             TwoWordValue::Operand(TwoWordExpression::Char(char_value)) => char_value as u16,
