@@ -169,9 +169,9 @@ pub enum OperationExpression {
     Not(Box<OperationExpression>),
     Operand(TwoWordExpression),
     Or(Box<OperationExpression>, Box<OperationExpression>),
-    Rest(Box<OperationExpression>, Box<OperationExpression>),
     Shl(TwoWordExpression, Box<OperationExpression>),
     Shr(TwoWordExpression, Box<OperationExpression>),
+    Sub(Box<OperationExpression>, Box<OperationExpression>),
     Sum(Box<OperationExpression>, Box<OperationExpression>),
     Xor(Box<OperationExpression>, Box<OperationExpression>),
 }

@@ -183,7 +183,7 @@ impl Parser {
             Some(AssemblerToken::Minus) => {
                 self.source.next();
                 let right_side = self.parse_sum_operations()?;
-                Ok(OperationExpression::Rest(Box::new(left_side), Box::new(right_side)))
+                Ok(OperationExpression::Sub(Box::new(left_side), Box::new(right_side)))
             },
             Some(_) => Ok(left_side),
             None => Err(Error::from(AssemblerError::ExpectingOperation { got: None })),

@@ -55,12 +55,28 @@ impl Assembler {
 
     fn operation_to_u16(&self, operation: OperationExpression) -> u16 {
         match operation {
-            OperationExpression::Operand(op) => self.operand_to_u16(op),
+            OperationExpression::And(left, right) =>
+                self.operation_to_u16(*left) & self.operation_to_u16(*right),
             OperationExpression::Div(op, left) =>
                 self.operand_to_u16(op).wrapping_div(self.operation_to_u16(*left)),
+            OperationExpression::Not(op) => !self.operation_to_u16(*op),
+            OperationExpression::Mod(op, left) =>
+                self.operand_to_u16(op) % self.operation_to_u16(*left),
             OperationExpression::Mult(op, left) =>
                 self.operand_to_u16(op).wrapping_mul(self.operation_to_u16(*left)),
-            _ => panic!("Not implemented yet"),
+            OperationExpression::Operand(op) => self.operand_to_u16(op),
+            OperationExpression::Or(left, right) =>
+                self.operation_to_u16(*left) | self.operation_to_u16(*right),
+            OperationExpression::Sub(right, left) =>
+                self.operation_to_u16(*right).wrapping_sub(self.operation_to_u16(*left)),
+            OperationExpression::Shl(op, left) =>
+                self.operand_to_u16(op).wrapping_shl(self.operation_to_u16(*left) as u32),
+            OperationExpression::Shr(op, left) =>
+                self.operand_to_u16(op).wrapping_shr(self.operation_to_u16(*left) as u32),
+            OperationExpression::Sum(right, left) =>
+                self.operation_to_u16(*right).wrapping_add(self.operation_to_u16(*left)),
+            OperationExpression::Xor(left, right) =>
+                self.operation_to_u16(*left) ^ self.operation_to_u16(*right),
         }
     }
 
