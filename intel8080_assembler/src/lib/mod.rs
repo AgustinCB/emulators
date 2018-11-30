@@ -177,29 +177,26 @@ pub enum OperationExpression {
 }
 
 #[derive(Clone, Debug)]
-pub enum TwoWordValue {
-    Operand(TwoWordExpression),
-    Sum(TwoWordExpression, TwoWordExpression),
-    Rest(TwoWordExpression, TwoWordExpression),
-}
-
-#[derive(Clone, Debug)]
 pub enum InstructionArgument {
-    TwoWord(TwoWordValue),
+    TwoWord(OperationExpression),
     DataStore(Location),
 }
 
 impl From<u8> for InstructionArgument {
     #[inline]
     fn from(byte: u8) -> InstructionArgument {
-        InstructionArgument::TwoWord(TwoWordValue::Operand(TwoWordExpression::Literal(byte as u16)))
+        InstructionArgument::TwoWord(
+            OperationExpression::Operand(TwoWordExpression::Literal(byte as u16))
+        )
     }
 }
 
 impl From<u16> for InstructionArgument {
     #[inline]
     fn from(two_word: u16) -> InstructionArgument {
-        InstructionArgument::TwoWord(TwoWordValue::Operand(TwoWordExpression::Literal(two_word)))
+        InstructionArgument::TwoWord(
+            OperationExpression::Operand(TwoWordExpression::Literal(two_word))
+        )
     }
 }
 
@@ -207,11 +204,11 @@ impl From<u16> for InstructionArgument {
 pub struct Instruction(InstructionCode, Option<InstructionArgument>, Option<InstructionArgument>);
 
 pub enum Statement {
-    WordDefinitionStatement(LabelExpression, TwoWordValue),
+    WordDefinitionStatement(LabelExpression, OperationExpression),
     InstructionExprStmt(Instruction),
     LabelDefinitionStatement(LabelExpression),
-    OrgStatement(TwoWordValue),
-    TwoWordDefinitionStatement(LabelExpression, TwoWordValue),
+    OrgStatement(OperationExpression),
+    TwoWordDefinitionStatement(LabelExpression, OperationExpression),
 }
 
 mod lexer;

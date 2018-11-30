@@ -33,15 +33,15 @@ impl Assembler {
                     self.two_words.insert(label, self.pc);
                 },
                 Statement::OrgStatement(tw) => {
-                    let value = self.two_word_value_to_u16(tw);
+                    let value = self.operation_to_u16(tw);
                     self.pc = value;
                 },
                 Statement::TwoWordDefinitionStatement(label, value) => {
-                    let value = self.two_word_value_to_u16(value);
+                    let value = self.operation_to_u16(value);
                     self.two_words.insert(label, value);
                 },
                 Statement::WordDefinitionStatement(label, value) => {
-                    let value = self.two_word_value_to_u8(value) as u16;
+                    let value = self.operation_to_u8(value) as u16;
                     self.two_words.insert(label, value);
                 },
             };
@@ -49,8 +49,8 @@ impl Assembler {
         Ok(self.rom)
     }
 
-    fn two_word_value_to_u8(&self, value: TwoWordValue) -> u8 {
-        self.two_word_value_to_u16(value) as u8
+    fn operation_to_u8(&self, operation: OperationExpression) -> u8 {
+        self.operation_to_u16(operation) as u8
     }
 
     fn operation_to_u16(&self, operation: OperationExpression) -> u16 {
@@ -93,26 +93,6 @@ impl Assembler {
         }
     }
 
-    fn two_word_value_to_u16(&self, value: TwoWordValue) -> u16 {
-        match value {
-            TwoWordValue::Operand(TwoWordExpression::Char(char_value)) => char_value as u16,
-            TwoWordValue::Operand(TwoWordExpression::Dollar) => self.pc,
-            TwoWordValue::Operand(TwoWordExpression::Label(l)) =>
-                (self.two_words
-                    .get(&l)
-                    .map(|n| *n)
-                    .unwrap()
-                ),
-            TwoWordValue::Operand(TwoWordExpression::Literal(res)) => res,
-            TwoWordValue::Rest(expr1, expr2) =>
-                self.two_word_value_to_u16(TwoWordValue::Operand(expr1)) -
-                    self.two_word_value_to_u16(TwoWordValue::Operand(expr2)),
-            TwoWordValue::Sum(expr1, expr2) =>
-                self.two_word_value_to_u16(TwoWordValue::Operand(expr1)) +
-                    self.two_word_value_to_u16(TwoWordValue::Operand(expr2)),
-        }
-    }
-
     fn add_instruction(&mut self, instruction: Instruction) {
         for byte in self.bytes_for_instruction(instruction) {
             self.rom[self.pc as usize] = byte;
@@ -120,7 +100,7 @@ impl Assembler {
         }
     }
 
-    fn add_lxi_instruction(&self, res: &mut Vec<u8>, register: RegisterType, two_words: TwoWordValue) {
+    fn add_lxi_instruction(&self, res: &mut Vec<u8>, register: RegisterType, op: OperationExpression) {
         let opcode = match register {
             RegisterType::B => 0x01,
             RegisterType::D => 0x11,
@@ -128,7 +108,7 @@ impl Assembler {
             RegisterType::Sp => 0x31,
             _ => panic!("Not implemented yet")
         };
-        self.add_simple_two_word_instruction(opcode, res, two_words);
+        self.add_simple_two_word_instruction(opcode, res, op);
     }
 
     fn add_stax_instruction(&self, res: &mut Vec<u8>, register: RegisterType) {
@@ -181,7 +161,7 @@ impl Assembler {
         res.push(opcode);
     }
 
-    fn add_mvi_instruction(&self, res: &mut Vec<u8>, location: Location, word: TwoWordValue) {
+    fn add_mvi_instruction(&self, res: &mut Vec<u8>, location: Location, op: OperationExpression) {
         let opcode = match location {
             Location::Register { register: RegisterType::B } => 0x06,
             Location::Register { register: RegisterType::C } => 0x0e,
@@ -193,7 +173,7 @@ impl Assembler {
             Location::Register { register: RegisterType::A } => 0x3e,
             _ => panic!("Not implemented yet")
         };
-        let byte = self.two_word_value_to_u8(word);
+        let byte = self.operation_to_u8(op);
         res.push(opcode);
         res.push(byte);
     }
@@ -229,16 +209,16 @@ impl Assembler {
         res.push(opcode);
     }
 
-    fn add_simple_two_word_instruction(&self, opcode: u8, res: &mut Vec<u8>, value: TwoWordValue) {
-        let two_word = self.two_word_value_to_u16(value);
+    fn add_simple_two_word_instruction(&self, opcode: u8, res: &mut Vec<u8>, op: OperationExpression) {
+        let two_word = self.operation_to_u16(op);
         res.push(opcode);
         res.push((two_word & 0x00ff) as u8);
         res.push(((two_word & 0xff00) >> 8) as u8);
     }
 
-    fn add_simple_word_instruction(&self, opcode: u8, res: &mut Vec<u8>, value: TwoWordValue) {
+    fn add_simple_word_instruction(&self, opcode: u8, res: &mut Vec<u8>, op: OperationExpression) {
         res.push(opcode);
-        res.push(self.two_word_value_to_u8(value));
+        res.push(self.operation_to_u8(op));
     }
 
     fn add_mov_instruction(&self, res: &mut Vec<u8>, source: Location, destiny: Location) {
@@ -517,8 +497,8 @@ impl Assembler {
         res.push(opcode);
     }
 
-    fn add_rst_instruction(&self, res: &mut Vec<u8>, value: TwoWordValue) {
-        match self.two_word_value_to_u8(value) {
+    fn add_rst_instruction(&self, res: &mut Vec<u8>, op: OperationExpression) {
+        match self.operation_to_u8(op) {
             0 => res.push(0xc7),
             1 => res.push(0xcf),
             2 => res.push(0xd7),

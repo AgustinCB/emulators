@@ -30,19 +30,10 @@ impl Parser {
     fn parse_statement(&mut self, input: &AssemblerToken) -> Result<(), Error> {
         let next = self.source.peek().map(|a| (*a).clone());
         let expression = match (input, next) {
-            (AssemblerToken::Org, Some(AssemblerToken::TwoWord(value))) => {
+            (AssemblerToken::Org, _) => {
                 self.source.next();
-                self.parse_statement_with_two_words_operation(
-                    TwoWordExpression::Literal(value),
-                    |o| Statement::OrgStatement(o),
-                    |v| Statement::OrgStatement(TwoWordValue::Operand(v)))
-            },
-            (AssemblerToken::Org, Some(AssemblerToken::LabelToken(label))) => {
-                self.source.next();
-                self.parse_statement_with_two_words_operation(
-                    TwoWordExpression::Label(label),
-                    |o| Statement::OrgStatement(o),
-                    |v| Statement::OrgStatement(TwoWordValue::Operand(v)))
+                let op = self.parse_operation()?;
+                Ok(Statement::OrgStatement(op))
             },
             (&AssemblerToken::LabelToken(ref label), Some(AssemblerToken::Colon)) => {
                 self.source.next();
@@ -65,71 +56,14 @@ impl Parser {
 
     fn parse_word_definition(&mut self, label: &LabelExpression) -> Result<Statement, Error> {
         self.source.next();
-        self.parse_statement_with_two_word_value(
-            |o| Statement::WordDefinitionStatement(label.clone(), o),
-            |v| Statement::WordDefinitionStatement(label.clone(), TwoWordValue::Operand(v))
-        )
+        let op = self.parse_operation()?;
+        Ok(Statement::WordDefinitionStatement(label.clone(), op))
     }
 
     fn parse_two_word_definition(&mut self, label: &LabelExpression) -> Result<Statement, Error> {
         self.source.next();
-        self.parse_statement_with_two_word_value(
-            |o| Statement::TwoWordDefinitionStatement(label.clone(), o),
-            |v| Statement::TwoWordDefinitionStatement(label.clone(), TwoWordValue::Operand(v))
-        )
-    }
-
-    fn parse_statement_with_two_word_value<O, D>
-        (&mut self, op: O, default: D) -> Result<Statement, Error>
-        where O: FnOnce(TwoWordValue) -> Statement,
-              D: FnOnce(TwoWordExpression) -> Statement {
-        let next = self.source.peek().map(|t| (*t).clone());
-        let res = match next {
-            Some(AssemblerToken::TwoWord(value)) => {
-                self.source.next();
-                self.parse_statement_with_two_words_operation(
-                    TwoWordExpression::Literal(value), op, default
-                )
-            },
-            Some(AssemblerToken::Char(char_value)) => {
-                self.source.next();
-                self.parse_statement_with_two_words_operation(
-                    TwoWordExpression::Literal(char_value as u16), op, default
-                )
-            },
-            Some(AssemblerToken::LabelToken(ref value_label)) => {
-                self.source.next();
-                self.parse_statement_with_two_words_operation(
-                    TwoWordExpression::Label(value_label.clone()), op, default
-                )
-            },
-            Some(AssemblerToken::Dollar) => {
-                self.source.next();
-                self.parse_statement_with_two_words_operation(
-                    TwoWordExpression::Dollar, op, default
-                )
-            },
-            Some(n) => Err(Error::from(AssemblerError::ExpectingNumber { got: Some(n) })),
-            None => Err(Error::from(AssemblerError::ExpectingNumber { got: None })),
-        }?;
-        Ok(res)
-    }
-
-    fn parse_statement_with_two_words_operation<O, D>
-        (&mut self, value: TwoWordExpression, op: O, default: D) -> Result<Statement, Error>
-        where O: FnOnce(TwoWordValue) -> Statement,
-              D: FnOnce(TwoWordExpression) -> Statement {
-        let next = self.source.peek().map(|t| (*t).clone());
-        match next {
-            Some(ref op_token@AssemblerToken::Plus) |
-            Some(ref op_token@AssemblerToken::Minus) => {
-                self.source.next();
-                let r = self.parse_two_words_operands(op_token, value)?;
-                self.source.next();
-                Ok(op(r))
-            },
-            _ => Ok(default(value)),
-        }
+        let op = self.parse_operation()?;
+        Ok(Statement::TwoWordDefinitionStatement(label.clone(), op))
     }
 
     fn parse_operation(&mut self) -> Result<OperationExpression, Error> {
@@ -235,46 +169,6 @@ impl Parser {
         };
         res.iter().for_each(|_| { self.source.next(); });
         res
-    }
-
-    fn parse_two_words_operands(&mut self, operation: &AssemblerToken, value: TwoWordExpression)
-                                -> Result<TwoWordValue, Error> {
-        macro_rules! operation {
-            ($op:ident,$value:ident,$operand:expr) => {
-                if let AssemblerToken::Plus = $op {
-                    Ok(TwoWordValue::Sum($value, $operand))
-                } else if let AssemblerToken::Minus = $op {
-                    Ok(TwoWordValue::Rest($value, $operand))
-                } else {
-                    Err(Error::from(AssemblerError::InvalidOperationToken))
-                }
-            }
-        }
-        match self.source.peek() {
-            Some(&AssemblerToken::TwoWord(other_value)) => {
-                operation!(
-                    operation,
-                    value,
-                    TwoWordExpression::Literal(other_value)
-                )
-            },
-            Some(&AssemblerToken::LabelToken(ref other_label)) => {
-                operation!(
-                    operation,
-                    value,
-                    TwoWordExpression::Label(other_label.clone())
-                )
-            },
-            Some(&AssemblerToken::Dollar) => {
-                operation!(
-                    operation,
-                    value,
-                    TwoWordExpression::Dollar
-                )
-            },
-            Some(n) => Err(Error::from(AssemblerError::ExpectingNumber { got: Some((*n).clone()) })),
-            None => Err(Error::from(AssemblerError::ExpectingNumber { got: None })),
-        }
     }
 
     fn consume_comma(&mut self) -> Result<(), Error> {
@@ -509,14 +403,12 @@ impl Parser {
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::Sp}))) => {
                 self.source.next();
                 self.consume_comma()?;
-                self.parse_statement_with_two_word_value(
-                    |o| Statement::InstructionExprStmt(Instruction(
-                        InstructionCode::Lxi, Some(InstructionArgument::DataStore(l)), Some(InstructionArgument::TwoWord(o))
-                    )),
-                    |v| Statement::InstructionExprStmt(Instruction(
-                        InstructionCode::Lxi, Some(InstructionArgument::DataStore(l)), Some(InstructionArgument::TwoWord(TwoWordValue::Operand(v)))
-                    ))
-                )
+                let op = self.parse_operation()?;
+                Ok(Statement::InstructionExprStmt(Instruction(
+                    InstructionCode::Lxi,
+                    Some(InstructionArgument::DataStore(l)),
+                    Some(InstructionArgument::TwoWord(op))
+                )))
             },
             (InstructionCode::Lxi, n) => Err(Error::from(AssemblerError::ExpectingNumber {
                 got: (*n).clone(),
@@ -802,13 +694,9 @@ impl Parser {
 
     #[inline]
     fn parse_two_word_instruction(&mut self, i: InstructionCode) -> Result<Statement, Error> {
-        self.parse_statement_with_two_word_value(
-            |o| Statement::InstructionExprStmt(Instruction(
-                i.clone(), Some(InstructionArgument::TwoWord(o)), None
-            )),
-            |v| Statement::InstructionExprStmt(Instruction(
-                i.clone(), Some(InstructionArgument::TwoWord(TwoWordValue::Operand(v))), None
-            ))
-        )
+        let op = self.parse_operation()?;
+        Ok(Statement::InstructionExprStmt(Instruction(
+            i.clone(), Some(InstructionArgument::TwoWord(op)), None
+        )))
     }
 }
