@@ -2,7 +2,7 @@ NUM DB 1
 
 MVI A, 10
 HERE:
-MVI A, 10N
+MVI A, 10B
 MVI A, 10O
 MVI A, 10H
 JMP $ + 1

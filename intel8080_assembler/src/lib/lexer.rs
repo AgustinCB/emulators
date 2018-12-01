@@ -164,34 +164,21 @@ impl<R: Read> Lexer<R> {
 
     #[inline]
     fn maybe_scan_number(&mut self, first_digit: char) -> Result<Option<AssemblerToken>, Error> {
-        let rest = self.consume(|c| c.is_digit(16))?;
-        let number_string = format!("{}{}", first_digit, rest);
-        let radix = if self.check(|c| c == 'H') {
-            self.source.next();
+        let rest = self.consume(|c| c.is_alphanumeric())?;
+        let mut number_string = format!("{}{}", first_digit, rest);
+        let radix_marker = number_string.pop().unwrap(); // Safe because len(number_string) > 0
+        let radix = if radix_marker == 'H' {
             16
-        } else if self.check(|c| c == 'O') || self.check(|c| c == 'Q') {
-            self.source.next();
+        } else if radix_marker == 'O' || radix_marker == 'Q' {
             8
-        } else if self.check(|c| c == 'N') {
-            self.source.next();
+        } else if radix_marker == 'B' {
             2
         } else {
+            number_string.push(radix_marker);
             10
         };
         let number = u16::from_str_radix(&number_string, radix)?;
-        if self.at_end_of_lexeme() {
-            Ok(Some(AssemblerToken::TwoWord(number)))
-        } else if let Some(Ok(c)) = self.source.peek() {
-            Err(Error::from(AssemblerError::UnexpectedCharacter { c: (*c) as char, line: self.line }))
-        } else {
-            Err(Error::from(AssemblerError::UndefinedError))
-        }
-    }
-
-    #[inline]
-    fn at_end_of_lexeme(&mut self) -> bool {
-        self.source.peek().is_none() ||
-            self.check(|c| !c.is_alphanumeric())
+        Ok(Some(AssemblerToken::TwoWord(number)))
     }
 
     #[inline]
