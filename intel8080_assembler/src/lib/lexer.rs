@@ -179,7 +179,7 @@ impl<R: Read> Lexer<R> {
             10
         };
         let number = u16::from_str_radix(&number_string, radix)?;
-        if self.at_end_of_statement() {
+        if self.at_end_of_lexeme() {
             Ok(Some(AssemblerToken::TwoWord(number)))
         } else if let Some(Ok(c)) = self.source.peek() {
             Err(Error::from(AssemblerError::UnexpectedCharacter { c: (*c) as char, line: self.line }))
@@ -189,9 +189,9 @@ impl<R: Read> Lexer<R> {
     }
 
     #[inline]
-    fn at_end_of_statement(&mut self) -> bool {
+    fn at_end_of_lexeme(&mut self) -> bool {
         self.source.peek().is_none() ||
-            self.check(|c| c.is_whitespace() || c == ',' || c == '+' || c == '-')
+            self.check(|c| !c.is_alphanumeric())
     }
 
     #[inline]

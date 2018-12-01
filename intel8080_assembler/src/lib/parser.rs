@@ -119,8 +119,7 @@ impl Parser {
                 let right_side = self.parse_sum_operations()?;
                 Ok(OperationExpression::Sub(Box::new(left_side), Box::new(right_side)))
             },
-            Some(_) => Ok(left_side),
-            None => Err(Error::from(AssemblerError::ExpectingOperation { got: None })),
+            _ => Ok(left_side),
         }
     }
 
@@ -153,8 +152,7 @@ impl Parser {
                 let right_side = self.parse_last_operations()?;
                 Ok(OperationExpression::Shr(two_word, Box::new(right_side)))
             },
-            Some(_) => Ok(OperationExpression::Operand(two_word)),
-            None => Err(Error::from(AssemblerError::ExpectingOperation { got: None })),
+            _ => Ok(OperationExpression::Operand(two_word)),
         }
     }
 

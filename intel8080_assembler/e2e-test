@@ -8,7 +8,7 @@ folder=$(mktemp -d)
 trap "rm -fr $folder; exit" EXIT
 cargo run "$file_path" "$folder"/"$file".rom
 cd ../disassembler
-cargo run intel8080 "$folder"/"$file".rom | grep -v NOP > "$folder"/cpudiag.actual.asm
+cargo run intel8080 "$folder"/"$file".rom | grep -v NOP > "$folder"/actual.asm
 cd ../intel8080_assembler
 
-diff ./tests/"$file".out "$folder"/cpudiag.actual.asm
+diff ./tests/"$file".out "$folder"/actual.asm
