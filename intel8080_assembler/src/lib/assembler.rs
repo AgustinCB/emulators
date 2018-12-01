@@ -608,7 +608,7 @@ impl Assembler {
                 Some(InstructionArgument::DataStore(Location::Register { register })),
                 _
             ) => self.add_push_instruction(&mut res, register),
-            Instruction(InstructionCode::Adi, Some(InstructionArgument::TwoWord(v)), _) =>
+            Instruction(InstructionCode::Adi, Some(InstructionArgument::Word(v)), _) =>
                 self.add_simple_word_instruction(0xc6, &mut res, v),
             Instruction(InstructionCode::Rst, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_rst_instruction(&mut res, v),
@@ -620,25 +620,25 @@ impl Assembler {
                 self.add_simple_two_word_instruction(0xcc, &mut res, v),
             Instruction(InstructionCode::Call, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0xcd, &mut res, v),
-            Instruction(InstructionCode::Aci, Some(InstructionArgument::TwoWord(v)), _) =>
+            Instruction(InstructionCode::Aci, Some(InstructionArgument::Word(v)), _) =>
                 self.add_simple_word_instruction(0xce, &mut res, v),
             Instruction(InstructionCode::Rnc, _, _) => res.push(0xd0),
             Instruction(InstructionCode::Jnc, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0xd2, &mut res, v),
-            Instruction(InstructionCode::Out, Some(InstructionArgument::TwoWord(v)), _) =>
+            Instruction(InstructionCode::Out, Some(InstructionArgument::Word(v)), _) =>
                 self.add_simple_word_instruction(0xd3, &mut res, v),
             Instruction(InstructionCode::Cnc, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0xd4, &mut res, v),
-            Instruction(InstructionCode::Sui, Some(InstructionArgument::TwoWord(v)), _) =>
+            Instruction(InstructionCode::Sui, Some(InstructionArgument::Word(v)), _) =>
                 self.add_simple_word_instruction(0xd6, &mut res, v),
             Instruction(InstructionCode::Rc, _, _) => res.push(0xd8),
             Instruction(InstructionCode::Jc, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0xda, &mut res, v),
-            Instruction(InstructionCode::In, Some(InstructionArgument::TwoWord(v)), _) =>
+            Instruction(InstructionCode::In, Some(InstructionArgument::Word(v)), _) =>
                 self.add_simple_word_instruction(0xdb, &mut res, v),
             Instruction(InstructionCode::Cc, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0xdc, &mut res, v),
-            Instruction(InstructionCode::Sbi, Some(InstructionArgument::TwoWord(v)), _) =>
+            Instruction(InstructionCode::Sbi, Some(InstructionArgument::Word(v)), _) =>
                 self.add_simple_word_instruction(0xde, &mut res, v),
             Instruction(InstructionCode::Rpo, _, _) => res.push(0xe0),
             Instruction(InstructionCode::Jpo, Some(InstructionArgument::TwoWord(v)), _) =>
@@ -646,7 +646,7 @@ impl Assembler {
             Instruction(InstructionCode::Xthl, _, _) => res.push(0xe3),
             Instruction(InstructionCode::Cpo, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0xe4, &mut res, v),
-            Instruction(InstructionCode::Ani, Some(InstructionArgument::TwoWord(v)), _) =>
+            Instruction(InstructionCode::Ani, Some(InstructionArgument::Word(v)), _) =>
                 self.add_simple_word_instruction(0xe6, &mut res, v),
             Instruction(InstructionCode::Rpe, _, _) => res.push(0xe8),
             Instruction(InstructionCode::Pchl, _, _) => res.push(0xe9),
@@ -655,7 +655,7 @@ impl Assembler {
             Instruction(InstructionCode::Xchg, _, _) => res.push(0xeb),
             Instruction(InstructionCode::Cpe, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0xec, &mut res, v),
-            Instruction(InstructionCode::Xri, Some(InstructionArgument::TwoWord(v)), _) =>
+            Instruction(InstructionCode::Xri, Some(InstructionArgument::Word(v)), _) =>
                 self.add_simple_word_instruction(0xee, &mut res, v),
             Instruction(InstructionCode::Rp, _, _) => res.push(0xf0),
             Instruction(InstructionCode::Jp, Some(InstructionArgument::TwoWord(v)), _) =>
@@ -663,7 +663,7 @@ impl Assembler {
             Instruction(InstructionCode::Di, _, _) => res.push(0xf3),
             Instruction(InstructionCode::Cp, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0xf4, &mut res, v),
-            Instruction(InstructionCode::Ori, Some(InstructionArgument::TwoWord(v)), _) =>
+            Instruction(InstructionCode::Ori, Some(InstructionArgument::Word(v)), _) =>
                 self.add_simple_word_instruction(0xf6, &mut res, v),
             Instruction(InstructionCode::Rm, _, _) => res.push(0xf8),
             Instruction(InstructionCode::Sphl, _, _) => res.push(0xf9),
@@ -672,7 +672,7 @@ impl Assembler {
             Instruction(InstructionCode::Ei, _, _) => res.push(0xfb),
             Instruction(InstructionCode::Cm, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0xfc, &mut res, v),
-            Instruction(InstructionCode::Cpi, Some(InstructionArgument::TwoWord(v)), _) =>
+            Instruction(InstructionCode::Cpi, Some(InstructionArgument::Word(v)), _) =>
                 self.add_simple_word_instruction(0xfe, &mut res, v),
             i => panic!("unfined method {:?}", i),
         }

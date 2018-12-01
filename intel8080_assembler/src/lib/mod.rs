@@ -180,6 +180,14 @@ pub enum OperationExpression {
 pub enum InstructionArgument {
     TwoWord(OperationExpression),
     DataStore(Location),
+    Word(OperationExpression),
+}
+
+impl From<OperationExpression> for InstructionArgument {
+    #[inline]
+    fn from(op: OperationExpression) -> InstructionArgument {
+        InstructionArgument::TwoWord(op)
+    }
 }
 
 impl From<u8> for InstructionArgument {
