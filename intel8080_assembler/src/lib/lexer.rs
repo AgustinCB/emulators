@@ -39,6 +39,8 @@ impl<R: Read> Lexer<R> {
             c if c.is_alphabetic() || c == '?' || c == '@' =>
                 self.either_label_or_keyword(input),
             '\'' => self.scan_char(),
+            '(' => Ok(Some(AssemblerToken::LeftParen)),
+            ')' => Ok(Some(AssemblerToken::RightParen)),
             ':' => Ok(Some(AssemblerToken::Colon)),
             ',' => Ok(Some(AssemblerToken::Comma)),
             '+' => Ok(Some(AssemblerToken::Plus)),

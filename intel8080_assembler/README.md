@@ -20,8 +20,9 @@ operation           → andOperation ( ("OR" | "XOR") operation )? ;
 andOperation        → notOperation ( "AND" andOperation )? ;
 notOperation        → ( "NOT" )? sumOperation ;
 sumOperation        → lastOperations ( ( "+" | "-" ) sumOperation )? ;
-lastOperations      → numberVariable ( ( "*" | "/" | "MOD" | "SHL" | "SHR" ) 
-                           lastOperations )? ; 
+lastOperations      → groupValue ( ( "*" | "/" | "MOD" | "SHL" | "SHR" ) 
+                           lastOperations )? ;
+groupValue          → "(" operation ")" | numberVariable ;
 numberVariable      → numberLiteral
                     | label 
                     | "$" 

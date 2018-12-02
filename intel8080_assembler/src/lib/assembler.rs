@@ -57,22 +57,23 @@ impl Assembler {
         match operation {
             OperationExpression::And(left, right) =>
                 self.operation_to_u16(*left) & self.operation_to_u16(*right),
-            OperationExpression::Div(op, left) =>
-                self.operand_to_u16(op).wrapping_div(self.operation_to_u16(*left)),
+            OperationExpression::Div(left, right) =>
+                self.operation_to_u16(*left).wrapping_div(self.operation_to_u16(*right)),
+            OperationExpression::Group(op) => self.operation_to_u16(*op),
             OperationExpression::Not(op) => !self.operation_to_u16(*op),
-            OperationExpression::Mod(op, left) =>
-                self.operand_to_u16(op) % self.operation_to_u16(*left),
-            OperationExpression::Mult(op, left) =>
-                self.operand_to_u16(op).wrapping_mul(self.operation_to_u16(*left)),
+            OperationExpression::Mod(left, right) =>
+                self.operation_to_u16(*left) % self.operation_to_u16(*right),
+            OperationExpression::Mult(left, right) =>
+                self.operation_to_u16(*left).wrapping_mul(self.operation_to_u16(*right)),
             OperationExpression::Operand(op) => self.operand_to_u16(op),
             OperationExpression::Or(left, right) =>
                 self.operation_to_u16(*left) | self.operation_to_u16(*right),
             OperationExpression::Sub(right, left) =>
                 self.operation_to_u16(*right).wrapping_sub(self.operation_to_u16(*left)),
-            OperationExpression::Shl(op, left) =>
-                self.operand_to_u16(op).wrapping_shl(self.operation_to_u16(*left) as u32),
-            OperationExpression::Shr(op, left) =>
-                self.operand_to_u16(op).wrapping_shr(self.operation_to_u16(*left) as u32),
+            OperationExpression::Shl(left, right) =>
+                self.operation_to_u16(*left).wrapping_shl(self.operation_to_u16(*right) as u32),
+            OperationExpression::Shr(left, right) =>
+                self.operation_to_u16(*left).wrapping_shr(self.operation_to_u16(*right) as u32),
             OperationExpression::Sum(right, left) =>
                 self.operation_to_u16(*right).wrapping_add(self.operation_to_u16(*left)),
             OperationExpression::Xor(left, right) =>

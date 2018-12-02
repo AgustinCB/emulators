@@ -128,35 +128,51 @@ impl Parser {
     }
 
     fn parse_last_operations(&mut self) -> Result<OperationExpression, Error> {
-        let two_word = self.parse_two_word()?;
+        let op = self.parse_group()?;
         let next = self.source.peek().map(|t| (*t).clone());
         match next {
             Some(AssemblerToken::Div) => {
                 self.source.next();
                 let right_side = self.parse_last_operations()?;
-                Ok(OperationExpression::Div(two_word, Box::new(right_side)))
+                Ok(OperationExpression::Div(Box::new(op), Box::new(right_side)))
             },
             Some(AssemblerToken::Mod) => {
                 self.source.next();
                 let right_side = self.parse_last_operations()?;
-                Ok(OperationExpression::Mod(two_word, Box::new(right_side)))
+                Ok(OperationExpression::Mod(Box::new(op), Box::new(right_side)))
             },
             Some(AssemblerToken::Mult) => {
                 self.source.next();
                 let right_side = self.parse_last_operations()?;
-                Ok(OperationExpression::Mult(two_word, Box::new(right_side)))
+                Ok(OperationExpression::Mult(Box::new(op), Box::new(right_side)))
             },
             Some(AssemblerToken::Shl) => {
                 self.source.next();
                 let right_side = self.parse_last_operations()?;
-                Ok(OperationExpression::Shl(two_word, Box::new(right_side)))
+                Ok(OperationExpression::Shl(Box::new(op), Box::new(right_side)))
             },
             Some(AssemblerToken::Shr) => {
                 self.source.next();
                 let right_side = self.parse_last_operations()?;
-                Ok(OperationExpression::Shr(two_word, Box::new(right_side)))
+                Ok(OperationExpression::Shr(Box::new(op), Box::new(right_side)))
             },
-            _ => Ok(OperationExpression::Operand(two_word)),
+            _ => Ok(op),
+        }
+    }
+
+    fn parse_group(&mut self) -> Result<OperationExpression, Error> {
+        let next = self.source.peek().map(|t| (*t).clone());
+        match next {
+            Some(AssemblerToken::LeftParen) => {
+                self.source.next();
+                let op = self.parse_operation()?;
+                self.consume(AssemblerToken::RightParen)?;
+                Ok(OperationExpression::Group(Box::new(op)))
+            },
+            _ => {
+                let word = self.parse_two_word()?;
+                Ok(OperationExpression::Operand(word))
+            }
         }
     }
 
@@ -171,20 +187,6 @@ impl Parser {
         };
         res.iter().for_each(|_| { self.source.next(); });
         res
-    }
-
-    fn consume_comma(&mut self) -> Result<(), Error> {
-        match self.source.next() {
-            Some(AssemblerToken::Comma) => Ok(()),
-            Some(token) => Err(Error::from(AssemblerError::ExpectingToken {
-                expected: AssemblerToken::Comma,
-                got: Some(token),
-            })),
-            None => Err(Error::from(AssemblerError::ExpectingToken {
-                expected: AssemblerToken::Comma,
-                got: None,
-            })),
-        }
     }
 
     fn parse_instruction(&mut self, instruction: &InstructionCode, next: &Option<AssemblerToken>)
@@ -389,7 +391,7 @@ impl Parser {
             (InstructionCode::Lxi,
                 &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::Sp}))) => {
                 self.source.next();
-                self.consume_comma()?;
+                self.consume(AssemblerToken::Comma)?;
                 let op = self.parse_operation()?;
                 Ok(Statement::InstructionExprStmt(Instruction(
                     InstructionCode::Lxi,
@@ -415,7 +417,7 @@ impl Parser {
             (InstructionCode::Mov,
                 &Some(AssemblerToken::DataStore(d@Location::Memory))) => {
                 self.source.next();
-                self.consume_comma()?;
+                self.consume(AssemblerToken::Comma)?;
                 match self.source.peek() {
                     Some(&AssemblerToken::DataStore(s@Location::Register {
                         register: RegisterType::A
@@ -468,7 +470,7 @@ impl Parser {
             (InstructionCode::Mvi,
                 &Some(AssemblerToken::DataStore(s@Location::Memory))) => {
                 self.source.next();
-                self.consume_comma()?;
+                self.consume(AssemblerToken::Comma)?;
                 let op = self.parse_operation()?;
                 Ok(Statement::InstructionExprStmt(Instruction(
                     InstructionCode::Mvi,
@@ -630,7 +632,21 @@ impl Parser {
             (InstructionCode::Xri, _) => self.parse_word_instruction(InstructionCode::Xri),
             (InstructionCode::Xthl, _) =>
                 Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Xthl, None, None))),
-        } 
+        }
+    }
+
+    fn consume(&mut self, token: AssemblerToken) -> Result<(), Error> {
+        match self.source.next() {
+            Some(ref got) if got == &token => Ok(()),
+            Some(got) => Err(Error::from(AssemblerError::ExpectingToken {
+                expected: token,
+                got: Some(got),
+            })),
+            None => Err(Error::from(AssemblerError::ExpectingToken {
+                expected: token,
+                got: None,
+            })),
+        }
     }
 
     #[inline]
