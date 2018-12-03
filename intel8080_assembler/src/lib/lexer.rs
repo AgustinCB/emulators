@@ -42,6 +42,10 @@ impl<R: Read> Lexer<R> {
             '(' => Ok(Some(AssemblerToken::LeftParen)),
             ')' => Ok(Some(AssemblerToken::RightParen)),
             ':' => Ok(Some(AssemblerToken::Colon)),
+            ';' => {
+                self.consume(|c| c != '\n')?;
+                Ok(None)
+            },
             ',' => Ok(Some(AssemblerToken::Comma)),
             '+' => Ok(Some(AssemblerToken::Plus)),
             '-' => Ok(Some(AssemblerToken::Minus)),
