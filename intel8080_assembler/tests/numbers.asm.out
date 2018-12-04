@@ -20,3 +20,4 @@
 0035 JMP $ffff
 0038 JMP $0006
 003b JMP $0008
+003e JMP $ffff

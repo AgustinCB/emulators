@@ -31,7 +31,6 @@ impl Parser {
         let next = self.source.peek().map(|a| (*a).clone());
         let expression = match (input, next) {
             (AssemblerToken::Org, _) => {
-                self.source.next();
                 let op = self.parse_operation()?;
                 Ok(Statement::OrgStatement(op))
             },
