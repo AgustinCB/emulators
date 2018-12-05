@@ -15,16 +15,16 @@ pub enum AssemblerError {
     },
     #[fail(display = "Expecting {:?}, got {:?}", expected, got)]
     ExpectingToken {
-        expected: AssemblerToken,
-        got: Option<AssemblerToken>,
+        expected: AssemblerTokenType,
+        got: Option<AssemblerTokenType>,
     },
     #[fail(display = "Expecting number, got {:?}", got)]
     ExpectingNumber {
-        got: Option<AssemblerToken>,
+        got: Option<AssemblerTokenType>,
     },
     #[fail(display = "Expecting number, got {:?}", got)]
     ExpectingOperation {
-        got: Option<AssemblerToken>,
+        got: Option<AssemblerTokenType>,
     },
     #[fail(display = "Expecting single character at line {}", line)]
     ExpectingCharacter {
@@ -127,7 +127,7 @@ pub enum InstructionCode {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum AssemblerToken {
+pub enum AssemblerTokenType {
     And,
     Char(char),
     Colon,
@@ -152,6 +152,12 @@ pub enum AssemblerToken {
     Shr,
     TwoWord(u16),
     Xor,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct AssemblerToken {
+    pub token_type: AssemblerTokenType,
+    pub line: usize,
 }
 
 #[derive(Clone, Debug)]

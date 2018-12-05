@@ -30,20 +30,31 @@ impl Parser {
     fn parse_statement(&mut self, input: &AssemblerToken) -> Result<(), Error> {
         let next = self.source.peek().map(|a| (*a).clone());
         let expression = match (input, next) {
-            (AssemblerToken::Org, _) => {
+            (AssemblerToken {  token_type: AssemblerTokenType::Org, line: _  }, _) => {
                 let op = self.parse_operation()?;
                 Ok(Statement::OrgStatement(op))
             },
-            (&AssemblerToken::LabelToken(ref label), Some(AssemblerToken::Colon)) => {
+            (
+                AssemblerToken {  token_type: AssemblerTokenType::LabelToken(ref label), line: _  },
+                Some(AssemblerToken {  token_type: AssemblerTokenType::Colon, line: _  })
+            ) => {
                 self.source.next();
                 Ok(Statement::LabelDefinitionStatement(label.clone()))
             },
-            (&AssemblerToken::LabelToken(ref label), Some(AssemblerToken::Dw)) =>
-                self.parse_two_word_definition(label),
-            (&AssemblerToken::LabelToken(ref label), Some(AssemblerToken::Db)) =>
-                self.parse_word_definition(label),
-            (AssemblerToken::InstructionCode(instruction), ref next) =>
-                self.parse_instruction(instruction, next),
+            (
+                AssemblerToken {  token_type: AssemblerTokenType::LabelToken(ref label), line: _  },
+                Some(AssemblerToken {  token_type: AssemblerTokenType::Dw, line: _  })
+            ) => self.parse_two_word_definition(label),
+
+            (
+                AssemblerToken {  token_type: AssemblerTokenType::LabelToken(ref label), line: _  },
+                Some(AssemblerToken {  token_type: AssemblerTokenType::Db, line: _  })
+            ) => self.parse_word_definition(label),
+            (
+                AssemblerToken {  token_type: AssemblerTokenType::InstructionCode(instruction), line: _  },
+                ref next,
+            ) =>
+                self.parse_instruction(instruction, &next.clone().map(|t| t.token_type)),
             (_, next@_) => {
                 eprintln!("INPUT {:?}, NEXT {:?}", input, next);
                 Err(Error::from(AssemblerError::UndefinedError))
@@ -67,14 +78,14 @@ impl Parser {
 
     fn parse_operation(&mut self) -> Result<OperationExpression, Error> {
         let left_side = self.parse_and_operation()?;
-        let next = self.source.peek().map(|t| (*t).clone());
+        let next = self.source.peek().map(|t| t.token_type.clone());
         match next {
-            Some(AssemblerToken::Or) => {
+            Some(AssemblerTokenType::Or) => {
                 self.source.next();
                 let right_side = self.parse_operation()?;
                 Ok(OperationExpression::Or(Box::new(left_side), Box::new(right_side)))
             },
-            Some(AssemblerToken::Xor) => {
+            Some(AssemblerTokenType::Xor) => {
                 self.source.next();
                 let right_side = self.parse_operation()?;
                 Ok(OperationExpression::Xor(Box::new(left_side), Box::new(right_side)))
@@ -85,9 +96,9 @@ impl Parser {
 
     fn parse_and_operation(&mut self) -> Result<OperationExpression, Error> {
         let left_side = self.parse_not_operation()?;
-        let next = self.source.peek().map(|t| (*t).clone());
+        let next = self.source.peek().map(|t| t.token_type.clone());
         match next {
-            Some(AssemblerToken::And) => {
+            Some(AssemblerTokenType::And) => {
                 self.source.next();
                 let right_side = self.parse_and_operation()?;
                 Ok(OperationExpression::And(Box::new(left_side), Box::new(right_side)))
@@ -97,9 +108,9 @@ impl Parser {
     }
 
     fn parse_not_operation(&mut self) -> Result<OperationExpression, Error> {
-        let next = self.source.peek().map(|t| (*t).clone());
+        let next = self.source.peek().map(|t| t.token_type.clone());
         match next {
-            Some(AssemblerToken::Not) => {
+            Some(AssemblerTokenType::Not) => {
                 self.source.next();
                 let right_side = self.parse_sum_operations()?;
                 Ok(OperationExpression::Not(Box::new(right_side)))
@@ -110,14 +121,14 @@ impl Parser {
 
     fn parse_sum_operations(&mut self) -> Result<OperationExpression, Error> {
         let left_side = self.parse_last_operations()?;
-        let next = self.source.peek().map(|t| (*t).clone());
+        let next = self.source.peek().map(|t| t.token_type.clone());
         match next {
-            Some(AssemblerToken::Plus) => {
+            Some(AssemblerTokenType::Plus) => {
                 self.source.next();
                 let right_side = self.parse_sum_operations()?;
                 Ok(OperationExpression::Sum(Box::new(left_side), Box::new(right_side)))
             },
-            Some(AssemblerToken::Minus) => {
+            Some(AssemblerTokenType::Minus) => {
                 self.source.next();
                 let right_side = self.parse_sum_operations()?;
                 Ok(OperationExpression::Sub(Box::new(left_side), Box::new(right_side)))
@@ -128,29 +139,29 @@ impl Parser {
 
     fn parse_last_operations(&mut self) -> Result<OperationExpression, Error> {
         let op = self.parse_group()?;
-        let next = self.source.peek().map(|t| (*t).clone());
+        let next = self.source.peek().map(|t| t.token_type.clone());
         match next {
-            Some(AssemblerToken::Div) => {
+            Some(AssemblerTokenType::Div) => {
                 self.source.next();
                 let right_side = self.parse_last_operations()?;
                 Ok(OperationExpression::Div(Box::new(op), Box::new(right_side)))
             },
-            Some(AssemblerToken::Mod) => {
+            Some(AssemblerTokenType::Mod) => {
                 self.source.next();
                 let right_side = self.parse_last_operations()?;
                 Ok(OperationExpression::Mod(Box::new(op), Box::new(right_side)))
             },
-            Some(AssemblerToken::Mult) => {
+            Some(AssemblerTokenType::Mult) => {
                 self.source.next();
                 let right_side = self.parse_last_operations()?;
                 Ok(OperationExpression::Mult(Box::new(op), Box::new(right_side)))
             },
-            Some(AssemblerToken::Shl) => {
+            Some(AssemblerTokenType::Shl) => {
                 self.source.next();
                 let right_side = self.parse_last_operations()?;
                 Ok(OperationExpression::Shl(Box::new(op), Box::new(right_side)))
             },
-            Some(AssemblerToken::Shr) => {
+            Some(AssemblerTokenType::Shr) => {
                 self.source.next();
                 let right_side = self.parse_last_operations()?;
                 Ok(OperationExpression::Shr(Box::new(op), Box::new(right_side)))
@@ -160,12 +171,12 @@ impl Parser {
     }
 
     fn parse_group(&mut self) -> Result<OperationExpression, Error> {
-        let next = self.source.peek().map(|t| (*t).clone());
+        let next = self.source.peek().map(|t| t.token_type.clone());
         match next {
-            Some(AssemblerToken::LeftParen) => {
+            Some(AssemblerTokenType::LeftParen) => {
                 self.source.next();
                 let op = self.parse_operation()?;
-                self.consume(AssemblerToken::RightParen)?;
+                self.consume(AssemblerTokenType::RightParen)?;
                 Ok(OperationExpression::Group(Box::new(op)))
             },
             _ => {
@@ -176,77 +187,77 @@ impl Parser {
     }
 
     fn parse_two_word(&mut self) -> Result<TwoWordExpression, Error> {
-        let next = self.source.peek().map(|t| (*t).clone());
+        let next = self.source.peek().map(|t| t.token_type.clone());
         let res = match next {
-            Some(AssemblerToken::Char(c_value)) => Ok(TwoWordExpression::Char(c_value)),
-            Some(AssemblerToken::Dollar) => Ok(TwoWordExpression::Dollar),
-            Some(AssemblerToken::TwoWord(value)) => Ok(TwoWordExpression::Literal(value)),
-            Some(AssemblerToken::LabelToken(label)) => Ok(TwoWordExpression::Label(label)),
+            Some(AssemblerTokenType::Char(c_value)) => Ok(TwoWordExpression::Char(c_value)),
+            Some(AssemblerTokenType::Dollar) => Ok(TwoWordExpression::Dollar),
+            Some(AssemblerTokenType::TwoWord(value)) => Ok(TwoWordExpression::Literal(value)),
+            Some(AssemblerTokenType::LabelToken(label)) => Ok(TwoWordExpression::Label(label)),
             got => Err(Error::from(AssemblerError::ExpectingNumber { got }))
-        };
-        res.iter().for_each(|_| { self.source.next(); });
-        res
+        }?;
+        self.source.next();
+        Ok(res)
     }
 
-    fn parse_instruction(&mut self, instruction: &InstructionCode, next: &Option<AssemblerToken>)
+    fn parse_instruction(&mut self, instruction: &InstructionCode, next: &Option<AssemblerTokenType>)
         -> Result<Statement, Error> {
         match (instruction, next) {
             (InstructionCode::Adc,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::A }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::A }))) |
             (InstructionCode::Adc,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::B }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::B }))) |
             (InstructionCode::Adc,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::C }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::C }))) |
             (InstructionCode::Adc,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::D }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::D }))) |
             (InstructionCode::Adc,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::E }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::E }))) |
             (InstructionCode::Adc,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::H }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::H }))) |
             (InstructionCode::Adc,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::L }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::L }))) |
             (InstructionCode::Adc,
-                &Some(AssemblerToken::DataStore(l@Location::Memory))) =>
+                &Some(AssemblerTokenType::DataStore(l@Location::Memory))) =>
                 self.parse_instruction_with_location(l, InstructionCode::Adc),
             (InstructionCode::Adc, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Add,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::A }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::A }))) |
             (InstructionCode::Add,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::B }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::B }))) |
             (InstructionCode::Add,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::C }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::C }))) |
             (InstructionCode::Add,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::D }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::D }))) |
             (InstructionCode::Add,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::E }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::E }))) |
             (InstructionCode::Add,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::H }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::H }))) |
             (InstructionCode::Add,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::L }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::L }))) |
             (InstructionCode::Add,
-                &Some(AssemblerToken::DataStore(l@Location::Memory))) =>
+                &Some(AssemblerTokenType::DataStore(l@Location::Memory))) =>
                 self.parse_instruction_with_location(l, InstructionCode::Add),
             (InstructionCode::Add, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Aci, _) => self.parse_word_instruction(InstructionCode::Aci),
             (InstructionCode::Adi, _) => self.parse_word_instruction(InstructionCode::Adi),
             (InstructionCode::Ana,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::A }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::A }))) |
             (InstructionCode::Ana,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::B }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::B }))) |
             (InstructionCode::Ana,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::C }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::C }))) |
             (InstructionCode::Ana,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::D }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::D }))) |
             (InstructionCode::Ana,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::E }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::E }))) |
             (InstructionCode::Ana,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::H }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::H }))) |
             (InstructionCode::Ana,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::L }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::L }))) |
             (InstructionCode::Ana,
-                &Some(AssemblerToken::DataStore(l@Location::Memory))) =>
+                &Some(AssemblerTokenType::DataStore(l@Location::Memory))) =>
                 self.parse_instruction_with_location(l, InstructionCode::Ana),
             (InstructionCode::Ana, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
@@ -259,21 +270,21 @@ impl Parser {
             (InstructionCode::Cmc, _) =>
                 Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Cmc, None, None))),
             (InstructionCode::Cmp,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::A }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::A }))) |
             (InstructionCode::Cmp,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::B }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::B }))) |
             (InstructionCode::Cmp,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::C }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::C }))) |
             (InstructionCode::Cmp,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::D }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::D }))) |
             (InstructionCode::Cmp,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::E }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::E }))) |
             (InstructionCode::Cmp,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::H }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::H }))) |
             (InstructionCode::Cmp,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::L }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::L }))) |
             (InstructionCode::Cmp,
-                &Some(AssemblerToken::DataStore(l@Location::Memory))) =>
+                &Some(AssemblerTokenType::DataStore(l@Location::Memory))) =>
                 self.parse_instruction_with_location(l, InstructionCode::Cmp),
             (InstructionCode::Cmp, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
@@ -287,43 +298,43 @@ impl Parser {
             (InstructionCode::Daa, _) =>
                 Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Daa, None, None))),
             (InstructionCode::Dad,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::B }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::B }))) |
             (InstructionCode::Dad,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::D }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::D }))) |
             (InstructionCode::Dad,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::H }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::H }))) |
             (InstructionCode::Dad,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::Sp }))) =>
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::Sp }))) =>
                 self.parse_instruction_with_location(l, InstructionCode::Dad),
             (InstructionCode::Dad, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Dcr,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::A }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::A }))) |
             (InstructionCode::Dcr,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::B }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::B }))) |
             (InstructionCode::Dcr,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::C }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::C }))) |
             (InstructionCode::Dcr,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::D }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::D }))) |
             (InstructionCode::Dcr,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::E }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::E }))) |
             (InstructionCode::Dcr,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::H }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::H }))) |
             (InstructionCode::Dcr,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::L }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::L }))) |
             (InstructionCode::Dcr,
-                &Some(AssemblerToken::DataStore(l@Location::Memory))) =>
+                &Some(AssemblerTokenType::DataStore(l@Location::Memory))) =>
                 self.parse_instruction_with_location(l, InstructionCode::Dcr),
             (InstructionCode::Dcr, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Dcx,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::B }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::B }))) |
             (InstructionCode::Dcx,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::D }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::D }))) |
             (InstructionCode::Dcx,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::H }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::H }))) |
             (InstructionCode::Dcx,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::Sp }))) =>
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::Sp }))) =>
                 self.parse_instruction_with_location(l, InstructionCode::Dcx),
             (InstructionCode::Dcx, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
@@ -335,32 +346,32 @@ impl Parser {
                 Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Hlt, None, None))),
             (InstructionCode::In, _) => self.parse_word_instruction(InstructionCode::In),
             (InstructionCode::Inr,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::A }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::A }))) |
             (InstructionCode::Inr,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::B }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::B }))) |
             (InstructionCode::Inr,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::C }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::C }))) |
             (InstructionCode::Inr,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::D }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::D }))) |
             (InstructionCode::Inr,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::E }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::E }))) |
             (InstructionCode::Inr,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::H }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::H }))) |
             (InstructionCode::Inr,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::L }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::L }))) |
             (InstructionCode::Inr,
-                &Some(AssemblerToken::DataStore(l@Location::Memory))) =>
+                &Some(AssemblerTokenType::DataStore(l@Location::Memory))) =>
                 self.parse_instruction_with_location(l, InstructionCode::Inr),
             (InstructionCode::Inr, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Inx,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::B }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::B }))) |
             (InstructionCode::Inx,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::D }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::D }))) |
             (InstructionCode::Inx,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::H }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::H }))) |
             (InstructionCode::Inx,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::Sp }))) =>
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::Sp }))) =>
                 self.parse_instruction_with_location(l, InstructionCode::Inx),
             (InstructionCode::Inx, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
@@ -375,22 +386,22 @@ impl Parser {
             (InstructionCode::Jz, _) => self.parse_two_word_instruction(InstructionCode::Jz),
             (InstructionCode::Lda, _) => self.parse_two_word_instruction(InstructionCode::Lda),
             (InstructionCode::Ldax,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::B }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::B }))) |
             (InstructionCode::Ldax,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::D }))) =>
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::D }))) =>
                 self.parse_instruction_with_location(l, InstructionCode::Ldax),
             (InstructionCode::Ldax, _) => Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Lhld, _) => self.parse_two_word_instruction(InstructionCode::Lhld),
             (InstructionCode::Lxi,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::B }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::B }))) |
             (InstructionCode::Lxi,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::D }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::D }))) |
             (InstructionCode::Lxi,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::H }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::H }))) |
             (InstructionCode::Lxi,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::Sp}))) => {
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::Sp}))) => {
                 self.source.next();
-                self.consume(AssemblerToken::Comma)?;
+                self.consume(AssemblerTokenType::Comma)?;
                 let op = self.parse_operation()?;
                 Ok(Statement::InstructionExprStmt(Instruction(
                     InstructionCode::Lxi,
@@ -400,46 +411,46 @@ impl Parser {
             },
             (InstructionCode::Lxi, _) => Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Mov,
-                &Some(AssemblerToken::DataStore(d@Location::Register { register: RegisterType::A }))) |
+                &Some(AssemblerTokenType::DataStore(d@Location::Register { register: RegisterType::A }))) |
             (InstructionCode::Mov,
-                &Some(AssemblerToken::DataStore(d@Location::Register { register: RegisterType::B }))) |
+                &Some(AssemblerTokenType::DataStore(d@Location::Register { register: RegisterType::B }))) |
             (InstructionCode::Mov,
-                &Some(AssemblerToken::DataStore(d@Location::Register { register: RegisterType::C }))) |
+                &Some(AssemblerTokenType::DataStore(d@Location::Register { register: RegisterType::C }))) |
             (InstructionCode::Mov,
-                &Some(AssemblerToken::DataStore(d@Location::Register { register: RegisterType::D }))) |
+                &Some(AssemblerTokenType::DataStore(d@Location::Register { register: RegisterType::D }))) |
             (InstructionCode::Mov,
-                &Some(AssemblerToken::DataStore(d@Location::Register { register: RegisterType::E }))) |
+                &Some(AssemblerTokenType::DataStore(d@Location::Register { register: RegisterType::E }))) |
             (InstructionCode::Mov,
-                &Some(AssemblerToken::DataStore(d@Location::Register { register: RegisterType::H }))) |
+                &Some(AssemblerTokenType::DataStore(d@Location::Register { register: RegisterType::H }))) |
             (InstructionCode::Mov,
-                &Some(AssemblerToken::DataStore(d@Location::Register { register: RegisterType::L }))) |
+                &Some(AssemblerTokenType::DataStore(d@Location::Register { register: RegisterType::L }))) |
             (InstructionCode::Mov,
-                &Some(AssemblerToken::DataStore(d@Location::Memory))) => {
+                &Some(AssemblerTokenType::DataStore(d@Location::Memory))) => {
                 self.source.next();
-                self.consume(AssemblerToken::Comma)?;
-                match self.source.peek() {
-                    Some(&AssemblerToken::DataStore(s@Location::Register {
+                self.consume(AssemblerTokenType::Comma)?;
+                match self.source.peek().map(|v| v.clone().token_type) {
+                    Some(AssemblerTokenType::DataStore(s@Location::Register {
                         register: RegisterType::A
                     })) |
-                    Some(&AssemblerToken::DataStore(s@Location::Register {
+                    Some(AssemblerTokenType::DataStore(s@Location::Register {
                         register: RegisterType::B
                     })) |
-                    Some(&AssemblerToken::DataStore(s@Location::Register {
+                    Some(AssemblerTokenType::DataStore(s@Location::Register {
                         register: RegisterType::C
                     })) |
-                    Some(&AssemblerToken::DataStore(s@Location::Register {
+                    Some(AssemblerTokenType::DataStore(s@Location::Register {
                         register: RegisterType::D
                     })) |
-                    Some(&AssemblerToken::DataStore(s@Location::Register {
+                    Some(AssemblerTokenType::DataStore(s@Location::Register {
                         register: RegisterType::E
                     })) |
-                    Some(&AssemblerToken::DataStore(s@Location::Register {
+                    Some(AssemblerTokenType::DataStore(s@Location::Register {
                         register: RegisterType::H
                     })) |
-                    Some(&AssemblerToken::DataStore(s@Location::Register {
+                    Some(AssemblerTokenType::DataStore(s@Location::Register {
                         register: RegisterType::L
                     })) |
-                    Some(&AssemblerToken::DataStore(s@Location::Memory)) => {
+                    Some(AssemblerTokenType::DataStore(s@Location::Memory)) => {
                         self.source.next();
                         Ok(Statement::InstructionExprStmt(Instruction(
                             InstructionCode::Mov,
@@ -453,23 +464,23 @@ impl Parser {
             (InstructionCode::Mov, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Mvi,
-                &Some(AssemblerToken::DataStore(s@Location::Register { register: RegisterType::A }))) |
+                &Some(AssemblerTokenType::DataStore(s@Location::Register { register: RegisterType::A }))) |
             (InstructionCode::Mvi,
-                &Some(AssemblerToken::DataStore(s@Location::Register { register: RegisterType::B }))) |
+                &Some(AssemblerTokenType::DataStore(s@Location::Register { register: RegisterType::B }))) |
             (InstructionCode::Mvi,
-                &Some(AssemblerToken::DataStore(s@Location::Register { register: RegisterType::C }))) |
+                &Some(AssemblerTokenType::DataStore(s@Location::Register { register: RegisterType::C }))) |
             (InstructionCode::Mvi,
-                &Some(AssemblerToken::DataStore(s@Location::Register { register: RegisterType::D }))) |
+                &Some(AssemblerTokenType::DataStore(s@Location::Register { register: RegisterType::D }))) |
             (InstructionCode::Mvi,
-                &Some(AssemblerToken::DataStore(s@Location::Register { register: RegisterType::E }))) |
+                &Some(AssemblerTokenType::DataStore(s@Location::Register { register: RegisterType::E }))) |
             (InstructionCode::Mvi,
-                &Some(AssemblerToken::DataStore(s@Location::Register { register: RegisterType::H }))) |
+                &Some(AssemblerTokenType::DataStore(s@Location::Register { register: RegisterType::H }))) |
             (InstructionCode::Mvi,
-                &Some(AssemblerToken::DataStore(s@Location::Register { register: RegisterType::L }))) |
+                &Some(AssemblerTokenType::DataStore(s@Location::Register { register: RegisterType::L }))) |
             (InstructionCode::Mvi,
-                &Some(AssemblerToken::DataStore(s@Location::Memory))) => {
+                &Some(AssemblerTokenType::DataStore(s@Location::Memory))) => {
                 self.source.next();
-                self.consume(AssemblerToken::Comma)?;
+                self.consume(AssemblerTokenType::Comma)?;
                 let op = self.parse_operation()?;
                 Ok(Statement::InstructionExprStmt(Instruction(
                     InstructionCode::Mvi,
@@ -482,21 +493,21 @@ impl Parser {
             (InstructionCode::Noop, _) =>
                 Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Noop, None, None))),
             (InstructionCode::Ora,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::A }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::A }))) |
             (InstructionCode::Ora,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::B }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::B }))) |
             (InstructionCode::Ora,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::C }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::C }))) |
             (InstructionCode::Ora,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::D }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::D }))) |
             (InstructionCode::Ora,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::E }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::E }))) |
             (InstructionCode::Ora,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::H }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::H }))) |
             (InstructionCode::Ora,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::L }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::L }))) |
             (InstructionCode::Ora,
-                &Some(AssemblerToken::DataStore(l@Location::Memory))) =>
+                &Some(AssemblerTokenType::DataStore(l@Location::Memory))) =>
                 self.parse_instruction_with_location(l, InstructionCode::Ora),
             (InstructionCode::Ora, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
@@ -505,24 +516,24 @@ impl Parser {
             (InstructionCode::Pchl, _) =>
                 Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Pchl, None, None))),
             (InstructionCode::Pop,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::B }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::B }))) |
             (InstructionCode::Pop,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::D }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::D }))) |
             (InstructionCode::Pop,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::H }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::H }))) |
             (InstructionCode::Pop,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::Psw }))) =>
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::Psw }))) =>
                 self.parse_instruction_with_location(l, InstructionCode::Pop),
             (InstructionCode::Pop, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Push,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::B }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::B }))) |
             (InstructionCode::Push,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::D }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::D }))) |
             (InstructionCode::Push,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::H }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::H }))) |
             (InstructionCode::Push,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::Psw }))) =>
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::Psw }))) =>
                 self.parse_instruction_with_location(l, InstructionCode::Push),
             (InstructionCode::Push, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
@@ -554,21 +565,21 @@ impl Parser {
             (InstructionCode::Rz, _) =>
                 Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Rz, None, None))),
             (InstructionCode::Sbb,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::A }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::A }))) |
             (InstructionCode::Sbb,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::B }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::B }))) |
             (InstructionCode::Sbb,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::C }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::C }))) |
             (InstructionCode::Sbb,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::D }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::D }))) |
             (InstructionCode::Sbb,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::E }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::E }))) |
             (InstructionCode::Sbb,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::H }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::H }))) |
             (InstructionCode::Sbb,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::L }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::L }))) |
             (InstructionCode::Sbb,
-                &Some(AssemblerToken::DataStore(l@Location::Memory))) =>
+                &Some(AssemblerTokenType::DataStore(l@Location::Memory))) =>
                 self.parse_instruction_with_location(l, InstructionCode::Sbb),
             (InstructionCode::Sbb, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
@@ -579,30 +590,30 @@ impl Parser {
                 Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Sphl, None, None))),
             (InstructionCode::Sta, _) => self.parse_two_word_instruction(InstructionCode::Sta),
             (InstructionCode::Stax,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::B }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::B }))) |
             (InstructionCode::Stax,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::D }))) =>
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::D }))) =>
                 self.parse_instruction_with_location(l, InstructionCode::Stax),
             (InstructionCode::Stax, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
             (InstructionCode::Stc, _) =>
                 Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Stc, None, None))),
             (InstructionCode::Sub,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::A }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::A }))) |
             (InstructionCode::Sub,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::B }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::B }))) |
             (InstructionCode::Sub,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::C }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::C }))) |
             (InstructionCode::Sub,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::D }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::D }))) |
             (InstructionCode::Sub,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::E }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::E }))) |
             (InstructionCode::Sub,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::H }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::H }))) |
             (InstructionCode::Sub,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::L }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::L }))) |
             (InstructionCode::Sub,
-                &Some(AssemblerToken::DataStore(l@Location::Memory))) =>
+                &Some(AssemblerTokenType::DataStore(l@Location::Memory))) =>
                 self.parse_instruction_with_location(l, InstructionCode::Sub),
             (InstructionCode::Sub, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
@@ -610,21 +621,21 @@ impl Parser {
             (InstructionCode::Xchg, _) =>
                 Ok(Statement::InstructionExprStmt(Instruction(InstructionCode::Xchg, None, None))),
             (InstructionCode::Xra,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::A }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::A }))) |
             (InstructionCode::Xra,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::B }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::B }))) |
             (InstructionCode::Xra,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::C }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::C }))) |
             (InstructionCode::Xra,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::D }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::D }))) |
             (InstructionCode::Xra,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::E }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::E }))) |
             (InstructionCode::Xra,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::H }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::H }))) |
             (InstructionCode::Xra,
-                &Some(AssemblerToken::DataStore(l@Location::Register { register: RegisterType::L }))) |
+                &Some(AssemblerTokenType::DataStore(l@Location::Register { register: RegisterType::L }))) |
             (InstructionCode::Xra,
-                &Some(AssemblerToken::DataStore(l@Location::Memory))) =>
+                &Some(AssemblerTokenType::DataStore(l@Location::Memory))) =>
                 self.parse_instruction_with_location(l, InstructionCode::Xra),
             (InstructionCode::Xra, _) =>
                 Err(Error::from(AssemblerError::InvalidInstructionArgument)),
@@ -634,16 +645,12 @@ impl Parser {
         }
     }
 
-    fn consume(&mut self, token: AssemblerToken) -> Result<(), Error> {
+    fn consume(&mut self, token: AssemblerTokenType) -> Result<(), Error> {
         match self.source.next() {
-            Some(ref got) if got == &token => Ok(()),
-            Some(got) => Err(Error::from(AssemblerError::ExpectingToken {
+            Some(AssemblerToken { ref token_type, line: _}) if token_type == &token => Ok(()),
+            got => Err(Error::from(AssemblerError::ExpectingToken {
                 expected: token,
-                got: Some(got),
-            })),
-            None => Err(Error::from(AssemblerError::ExpectingToken {
-                expected: token,
-                got: None,
+                got: got.map(|v| v.token_type),
             })),
         }
     }

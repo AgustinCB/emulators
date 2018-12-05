@@ -2,7 +2,7 @@ use intel8080cpu::Location;
 use std::io::{Bytes, Read};
 use std::iter::Peekable;
 use std::str::FromStr;
-use super::{InstructionCode, AssemblerToken, LabelExpression, AssemblerError};
+use super::{InstructionCode, AssemblerToken, AssemblerTokenType, LabelExpression, AssemblerError};
 use super::failure::Error;
 
 pub struct Lexer<R: Read> {
@@ -29,7 +29,7 @@ impl<R: Read> Lexer<R> {
     }
 
     fn scan_token(&mut self, input: char) -> Result<(), Error> {
-        let token = match input {
+        let token: Option<AssemblerTokenType> = match input {
             '\n' => {
                 self.line += 1;
                 Ok(None)
@@ -39,137 +39,140 @@ impl<R: Read> Lexer<R> {
             c if c.is_alphabetic() || c == '?' || c == '@' =>
                 self.either_label_or_keyword(input),
             '\'' => self.scan_char(),
-            '(' => Ok(Some(AssemblerToken::LeftParen)),
-            ')' => Ok(Some(AssemblerToken::RightParen)),
-            ':' => Ok(Some(AssemblerToken::Colon)),
+            '(' => Ok(Some(AssemblerTokenType::LeftParen)),
+            ')' => Ok(Some(AssemblerTokenType::RightParen)),
+            ':' => Ok(Some(AssemblerTokenType::Colon)),
             ';' => {
                 self.consume(|c| c != '\n')?;
                 Ok(None)
             },
-            ',' => Ok(Some(AssemblerToken::Comma)),
-            '+' => Ok(Some(AssemblerToken::Plus)),
-            '-' => Ok(Some(AssemblerToken::Minus)),
-            '$' => Ok(Some(AssemblerToken::Dollar)),
-            '*' => Ok(Some(AssemblerToken::Mult)),
-            '/' => Ok(Some(AssemblerToken::Div)),
+            ',' => Ok(Some(AssemblerTokenType::Comma)),
+            '+' => Ok(Some(AssemblerTokenType::Plus)),
+            '-' => Ok(Some(AssemblerTokenType::Minus)),
+            '$' => Ok(Some(AssemblerTokenType::Dollar)),
+            '*' => Ok(Some(AssemblerTokenType::Mult)),
+            '/' => Ok(Some(AssemblerTokenType::Div)),
             _ => Err(Error::from(AssemblerError::UnexpectedCharacter { c: input, line: self.line })),
         }?;
         if let Some(t) = token {
-            self.tokens.push(t);
+            self.tokens.push(AssemblerToken {
+                token_type: t,
+                line: self.line,
+            });
         }
         Ok(())
     }
 
     #[inline]
-    fn scan_char(&mut self) -> Result<Option<AssemblerToken>, Error> {
+    fn scan_char(&mut self) -> Result<Option<AssemblerTokenType>, Error> {
         let rest = self.consume(|c| c != '\'')?;
         self.source.next();
         let value = char::from_str(&rest)?;
-        Ok(Some(AssemblerToken::Char(value)))
+        Ok(Some(AssemblerTokenType::Char(value)))
     }
 
     #[inline]
     fn either_label_or_keyword(&mut self, first_char: char)
-                               -> Result<Option<AssemblerToken>, Error> {
+                               -> Result<Option<AssemblerTokenType>, Error> {
         let rest = self.consume(|c| c.is_alphabetic() || c == '_')?;
         let literal = format!("{}{}", first_char, rest);
         Ok(match literal.as_str() {
             "A" | "B" | "C" | "D" | "E" | "H" | "L" | "M" | "PSW" | "SP" =>
-                Some(AssemblerToken::DataStore(Location::from(&literal)?)),
-            "AND" => Some(AssemblerToken::And),
-            "DB" => Some(AssemblerToken::Db),
-            "DW" => Some(AssemblerToken::Dw),
-            "ORG" => Some(AssemblerToken::Org),
-            "MOD" => Some(AssemblerToken::Mod),
-            "NOT" => Some(AssemblerToken::Not),
-            "OR" => Some(AssemblerToken::Or),
-            "SHL" => Some(AssemblerToken::Shl),
-            "SHR" => Some(AssemblerToken::Shr),
-            "XOR" => Some(AssemblerToken::Xor),
-            "NOP" => Some(AssemblerToken::InstructionCode(InstructionCode::Noop)),
-            "LXI" => Some(AssemblerToken::InstructionCode(InstructionCode::Lxi)),
-            "STAX" => Some(AssemblerToken::InstructionCode(InstructionCode::Stax)),
-            "INX" => Some(AssemblerToken::InstructionCode(InstructionCode::Inx)),
-            "INR" => Some(AssemblerToken::InstructionCode(InstructionCode::Inr)),
-            "DCR" => Some(AssemblerToken::InstructionCode(InstructionCode::Dcr)),
-            "MVI" => Some(AssemblerToken::InstructionCode(InstructionCode::Mvi)),
-            "RLC" => Some(AssemblerToken::InstructionCode(InstructionCode::Rlc)),
-            "DAD" => Some(AssemblerToken::InstructionCode(InstructionCode::Dad)),
-            "LDAX" => Some(AssemblerToken::InstructionCode(InstructionCode::Ldax)),
-            "DCX" => Some(AssemblerToken::InstructionCode(InstructionCode::Dcx)),
-            "RRC" => Some(AssemblerToken::InstructionCode(InstructionCode::Rrc)),
-            "RAL" => Some(AssemblerToken::InstructionCode(InstructionCode::Ral)),
-            "RAR" => Some(AssemblerToken::InstructionCode(InstructionCode::Rar)),
-            "SHLD" => Some(AssemblerToken::InstructionCode(InstructionCode::Shld)),
-            "DAA" => Some(AssemblerToken::InstructionCode(InstructionCode::Daa)),
-            "LHLD" => Some(AssemblerToken::InstructionCode(InstructionCode::Lhld)),
-            "CMA" => Some(AssemblerToken::InstructionCode(InstructionCode::Cma)),
-            "STA" => Some(AssemblerToken::InstructionCode(InstructionCode::Sta)),
-            "LDA" => Some(AssemblerToken::InstructionCode(InstructionCode::Lda)),
-            "STC" => Some(AssemblerToken::InstructionCode(InstructionCode::Stc)),
-            "CMC" => Some(AssemblerToken::InstructionCode(InstructionCode::Cmc)),
-            "MOV" => Some(AssemblerToken::InstructionCode(InstructionCode::Mov)),
-            "HLT" => Some(AssemblerToken::InstructionCode(InstructionCode::Hlt)),
-            "ADD" => Some(AssemblerToken::InstructionCode(InstructionCode::Add)),
-            "ADC" => Some(AssemblerToken::InstructionCode(InstructionCode::Adc)),
-            "SUB" => Some(AssemblerToken::InstructionCode(InstructionCode::Sub)),
-            "SBB" => Some(AssemblerToken::InstructionCode(InstructionCode::Sbb)),
-            "ANA" => Some(AssemblerToken::InstructionCode(InstructionCode::Ana)),
-            "XRA" => Some(AssemblerToken::InstructionCode(InstructionCode::Xra)),
-            "ORA" => Some(AssemblerToken::InstructionCode(InstructionCode::Ora)),
-            "CMP" => Some(AssemblerToken::InstructionCode(InstructionCode::Cmp)),
-            "RNZ" => Some(AssemblerToken::InstructionCode(InstructionCode::Rnz)),
-            "POP" => Some(AssemblerToken::InstructionCode(InstructionCode::Pop)),
-            "JNZ" => Some(AssemblerToken::InstructionCode(InstructionCode::Jnz)),
-            "JMP" => Some(AssemblerToken::InstructionCode(InstructionCode::Jmp)),
-            "CNZ" => Some(AssemblerToken::InstructionCode(InstructionCode::Cnz)),
-            "PUSH" => Some(AssemblerToken::InstructionCode(InstructionCode::Push)),
-            "ADI" => Some(AssemblerToken::InstructionCode(InstructionCode::Adi)),
-            "RST" => Some(AssemblerToken::InstructionCode(InstructionCode::Rst)),
-            "RZ" => Some(AssemblerToken::InstructionCode(InstructionCode::Rz)),
-            "RET" => Some(AssemblerToken::InstructionCode(InstructionCode::Ret)),
-            "JZ" => Some(AssemblerToken::InstructionCode(InstructionCode::Jz)),
-            "CZ" => Some(AssemblerToken::InstructionCode(InstructionCode::Cz)),
-            "CALL" => Some(AssemblerToken::InstructionCode(InstructionCode::Call)),
-            "ACI" => Some(AssemblerToken::InstructionCode(InstructionCode::Aci)),
-            "RNC" => Some(AssemblerToken::InstructionCode(InstructionCode::Rnc)),
-            "JNC" => Some(AssemblerToken::InstructionCode(InstructionCode::Jnc)),
-            "OUT" => Some(AssemblerToken::InstructionCode(InstructionCode::Out)),
-            "CNC" => Some(AssemblerToken::InstructionCode(InstructionCode::Cnc)),
-            "SUI" => Some(AssemblerToken::InstructionCode(InstructionCode::Sui)),
-            "RC" => Some(AssemblerToken::InstructionCode(InstructionCode::Rc)),
-            "JC" => Some(AssemblerToken::InstructionCode(InstructionCode::Jc)),
-            "IN" => Some(AssemblerToken::InstructionCode(InstructionCode::In)),
-            "CC" => Some(AssemblerToken::InstructionCode(InstructionCode::Cc)),
-            "SBI" => Some(AssemblerToken::InstructionCode(InstructionCode::Sbi)),
-            "RPO" => Some(AssemblerToken::InstructionCode(InstructionCode::Rpo)),
-            "JPO" => Some(AssemblerToken::InstructionCode(InstructionCode::Jpo)),
-            "XTHL" => Some(AssemblerToken::InstructionCode(InstructionCode::Xthl)),
-            "CPO" => Some(AssemblerToken::InstructionCode(InstructionCode::Cpo)),
-            "ANI" => Some(AssemblerToken::InstructionCode(InstructionCode::Ani)),
-            "RPE" => Some(AssemblerToken::InstructionCode(InstructionCode::Rpe)),
-            "PCHL" => Some(AssemblerToken::InstructionCode(InstructionCode::Pchl)),
-            "JPE" => Some(AssemblerToken::InstructionCode(InstructionCode::Jpe)),
-            "XCHG" => Some(AssemblerToken::InstructionCode(InstructionCode::Xchg)),
-            "CPE" => Some(AssemblerToken::InstructionCode(InstructionCode::Cpe)),
-            "XRI" => Some(AssemblerToken::InstructionCode(InstructionCode::Xri)),
-            "RP" => Some(AssemblerToken::InstructionCode(InstructionCode::Rp)),
-            "JP" => Some(AssemblerToken::InstructionCode(InstructionCode::Jp)),
-            "DI" => Some(AssemblerToken::InstructionCode(InstructionCode::Di)),
-            "CP" => Some(AssemblerToken::InstructionCode(InstructionCode::Cp)),
-            "ORI" => Some(AssemblerToken::InstructionCode(InstructionCode::Ori)),
-            "RM" => Some(AssemblerToken::InstructionCode(InstructionCode::Rm)),
-            "SPHL" => Some(AssemblerToken::InstructionCode(InstructionCode::Sphl)),
-            "JM" => Some(AssemblerToken::InstructionCode(InstructionCode::Jm)),
-            "EI" => Some(AssemblerToken::InstructionCode(InstructionCode::Ei)),
-            "CM" => Some(AssemblerToken::InstructionCode(InstructionCode::Cm)),
-            "CPI" => Some(AssemblerToken::InstructionCode(InstructionCode::Cpi)),
-            _ => Some(AssemblerToken::LabelToken(LabelExpression(literal)))
+                Some(AssemblerTokenType::DataStore(Location::from(&literal)?)),
+            "AND" => Some(AssemblerTokenType::And),
+            "DB" => Some(AssemblerTokenType::Db),
+            "DW" => Some(AssemblerTokenType::Dw),
+            "ORG" => Some(AssemblerTokenType::Org),
+            "MOD" => Some(AssemblerTokenType::Mod),
+            "NOT" => Some(AssemblerTokenType::Not),
+            "OR" => Some(AssemblerTokenType::Or),
+            "SHL" => Some(AssemblerTokenType::Shl),
+            "SHR" => Some(AssemblerTokenType::Shr),
+            "XOR" => Some(AssemblerTokenType::Xor),
+            "NOP" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Noop)),
+            "LXI" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Lxi)),
+            "STAX" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Stax)),
+            "INX" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Inx)),
+            "INR" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Inr)),
+            "DCR" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Dcr)),
+            "MVI" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Mvi)),
+            "RLC" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Rlc)),
+            "DAD" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Dad)),
+            "LDAX" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Ldax)),
+            "DCX" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Dcx)),
+            "RRC" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Rrc)),
+            "RAL" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Ral)),
+            "RAR" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Rar)),
+            "SHLD" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Shld)),
+            "DAA" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Daa)),
+            "LHLD" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Lhld)),
+            "CMA" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Cma)),
+            "STA" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Sta)),
+            "LDA" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Lda)),
+            "STC" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Stc)),
+            "CMC" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Cmc)),
+            "MOV" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Mov)),
+            "HLT" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Hlt)),
+            "ADD" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Add)),
+            "ADC" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Adc)),
+            "SUB" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Sub)),
+            "SBB" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Sbb)),
+            "ANA" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Ana)),
+            "XRA" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Xra)),
+            "ORA" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Ora)),
+            "CMP" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Cmp)),
+            "RNZ" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Rnz)),
+            "POP" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Pop)),
+            "JNZ" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Jnz)),
+            "JMP" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Jmp)),
+            "CNZ" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Cnz)),
+            "PUSH" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Push)),
+            "ADI" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Adi)),
+            "RST" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Rst)),
+            "RZ" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Rz)),
+            "RET" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Ret)),
+            "JZ" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Jz)),
+            "CZ" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Cz)),
+            "CALL" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Call)),
+            "ACI" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Aci)),
+            "RNC" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Rnc)),
+            "JNC" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Jnc)),
+            "OUT" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Out)),
+            "CNC" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Cnc)),
+            "SUI" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Sui)),
+            "RC" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Rc)),
+            "JC" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Jc)),
+            "IN" => Some(AssemblerTokenType::InstructionCode(InstructionCode::In)),
+            "CC" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Cc)),
+            "SBI" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Sbi)),
+            "RPO" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Rpo)),
+            "JPO" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Jpo)),
+            "XTHL" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Xthl)),
+            "CPO" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Cpo)),
+            "ANI" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Ani)),
+            "RPE" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Rpe)),
+            "PCHL" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Pchl)),
+            "JPE" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Jpe)),
+            "XCHG" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Xchg)),
+            "CPE" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Cpe)),
+            "XRI" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Xri)),
+            "RP" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Rp)),
+            "JP" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Jp)),
+            "DI" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Di)),
+            "CP" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Cp)),
+            "ORI" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Ori)),
+            "RM" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Rm)),
+            "SPHL" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Sphl)),
+            "JM" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Jm)),
+            "EI" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Ei)),
+            "CM" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Cm)),
+            "CPI" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Cpi)),
+            _ => Some(AssemblerTokenType::LabelToken(LabelExpression(literal)))
         })
     }
 
     #[inline]
-    fn maybe_scan_number(&mut self, first_digit: char) -> Result<Option<AssemblerToken>, Error> {
+    fn maybe_scan_number(&mut self, first_digit: char) -> Result<Option<AssemblerTokenType>, Error> {
         let rest = self.consume(|c| c.is_alphanumeric())?;
         let mut number_string = format!("{}{}", first_digit, rest);
         let radix_marker = number_string.pop().unwrap(); // Safe because len(number_string) > 0
@@ -184,7 +187,7 @@ impl<R: Read> Lexer<R> {
             10
         };
         let number = u16::from_str_radix(&number_string, radix)?;
-        Ok(Some(AssemblerToken::TwoWord(number)))
+        Ok(Some(AssemblerTokenType::TwoWord(number)))
     }
 
     #[inline]
