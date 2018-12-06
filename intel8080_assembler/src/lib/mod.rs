@@ -13,18 +13,21 @@ pub enum AssemblerError {
         c: char,
         line: usize,
     },
-    #[fail(display = "Expecting {:?}, got {:?}", expected, got)]
+    #[fail(display = "Expecting {:?}, got {:?} ar line {}", expected, got, line)]
     ExpectingToken {
         expected: AssemblerTokenType,
         got: Option<AssemblerTokenType>,
+        line: usize,
     },
-    #[fail(display = "Expecting number, got {:?}", got)]
+    #[fail(display = "Expecting number, got {:?} at line {}", got, line)]
     ExpectingNumber {
         got: Option<AssemblerTokenType>,
+        line: usize,
     },
-    #[fail(display = "Expecting number, got {:?}", got)]
+    #[fail(display = "Expecting number, got {:?} at line {}", got, line)]
     ExpectingOperation {
         got: Option<AssemblerTokenType>,
+        line: usize,
     },
     #[fail(display = "Expecting single character at line {}", line)]
     ExpectingCharacter {
@@ -34,14 +37,16 @@ pub enum AssemblerError {
     ExpectingSingleQuote {
         line: usize,
     },
-    #[fail(display = "Invalid argument for instruction")]
-    InvalidInstructionArgument,
-    #[fail(display = "Invalid operation token.")]
-    InvalidOperationToken,
-    #[fail(display = "Label doesn't exist.")]
-    LabelDoesntExist,
-    #[fail(display = "THERE IS SOMETHING VERY WRONG DUDE")]
-    UndefinedError,
+    #[fail(display = "Invalid argument for instruction at line {}", line)]
+    InvalidInstructionArgument { line: usize, },
+    #[fail(display = "Invalid operation token at line {}.", line)]
+    InvalidOperationToken { line: usize },
+    #[fail(display = "Label doesn't exist at line {}.", line)]
+    LabelDoesntExist { line: usize },
+    #[fail(display = "THERE IS SOMETHING VERY WRONG AT LINE {} DUDE", line)]
+    UndefinedError { line: usize },
+    #[fail(display = "Unexpected end of expression at line {}", line)]
+    UnexpectedEndOfExpression { line: usize },
 }
 
 #[derive(Clone, Debug, PartialEq)]
