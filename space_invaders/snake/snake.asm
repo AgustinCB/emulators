@@ -20,7 +20,7 @@ JMP HANDLE_FULL_SCREEN
 
 ORG 10H
 HANDLE_FULL_SCREEN:
-PUSH A
+PUSH PSW
 PUSH B
 PUSH D
 PUSH H
@@ -34,7 +34,7 @@ RETURN_TO_WORK:
 POP H
 POP D
 POP B
-POP A
+POP PSW
 EI
 RET
 
@@ -47,7 +47,7 @@ LXI H, STATUS+3
 MVI M, 1
 
 ; Initialize the status
-MVI SP, FFFFH
+LXI SP, 0FFFFH
 ; Direction:
 ; 0x40 -> Right
 ; 0x08 -> Up
@@ -112,7 +112,7 @@ JMP GAME_LOOP
 
 DRAW_NEW_STEP:
 LXI H, SNAKE
-INC L
+INR L
 CALL LOAD_NODE
 LXI H, STATUS
 MOV A, M
@@ -155,7 +155,7 @@ PUSH B
 PUSH D
 CALL GET_BIT
 MOV A, C
-XRA FFH
+XRI 0FFH
 MOV C, A
 MOV A, M
 ANA C
@@ -173,7 +173,7 @@ DCR D
 JMP REMOVE_LAST_VERTEX
 ; If it's in different columns and the last vertex is further left than the previous one, move it right.
 GO_RIGHT:
-INC D
+INR D
 JMP REMOVE_LAST_VERTEX
 SAME_COLUMN:
 MOV A, E
@@ -184,7 +184,7 @@ DCR E
 JMP REMOVE_LAST_VERTEX
 ; If it's in the same columns (i.e. different rows) and the last vertex is further down than the previous one, move it up.
 GO_UP:
-INC E
+INR E
 JMP REMOVE_LAST_VERTEX
 
 REMOVE_LAST_VERTEX: ; If they're the same
@@ -256,7 +256,7 @@ MVI A, 0
 OUT 2
 MVI A, 1
 OUT 2
-IN A
+IN 3
 MOV C, A
 
 SAVE_NODE:
@@ -270,11 +270,11 @@ INX H
 RET
 
 MOVE_RIGHT:
-INC D
+INR D
 RET
 
 MOVE_UP:
-INC E
+INR E
 RET
 
 MOVE_LEFT:
@@ -297,17 +297,17 @@ RET
 
 READ_INPUT:
 IN 1
-MOC C, A
-ANA 40H
+MOV C, A
+ANI 40H
 JNZ SAVE
 MOV A, C
-ANA 08H
+ANI 08H
 JNZ SAVE
 MOV A, C
-ANA 20H
+ANI 20H
 JNZ SAVE
 MOV A, C
-ANA 80H
+ANI 80H
 RZ
 SAVE:
 LXI H, STATUS
