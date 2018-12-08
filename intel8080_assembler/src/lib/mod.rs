@@ -47,6 +47,8 @@ pub enum AssemblerError {
     UndefinedError { line: usize },
     #[fail(display = "Unexpected end of expression at line {}", line)]
     UnexpectedEndOfExpression { line: usize },
+    #[fail(display = "Label {:?} wasn't declared", label)]
+    LabelNotFound { label: LabelExpression }
 }
 
 #[derive(Clone, Debug, PartialEq)]
