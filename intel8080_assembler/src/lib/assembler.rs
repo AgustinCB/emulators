@@ -10,7 +10,7 @@ const ROM_MEMORY_LIMIT: usize = 65536;
 
 pub struct Assembler {
     pc: u16,
-    rom: [u8; ROM_MEMORY_LIMIT],
+    stage_one_room: Vec<u8>,
     two_words: HashMap<LabelExpression, u16>,
 }
 
@@ -18,12 +18,12 @@ impl Assembler {
     pub fn new() -> Assembler {
         Assembler {
             pc: 0,
-            rom: [0; ROM_MEMORY_LIMIT],
+            stage_one_room: Vec::with_capacity(ROM_MEMORY_LIMIT),
             two_words: HashMap::new(),
         }
     }
 
-    pub fn assemble(mut self, statements: Vec<Statement>) -> Result<[u8; ROM_MEMORY_LIMIT], Error> {
+    pub fn assemble(mut self, statements: Vec<Statement>) -> Result<Vec<u8>, Error> {
         for expression in statements {
             match expression {
                 Statement::InstructionExprStmt(instruction) => {
@@ -46,7 +46,7 @@ impl Assembler {
                 },
             };
         }
-        Ok(self.rom)
+        Ok(self.stage_one_room)
     }
 
     fn operation_to_u8(&self, operation: OperationExpression) -> Result<u8, Error> {
@@ -96,7 +96,7 @@ impl Assembler {
 
     fn add_instruction(&mut self, instruction: Instruction) -> Result<(), Error> {
         for byte in self.bytes_for_instruction(instruction)? {
-            self.rom[self.pc as usize] = byte;
+            self.stage_one_room[self.pc as usize] = byte;
             self.pc = self.pc.wrapping_add(1);
         }
         Ok(())
