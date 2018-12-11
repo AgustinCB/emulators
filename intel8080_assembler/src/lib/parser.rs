@@ -30,10 +30,15 @@ impl Parser {
     fn parse_statement(&mut self, input: &AssemblerToken) -> Result<(), Error> {
         let next = self.source.peek().map(|a| (*a).clone());
         let expression = match (input, next) {
-            (AssemblerToken {  token_type: AssemblerTokenType::Org, line }, _) => {
-                let op = self.parse_operation(line.clone())?;
-                Ok(Statement::OrgStatement(op))
-            },
+            (
+                AssemblerToken {  token_type: AssemblerTokenType::Org, line: _ },
+                Some(AssemblerToken { token_type: AssemblerTokenType::TwoWord(n), line: _ })
+            ) => Ok(Statement::OrgStatement(n)),
+            (AssemblerToken {  token_type: AssemblerTokenType::Org, line }, ref got) =>
+                Err(Error::from(AssemblerError::ExpectingNumber {
+                    got: got.clone().map(|v| v.token_type),
+                    line: line.clone(),
+                })),
             (
                 AssemblerToken {  token_type: AssemblerTokenType::LabelToken(ref label), line: _  },
                 Some(AssemblerToken {  token_type: AssemblerTokenType::Colon, line: _  })

@@ -231,7 +231,7 @@ pub enum Statement {
     WordDefinitionStatement(LabelExpression, OperationExpression),
     InstructionExprStmt(Instruction),
     LabelDefinitionStatement(LabelExpression),
-    OrgStatement(OperationExpression),
+    OrgStatement(u16),
     TwoWordDefinitionStatement(LabelExpression, OperationExpression),
 }
 

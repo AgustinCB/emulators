@@ -8,9 +8,15 @@ use super::*;
 
 const ROM_MEMORY_LIMIT: usize = 65536;
 
+enum StageOneValue {
+    Label(LabelExpression),
+    Byte(u8),
+}
+
 pub struct Assembler {
     pc: u16,
-    stage_one_room: Vec<u8>,
+    stage_one_room: Vec<StageOneValue>,
+    room: [u8; ROM_MEMORY_LIMIT],
     two_words: HashMap<LabelExpression, u16>,
 }
 
@@ -18,12 +24,13 @@ impl Assembler {
     pub fn new() -> Assembler {
         Assembler {
             pc: 0,
+            room: [0; ROM_MEMORY_LIMIT],
             stage_one_room: Vec::with_capacity(ROM_MEMORY_LIMIT),
             two_words: HashMap::new(),
         }
     }
 
-    pub fn assemble(mut self, statements: Vec<Statement>) -> Result<Vec<u8>, Error> {
+    pub fn assemble(mut self, statements: Vec<Statement>) -> Result<[u8; ROM_MEMORY_LIMIT], Error> {
         for expression in statements {
             match expression {
                 Statement::InstructionExprStmt(instruction) => {
@@ -32,10 +39,7 @@ impl Assembler {
                 Statement::LabelDefinitionStatement(label) => {
                     self.two_words.insert(label, self.pc);
                 },
-                Statement::OrgStatement(tw) => {
-                    let value = self.operation_to_u16(tw)?;
-                    self.pc = value;
-                },
+                Statement::OrgStatement(tw) => self.pc = tw,
                 Statement::TwoWordDefinitionStatement(label, value) => {
                     let value = self.operation_to_u16(value)?;
                     self.two_words.insert(label, value);
@@ -46,7 +50,7 @@ impl Assembler {
                 },
             };
         }
-        Ok(self.stage_one_room)
+        Ok(self.room)
     }
 
     fn operation_to_u8(&self, operation: OperationExpression) -> Result<u8, Error> {
@@ -96,7 +100,7 @@ impl Assembler {
 
     fn add_instruction(&mut self, instruction: Instruction) -> Result<(), Error> {
         for byte in self.bytes_for_instruction(instruction)? {
-            self.stage_one_room[self.pc as usize] = byte;
+            self.room[self.pc as usize] = byte;
             self.pc = self.pc.wrapping_add(1);
         }
         Ok(())
