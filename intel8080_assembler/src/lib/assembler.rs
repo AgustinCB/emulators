@@ -22,10 +22,14 @@ pub struct Assembler {
 
 impl Assembler {
     pub fn new() -> Assembler {
+        let mut stage_one_room = Vec::with_capacity(ROM_MEMORY_LIMIT);
+        for _ in 0..ROM_MEMORY_LIMIT {
+            stage_one_room.push(StageOneValue::Byte(0))
+        }
         Assembler {
             pc: 0,
             room: [0; ROM_MEMORY_LIMIT],
-            stage_one_room: Vec::with_capacity(ROM_MEMORY_LIMIT),
+            stage_one_room,
             two_words: HashMap::new(),
         }
     }
@@ -49,6 +53,30 @@ impl Assembler {
                     self.two_words.insert(label, value);
                 },
             };
+        }
+        let mut prev_label_expression: Option<LabelExpression> = None;
+        for a in 0..self.stage_one_room.len() {
+            let v = &self.stage_one_room[a];
+            match v {
+                StageOneValue::Byte(b) => {
+                    self.room[a] = b.clone();
+                },
+                StageOneValue::Label(l) => {
+                    let tw = self
+                        .two_words
+                        .get(&l).map(|v| v.clone())
+                        .ok_or(Error::from(AssemblerError::LabelNotFound { label: l.clone() }))?;
+                    match prev_label_expression {
+                        Some(ref l1) if l == l1 => {
+                            self.room[a] = (tw & 0xff00) as u8;
+                        },
+                        _ => {
+                            self.room[a] = (tw & 0x00ff) as u8;
+                        }
+                    };
+                    prev_label_expression = Some(l.clone());
+                },
+            }
         }
         Ok(self.room)
     }
@@ -100,7 +128,7 @@ impl Assembler {
 
     fn add_instruction(&mut self, instruction: Instruction) -> Result<(), Error> {
         for byte in self.bytes_for_instruction(instruction)? {
-            self.room[self.pc as usize] = byte;
+            self.stage_one_room[self.pc as usize] = StageOneValue::Byte(byte);
             self.pc = self.pc.wrapping_add(1);
         }
         Ok(())

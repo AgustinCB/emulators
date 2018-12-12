@@ -33,7 +33,10 @@ impl Parser {
             (
                 AssemblerToken {  token_type: AssemblerTokenType::Org, line: _ },
                 Some(AssemblerToken { token_type: AssemblerTokenType::TwoWord(n), line: _ })
-            ) => Ok(Statement::OrgStatement(n)),
+            ) => {
+                self.source.next();
+                Ok(Statement::OrgStatement(n))
+            },
             (AssemblerToken {  token_type: AssemblerTokenType::Org, line }, ref got) =>
                 Err(Error::from(AssemblerError::ExpectingNumber {
                     got: got.clone().map(|v| v.token_type),
