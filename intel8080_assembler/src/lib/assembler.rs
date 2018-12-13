@@ -8,9 +8,11 @@ use super::*;
 
 const ROM_MEMORY_LIMIT: usize = 65536;
 
+#[derive(Clone, PartialEq)]
 enum StageOneValue {
-    Label(LabelExpression),
     Byte(u8),
+    Label(LabelExpression),
+    Operation(OperationExpression),
 }
 
 pub struct Assembler {
@@ -54,7 +56,7 @@ impl Assembler {
                 },
             };
         }
-        let mut prev_label_expression: Option<LabelExpression> = None;
+        let mut prev_value: Option<StageOneValue> = None;
         for a in 0..self.stage_one_room.len() {
             let v = &self.stage_one_room[a];
             match v {
@@ -66,15 +68,21 @@ impl Assembler {
                         .two_words
                         .get(&l).map(|v| v.clone())
                         .ok_or(Error::from(AssemblerError::LabelNotFound { label: l.clone() }))?;
-                    match prev_label_expression {
-                        Some(ref l1) if l == l1 => {
-                            self.room[a] = (tw & 0xff00) as u8;
-                        },
-                        _ => {
-                            self.room[a] = (tw & 0x00ff) as u8;
-                        }
-                    };
-                    prev_label_expression = Some(l.clone());
+                    if Some(StageOneValue::Label(l.clone())) == prev_value {
+                        self.room[a] = (tw & 0xff00) as u8;
+                    } else {
+                        self.room[a] = (tw & 0x00ff) as u8;
+                    }
+                    prev_value = Some(StageOneValue::Label(l.clone()));
+                },
+                StageOneValue::Operation(op) => {
+                    let tw = self.operation_to_u16(op.clone())?;
+                    if Some(StageOneValue::Operation(op.clone())) == prev_value{
+                        self.room[a] = (tw & 0xff00) as u8;
+                    } else {
+                        self.room[a] = (tw & 0x00ff) as u8;
+                    }
+                    prev_value = Some(StageOneValue::Operation(op.clone()));
                 },
             }
         }

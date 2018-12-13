@@ -167,7 +167,7 @@ pub struct AssemblerToken {
     pub line: usize,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum TwoWordExpression {
     Char(char),
     Dollar,
@@ -175,7 +175,7 @@ pub enum TwoWordExpression {
     Label(LabelExpression),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum OperationExpression {
     And(Box<OperationExpression>, Box<OperationExpression>),
     Div(Box<OperationExpression>, Box<OperationExpression>),
