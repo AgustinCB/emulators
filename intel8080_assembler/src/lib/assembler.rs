@@ -13,6 +13,7 @@ enum StageOneValue {
     Byte(u8),
     Label(LabelExpression),
     Operation(OperationExpression),
+    TwoWord(u16),
 }
 
 pub struct Assembler {
@@ -84,6 +85,14 @@ impl Assembler {
                     }
                     prev_value = Some(StageOneValue::Operation(op.clone()));
                 },
+                StageOneValue::TwoWord(tw) if prev_value == Some(StageOneValue::TwoWord(tw.clone())) => {
+                    self.room[a] = (tw & 0xff00) as u8;
+                    prev_value = Some(StageOneValue::TwoWord(tw.clone()));
+                },
+                StageOneValue::TwoWord(tw) => {
+                    self.room[a] = (tw & 0x00ff) as u8;
+                    prev_value = Some(StageOneValue::TwoWord(tw.clone()));
+                }
             }
         }
         Ok(self.room)
@@ -131,6 +140,15 @@ impl Assembler {
                     .map(|n| *n)
                     .ok_or(Error::from(AssemblerError::LabelNotFound { label: l })),
             TwoWordExpression::Literal(v) => Ok(v),
+        }
+    }
+
+    fn operand_to_stage_one_value(&self, operand: TwoWordExpression) -> StageOneValue {
+        match operand {
+            TwoWordExpression::Char(char_value) => StageOneValue::TwoWord(char_value as u16),
+            TwoWordExpression::Dollar => StageOneValue::TwoWord(self.pc),
+            TwoWordExpression::Label(l) => StageOneValue::Label(l),
+            TwoWordExpression::Literal(v) => StageOneValue::TwoWord(v),
         }
     }
 
