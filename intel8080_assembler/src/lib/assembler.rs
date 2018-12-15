@@ -38,6 +38,12 @@ impl Assembler {
     }
 
     pub fn assemble(mut self, statements: Vec<Statement>) -> Result<[u8; ROM_MEMORY_LIMIT], Error> {
+        self.stage_one(statements);
+        self.stage_two();
+        Ok(self.room)
+    }
+
+    fn stage_one(&mut self, statements: Vec<Statement>) -> Result<(), Error> {
         for expression in statements {
             match expression {
                 Statement::InstructionExprStmt(instruction) => {
@@ -57,6 +63,10 @@ impl Assembler {
                 },
             };
         }
+        Ok(())
+    }
+
+    fn stage_two(&mut self) -> Result<(), Error> {
         let mut prev_value: Option<StageOneValue> = None;
         for a in 0..self.stage_one_room.len() {
             let v = &self.stage_one_room[a];
@@ -95,7 +105,7 @@ impl Assembler {
                 }
             }
         }
-        Ok(self.room)
+        Ok(())
     }
 
     fn operation_to_u8(&self, operation: OperationExpression) -> Result<u8, Error> {
@@ -140,6 +150,13 @@ impl Assembler {
                     .map(|n| *n)
                     .ok_or(Error::from(AssemblerError::LabelNotFound { label: l })),
             TwoWordExpression::Literal(v) => Ok(v),
+        }
+    }
+
+    fn operation_to_stage_one_value(&self, operation: OperationExpression) -> StageOneValue {
+        match operation {
+            OperationExpression::Operand(op) => self.operand_to_stage_one_value(op),
+            o => StageOneValue::Operation(o),
         }
     }
 
