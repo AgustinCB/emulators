@@ -170,8 +170,8 @@ impl Assembler {
     }
 
     fn add_instruction(&mut self, instruction: Instruction) -> Result<(), Error> {
-        for byte in self.bytes_for_instruction(instruction)? {
-            self.stage_one_room[self.pc as usize] = StageOneValue::Byte(byte);
+        for v in self.bytes_for_instruction(instruction)? {
+            self.stage_one_room[self.pc as usize] = v;
             self.pc = self.pc.wrapping_add(1);
         }
         Ok(())
@@ -617,7 +617,7 @@ impl Assembler {
         Ok(())
     }
 
-    fn bytes_for_instruction(&self, instruction: Instruction) -> Result<Vec<u8>, Error> {
+    fn bytes_for_instruction(&self, instruction: Instruction) -> Result<Vec<StageOneValue>, Error> {
         let mut res = Vec::with_capacity(3);
         match instruction {
             Instruction(InstructionCode::Noop, _, _) => res.push(0x00),
@@ -782,6 +782,6 @@ impl Assembler {
                 self.add_simple_word_instruction(0xfe, &mut res, v)?,
             i => panic!("unfined method {:?}", i),
         };
-        Ok(res)
+        Ok(res.into_iter().map(|b| StageOneValue::Byte(b)).collect())
     }
 }
