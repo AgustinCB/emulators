@@ -68,11 +68,13 @@ impl Assembler {
 
     fn stage_two(&mut self) -> Result<(), Error> {
         let mut prev_value: Option<StageOneValue> = None;
-        for a in 0..self.stage_one_room.len() {
-            let v = &self.stage_one_room[a];
+        let mut iter = self.stage_one_room.iter();
+        let mut current_address = 0;
+        while let Some(v) = iter.next() {
             match v {
                 StageOneValue::Byte(b) => {
-                    self.room[a] = b.clone();
+                    self.room[current_address] = b.clone();
+                    current_address += 1;
                 },
                 StageOneValue::Label(l) => {
                     let tw = self
@@ -80,31 +82,33 @@ impl Assembler {
                         .get(&l).map(|v| v.clone())
                         .ok_or(Error::from(AssemblerError::LabelNotFound { label: l.clone() }))?;
                     if Some(StageOneValue::Label(l.clone())) == prev_value {
-                        self.room[a] = (tw & 0xff00) as u8;
+                        self.room[current_address] = (tw & 0xff00) as u8;
                     } else {
-                        self.room[a] = (tw & 0x00ff) as u8;
+                        self.room[current_address] = (tw & 0x00ff) as u8;
                     }
                     prev_value = Some(StageOneValue::Label(l.clone()));
+                    current_address += 1;
                 },
                 StageOneValue::Operation(op) => {
                     let tw = self.operation_to_u16(op.clone())?;
                     if Some(StageOneValue::Operation(op.clone())) == prev_value{
-                        self.room[a] = (tw & 0xff00) as u8;
+                        self.room[current_address] = (tw & 0xff00) as u8;
                     } else {
-                        self.room[a] = (tw & 0x00ff) as u8;
+                        self.room[current_address] = (tw & 0x00ff) as u8;
                     }
                     prev_value = Some(StageOneValue::Operation(op.clone()));
-                },
-                StageOneValue::TwoWord(tw) if prev_value == Some(StageOneValue::TwoWord(tw.clone())) => {
-                    self.room[a] = (tw & 0xff00) as u8;
-                    prev_value = Some(StageOneValue::TwoWord(tw.clone()));
+                    current_address += 1;
                 },
                 StageOneValue::TwoWord(tw) => {
-                    self.room[a] = (tw & 0x00ff) as u8;
+                    self.room[current_address] = (tw & 0x00ff) as u8;
+                    current_address += 1;
+                    self.room[current_address] = (tw & 0xff00) as u8;
+                    current_address += 1;
+                    iter.next();
                     prev_value = Some(StageOneValue::TwoWord(tw.clone()));
                 }
             }
-        }
+        };
         Ok(())
     }
 
