@@ -10,10 +10,12 @@ const ROM_MEMORY_LIMIT: usize = 65536;
 
 #[derive(Clone, PartialEq)]
 enum StageOneValue {
-    Byte(u8),
-    Label(LabelExpression),
-    Operation(OperationExpression),
+    ByteLabel(LabelExpression),
+    ByteOperation(OperationExpression),
     TwoWord(u16),
+    TwoByteLabel(LabelExpression),
+    TwoByteOperation(OperationExpression),
+    Word(u8),
 }
 
 pub struct Assembler {
@@ -27,7 +29,7 @@ impl Assembler {
     pub fn new() -> Assembler {
         let mut stage_one_room = Vec::with_capacity(ROM_MEMORY_LIMIT);
         for _ in 0..ROM_MEMORY_LIMIT {
-            stage_one_room.push(StageOneValue::Byte(0))
+            stage_one_room.push(StageOneValue::Word(0))
         }
         Assembler {
             pc: 0,
@@ -67,36 +69,25 @@ impl Assembler {
     }
 
     fn stage_two(&mut self) -> Result<(), Error> {
-        let mut prev_value: Option<StageOneValue> = None;
         let mut iter = self.stage_one_room.iter();
         let mut current_address = 0;
         while let Some(v) = iter.next() {
             match v {
-                StageOneValue::Byte(b) => {
+                StageOneValue::Word(b) => {
                     self.room[current_address] = b.clone();
                     current_address += 1;
                 },
-                StageOneValue::Label(l) => {
+                StageOneValue::ByteLabel(l) => {
                     let tw = self
                         .two_words
                         .get(&l).map(|v| v.clone())
                         .ok_or(Error::from(AssemblerError::LabelNotFound { label: l.clone() }))?;
-                    if Some(StageOneValue::Label(l.clone())) == prev_value {
-                        self.room[current_address] = (tw & 0xff00) as u8;
-                    } else {
-                        self.room[current_address] = (tw & 0x00ff) as u8;
-                    }
-                    prev_value = Some(StageOneValue::Label(l.clone()));
+                    self.room[current_address] = (tw & 0x00ff) as u8;
                     current_address += 1;
                 },
-                StageOneValue::Operation(op) => {
+                StageOneValue::ByteOperation(op) => {
                     let tw = self.operation_to_u16(op.clone())?;
-                    if Some(StageOneValue::Operation(op.clone())) == prev_value{
-                        self.room[current_address] = (tw & 0xff00) as u8;
-                    } else {
-                        self.room[current_address] = (tw & 0x00ff) as u8;
-                    }
-                    prev_value = Some(StageOneValue::Operation(op.clone()));
+                    self.room[current_address] = (tw & 0x00ff) as u8;
                     current_address += 1;
                 },
                 StageOneValue::TwoWord(tw) => {
@@ -105,8 +96,24 @@ impl Assembler {
                     self.room[current_address] = (tw & 0xff00) as u8;
                     current_address += 1;
                     iter.next();
-                    prev_value = Some(StageOneValue::TwoWord(tw.clone()));
-                }
+                },
+                StageOneValue::TwoByteLabel(l) => {
+                    let tw = self
+                        .two_words
+                        .get(&l).map(|v| v.clone())
+                        .ok_or(Error::from(AssemblerError::LabelNotFound { label: l.clone() }))?;
+                    self.room[current_address] = (tw & 0x00ff) as u8;
+                    current_address += 1;
+                    self.room[current_address] = (tw & 0xff00) as u8;
+                    current_address += 1;
+                },
+                StageOneValue::TwoByteOperation(op) => {
+                    let tw = self.operation_to_u16(op.clone())?;
+                    self.room[current_address] = (tw & 0x00ff) as u8;
+                    current_address += 1;
+                    self.room[current_address] = (tw & 0xff00) as u8;
+                    current_address += 1;
+                },
             }
         };
         Ok(())
@@ -160,7 +167,7 @@ impl Assembler {
     fn operation_to_stage_one_value(&self, operation: OperationExpression) -> StageOneValue {
         match operation {
             OperationExpression::Operand(op) => self.operand_to_stage_one_value(op),
-            o => StageOneValue::Operation(o),
+            o => StageOneValue::ByteOperation(o),
         }
     }
 
@@ -168,7 +175,7 @@ impl Assembler {
         match operand {
             TwoWordExpression::Char(char_value) => StageOneValue::TwoWord(char_value as u16),
             TwoWordExpression::Dollar => StageOneValue::TwoWord(self.pc),
-            TwoWordExpression::Label(l) => StageOneValue::Label(l),
+            TwoWordExpression::Label(l) => StageOneValue::ByteLabel(l),
             TwoWordExpression::Literal(v) => StageOneValue::TwoWord(v),
         }
     }
@@ -786,6 +793,6 @@ impl Assembler {
                 self.add_simple_word_instruction(0xfe, &mut res, v)?,
             i => panic!("unfined method {:?}", i),
         };
-        Ok(res.into_iter().map(|b| StageOneValue::Byte(b)).collect())
+        Ok(res.into_iter().map(|b| StageOneValue::Word(b)).collect())
     }
 }
