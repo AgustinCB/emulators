@@ -190,7 +190,7 @@ impl Assembler {
 
     fn add_lxi_instruction(
         &self,
-        res: &mut Vec<u8>,
+        res: &mut Vec<StageOneValue>,
         register: RegisterType,
         op: OperationExpression
     ) -> Result<(), Error> {
@@ -205,16 +205,16 @@ impl Assembler {
         Ok(())
     }
 
-    fn add_stax_instruction(&self, res: &mut Vec<u8>, register: RegisterType) {
+    fn add_stax_instruction(&self, res: &mut Vec<StageOneValue>, register: RegisterType) {
         let opcode = match register {
             RegisterType::B => 0x02,
             RegisterType::D => 0x12,
             _ => panic!("Not implemented yet")
         };
-        res.push(opcode);
+        res.push(StageOneValue::Word(opcode));
     }
 
-    fn add_inx_instruction(&self, res: &mut Vec<u8>, register: RegisterType) {
+    fn add_inx_instruction(&self, res: &mut Vec<StageOneValue>, register: RegisterType) {
         let opcode = match register {
             RegisterType::B => 0x03,
             RegisterType::D => 0x13,
@@ -222,10 +222,10 @@ impl Assembler {
             RegisterType::Sp => 0x33,
             _ => panic!("Not implemented yet")
         };
-        res.push(opcode);
+        res.push(StageOneValue::Word(opcode));
     }
 
-    fn add_inr_instruction(&self, res: &mut Vec<u8>, location: Location) {
+    fn add_inr_instruction(&self, res: &mut Vec<StageOneValue>, location: Location) {
         let opcode = match location {
             Location::Register { register: RegisterType::B } => 0x04,
             Location::Register { register: RegisterType::C } => 0x0c,
@@ -237,10 +237,10 @@ impl Assembler {
             Location::Register { register: RegisterType::A } => 0x3c,
             _ => panic!("Not implemented yet")
         };
-        res.push(opcode);
+        res.push(StageOneValue::Word(opcode));
     }
 
-    fn add_dcr_instruction(&self, res: &mut Vec<u8>, location: Location) {
+    fn add_dcr_instruction(&self, res: &mut Vec<StageOneValue>, location: Location) {
         let opcode = match location {
             Location::Register { register: RegisterType::B } => 0x05,
             Location::Register { register: RegisterType::C } => 0x0d,
@@ -252,12 +252,12 @@ impl Assembler {
             Location::Register { register: RegisterType::A } => 0x3d,
             _ => panic!("Not implemented yet")
         };
-        res.push(opcode);
+        res.push(StageOneValue::Word(opcode));
     }
 
     fn add_mvi_instruction(
         &self,
-        res: &mut Vec<u8>,
+        res: &mut Vec<StageOneValue>,
         location: Location,
         op: OperationExpression
     ) -> Result<(), Error> {
@@ -273,12 +273,12 @@ impl Assembler {
             _ => panic!("Not implemented yet")
         };
         let byte = self.operation_to_u8(op)?;
-        res.push(opcode);
-        res.push(byte);
+        res.push(StageOneValue::Word(opcode));
+        res.push(StageOneValue::Word(byte));
         Ok(())
     }
 
-    fn add_dad_instruction(&self, res: &mut Vec<u8>, register: RegisterType) {
+    fn add_dad_instruction(&self, res: &mut Vec<StageOneValue>, register: RegisterType) {
         let opcode = match register {
             RegisterType::B => 0x09,
             RegisterType::D => 0x19,
@@ -286,19 +286,19 @@ impl Assembler {
             RegisterType::Sp => 0x39,
             _ => panic!("Not implemented yet")
         };
-        res.push(opcode);
+        res.push(StageOneValue::Word(opcode));
     }
 
-    fn add_ldax_instruction(&self, res: &mut Vec<u8>, register: RegisterType) {
+    fn add_ldax_instruction(&self, res: &mut Vec<StageOneValue>, register: RegisterType) {
         let opcode = match register {
             RegisterType::B => 0x0a,
             RegisterType::D => 0x1a,
             _ => panic!("Not implemented yet")
         };
-        res.push(opcode);
+        res.push(StageOneValue::Word(opcode));
     }
 
-    fn add_dcx_instruction(&self, res: &mut Vec<u8>, register: RegisterType) {
+    fn add_dcx_instruction(&self, res: &mut Vec<StageOneValue>, register: RegisterType) {
         let opcode = match register {
             RegisterType::B => 0x0b,
             RegisterType::D => 0x1b,
@@ -306,163 +306,219 @@ impl Assembler {
             RegisterType::Sp => 0x3b,
             _ => panic!("Not implemented yet")
         };
-        res.push(opcode);
+        res.push(StageOneValue::Word(opcode));
     }
 
     fn add_simple_two_word_instruction(
         &self,
         opcode: u8,
-        res: &mut Vec<u8>,
+        res: &mut Vec<StageOneValue>,
         op: OperationExpression
     ) -> Result<(), Error> {
         let two_word = self.operation_to_u16(op)?;
-        res.push(opcode);
-        res.push((two_word & 0x00ff) as u8);
-        res.push(((two_word & 0xff00) >> 8) as u8);
+        res.push(StageOneValue::Word(opcode));
+        res.push(StageOneValue::Word((two_word & 0x00ff) as u8));
+        res.push(StageOneValue::Word(((two_word & 0xff00) >> 8) as u8));
         Ok(())
     }
 
     fn add_simple_word_instruction(
         &self,
         opcode: u8,
-        res: &mut Vec<u8>,
+        res: &mut Vec<StageOneValue>,
         op: OperationExpression
     ) -> Result<(), Error> {
-        res.push(opcode);
-        res.push(self.operation_to_u8(op)?);
+        res.push(StageOneValue::Word(opcode));
+        res.push(StageOneValue::Word(self.operation_to_u8(op)?));
         Ok(())
     }
 
-    fn add_mov_instruction(&self, res: &mut Vec<u8>, source: Location, destiny: Location) {
+    fn add_mov_instruction(&self, res: &mut Vec<StageOneValue>, source: Location, destiny: Location) {
         match (destiny, source) {
             (Location::Register { register: RegisterType::B },
-                Location::Register { register: RegisterType::B }) => res.push(0x40),
+                Location::Register { register: RegisterType::B }) =>
+                res.push(StageOneValue::Word(0x40)),
             (Location::Register { register: RegisterType::B },
-                Location::Register { register: RegisterType::C }) => res.push(0x41),
+                Location::Register { register: RegisterType::C }) =>
+                res.push(StageOneValue::Word(0x41)),
             (Location::Register { register: RegisterType::B },
-                Location::Register { register: RegisterType::D }) => res.push(0x42),
+                Location::Register { register: RegisterType::D }) =>
+                res.push(StageOneValue::Word(0x42)),
             (Location::Register { register: RegisterType::B },
-                Location::Register { register: RegisterType::E }) => res.push(0x43),
+                Location::Register { register: RegisterType::E }) =>
+                res.push(StageOneValue::Word(0x43)),
             (Location::Register { register: RegisterType::B },
-                Location::Register { register: RegisterType::H }) => res.push(0x44),
+                Location::Register { register: RegisterType::H }) =>
+                res.push(StageOneValue::Word(0x44)),
             (Location::Register { register: RegisterType::B },
-                Location::Register { register: RegisterType::L }) => res.push(0x45),
+                Location::Register { register: RegisterType::L }) =>
+                res.push(StageOneValue::Word(0x45)),
+            (Location::Register { register: RegisterType::B }, Location::Memory) =>
+                res.push(StageOneValue::Word(0x46)),
             (Location::Register { register: RegisterType::B },
-                Location::Memory) => res.push(0x46),
-            (Location::Register { register: RegisterType::B },
-                Location::Register { register: RegisterType::A }) => res.push(0x47),
+                Location::Register { register: RegisterType::A }) =>
+                res.push(StageOneValue::Word(0x47)),
             (Location::Register { register: RegisterType::C },
-                Location::Register { register: RegisterType::B }) => res.push(0x48),
+                Location::Register { register: RegisterType::B }) =>
+                res.push(StageOneValue::Word(0x48)),
             (Location::Register { register: RegisterType::C },
-                Location::Register { register: RegisterType::C }) => res.push(0x49),
+                Location::Register { register: RegisterType::C }) =>
+                res.push(StageOneValue::Word(0x49)),
             (Location::Register { register: RegisterType::C },
-                Location::Register { register: RegisterType::D }) => res.push(0x4a),
+                Location::Register { register: RegisterType::D }) =>
+                res.push(StageOneValue::Word(0x4a)),
             (Location::Register { register: RegisterType::C },
-                Location::Register { register: RegisterType::E }) => res.push(0x4b),
+                Location::Register { register: RegisterType::E }) =>
+                res.push(StageOneValue::Word(0x4b)),
             (Location::Register { register: RegisterType::C },
-                Location::Register { register: RegisterType::H }) => res.push(0x4c),
+                Location::Register { register: RegisterType::H }) =>
+                res.push(StageOneValue::Word(0x4c)),
             (Location::Register { register: RegisterType::C },
-                Location::Register { register: RegisterType::L }) => res.push(0x4d),
+                Location::Register { register: RegisterType::L }) =>
+                res.push(StageOneValue::Word(0x4d)),
+            (Location::Register { register: RegisterType::C }, Location::Memory) =>
+                res.push(StageOneValue::Word(0x4e)),
             (Location::Register { register: RegisterType::C },
-                Location::Memory) => res.push(0x4e),
-            (Location::Register { register: RegisterType::C },
-                Location::Register { register: RegisterType::A }) => res.push(0x4f),
+                Location::Register { register: RegisterType::A }) =>
+                res.push(StageOneValue::Word(0x4f)),
             (Location::Register { register: RegisterType::D },
-                Location::Register { register: RegisterType::B }) => res.push(0x50),
+                Location::Register { register: RegisterType::B }) =>
+                res.push(StageOneValue::Word(0x50)),
             (Location::Register { register: RegisterType::D },
-                Location::Register { register: RegisterType::C }) => res.push(0x51),
+                Location::Register { register: RegisterType::C }) =>
+                res.push(StageOneValue::Word(0x51)),
             (Location::Register { register: RegisterType::D },
-                Location::Register { register: RegisterType::D }) => res.push(0x52),
+                Location::Register { register: RegisterType::D }) =>
+                res.push(StageOneValue::Word(0x52)),
             (Location::Register { register: RegisterType::D },
-                Location::Register { register: RegisterType::E }) => res.push(0x53),
+                Location::Register { register: RegisterType::E }) =>
+                res.push(StageOneValue::Word(0x53)),
             (Location::Register { register: RegisterType::D },
-                Location::Register { register: RegisterType::H }) => res.push(0x54),
+                Location::Register { register: RegisterType::H }) =>
+                res.push(StageOneValue::Word(0x54)),
             (Location::Register { register: RegisterType::D },
-                Location::Register { register: RegisterType::L }) => res.push(0x55),
+                Location::Register { register: RegisterType::L }) =>
+                res.push(StageOneValue::Word(0x55)),
+            (Location::Register { register: RegisterType::D }, Location::Memory) =>
+                res.push(StageOneValue::Word(0x56)),
             (Location::Register { register: RegisterType::D },
-                Location::Memory) => res.push(0x56),
-            (Location::Register { register: RegisterType::D },
-                Location::Register { register: RegisterType::A }) => res.push(0x57),
+                Location::Register { register: RegisterType::A }) =>
+                res.push(StageOneValue::Word(0x57)),
             (Location::Register { register: RegisterType::E },
-                Location::Register { register: RegisterType::B }) => res.push(0x58),
+                Location::Register { register: RegisterType::B }) =>
+                res.push(StageOneValue::Word(0x58)),
             (Location::Register { register: RegisterType::E },
-                Location::Register { register: RegisterType::C }) => res.push(0x59),
+                Location::Register { register: RegisterType::C }) =>
+                res.push(StageOneValue::Word(0x59)),
             (Location::Register { register: RegisterType::E },
-                Location::Register { register: RegisterType::D }) => res.push(0x5a),
+                Location::Register { register: RegisterType::D }) =>
+                res.push(StageOneValue::Word(0x5a)),
             (Location::Register { register: RegisterType::E },
-                Location::Register { register: RegisterType::E }) => res.push(0x5b),
+                Location::Register { register: RegisterType::E }) =>
+                res.push(StageOneValue::Word(0x5b)),
             (Location::Register { register: RegisterType::E },
-                Location::Register { register: RegisterType::H }) => res.push(0x5c),
+                Location::Register { register: RegisterType::H }) =>
+                res.push(StageOneValue::Word(0x5c)),
             (Location::Register { register: RegisterType::E },
-                Location::Register { register: RegisterType::L }) => res.push(0x5d),
+                Location::Register { register: RegisterType::L }) =>
+                res.push(StageOneValue::Word(0x5d)),
+            (Location::Register { register: RegisterType::E }, Location::Memory) =>
+                res.push(StageOneValue::Word(0x5e)),
             (Location::Register { register: RegisterType::E },
-                Location::Memory) => res.push(0x5e),
-            (Location::Register { register: RegisterType::E },
-                Location::Register { register: RegisterType::A }) => res.push(0x5f),
+                Location::Register { register: RegisterType::A }) =>
+                res.push(StageOneValue::Word(0x5f)),
             (Location::Register { register: RegisterType::H },
-                Location::Register { register: RegisterType::B }) => res.push(0x60),
+                Location::Register { register: RegisterType::B }) =>
+                res.push(StageOneValue::Word(0x60)),
             (Location::Register { register: RegisterType::H },
-                Location::Register { register: RegisterType::C }) => res.push(0x61),
+                Location::Register { register: RegisterType::C }) =>
+                res.push(StageOneValue::Word(0x61)),
             (Location::Register { register: RegisterType::H },
-                Location::Register { register: RegisterType::D }) => res.push(0x62),
+                Location::Register { register: RegisterType::D }) =>
+                res.push(StageOneValue::Word(0x62)),
             (Location::Register { register: RegisterType::H },
-                Location::Register { register: RegisterType::E }) => res.push(0x63),
+                Location::Register { register: RegisterType::E }) =>
+                res.push(StageOneValue::Word(0x63)),
             (Location::Register { register: RegisterType::H },
-                Location::Register { register: RegisterType::H }) => res.push(0x64),
+                Location::Register { register: RegisterType::H }) =>
+                res.push(StageOneValue::Word(0x64)),
             (Location::Register { register: RegisterType::H },
-                Location::Register { register: RegisterType::L }) => res.push(0x65),
+                Location::Register { register: RegisterType::L }) =>
+                res.push(StageOneValue::Word(0x65)),
+            (Location::Register { register: RegisterType::H }, Location::Memory) =>
+                res.push(StageOneValue::Word(0x66)),
             (Location::Register { register: RegisterType::H },
-                Location::Memory) => res.push(0x66),
-            (Location::Register { register: RegisterType::H },
-                Location::Register { register: RegisterType::A }) => res.push(0x67),
+                Location::Register { register: RegisterType::A }) =>
+                res.push(StageOneValue::Word(0x67)),
             (Location::Register { register: RegisterType::L },
-                Location::Register { register: RegisterType::B }) => res.push(0x68),
+                Location::Register { register: RegisterType::B }) =>
+                res.push(StageOneValue::Word(0x68)),
             (Location::Register { register: RegisterType::L },
-                Location::Register { register: RegisterType::C }) => res.push(0x69),
+                Location::Register { register: RegisterType::C }) =>
+                res.push(StageOneValue::Word(0x69)),
             (Location::Register { register: RegisterType::L },
-                Location::Register { register: RegisterType::D }) => res.push(0x6a),
+                Location::Register { register: RegisterType::D }) =>
+                res.push(StageOneValue::Word(0x6a)),
             (Location::Register { register: RegisterType::L },
-                Location::Register { register: RegisterType::E }) => res.push(0x6b),
+                Location::Register { register: RegisterType::E }) =>
+                res.push(StageOneValue::Word(0x6b)),
             (Location::Register { register: RegisterType::L },
-                Location::Register { register: RegisterType::H }) => res.push(0x6c),
+                Location::Register { register: RegisterType::H }) =>
+                res.push(StageOneValue::Word(0x6c)),
             (Location::Register { register: RegisterType::L },
-                Location::Register { register: RegisterType::L }) => res.push(0x6d),
+                Location::Register { register: RegisterType::L }) =>
+                res.push(StageOneValue::Word(0x6d)),
+            (Location::Register { register: RegisterType::L }, Location::Memory) =>
+                res.push(StageOneValue::Word(0x6e)),
             (Location::Register { register: RegisterType::L },
-                Location::Memory) => res.push(0x6e),
-            (Location::Register { register: RegisterType::L },
-                Location::Register { register: RegisterType::A }) => res.push(0x6f),
+                Location::Register { register: RegisterType::A }) =>
+                res.push(StageOneValue::Word(0x6f)),
             (Location::Memory,
-                Location::Register { register: RegisterType::B }) => res.push(0x70),
+                Location::Register { register: RegisterType::B }) =>
+                res.push(StageOneValue::Word(0x70)),
             (Location::Memory,
-                Location::Register { register: RegisterType::C }) => res.push(0x71),
+                Location::Register { register: RegisterType::C }) =>
+                res.push(StageOneValue::Word(0x71)),
             (Location::Memory,
-                Location::Register { register: RegisterType::D }) => res.push(0x72),
+                Location::Register { register: RegisterType::D }) =>
+                res.push(StageOneValue::Word(0x72)),
             (Location::Memory,
-                Location::Register { register: RegisterType::E }) => res.push(0x73),
+                Location::Register { register: RegisterType::E }) =>
+                res.push(StageOneValue::Word(0x73)),
             (Location::Memory,
-                Location::Register { register: RegisterType::H }) => res.push(0x74),
+                Location::Register { register: RegisterType::H }) =>
+                res.push(StageOneValue::Word(0x74)),
             (Location::Memory,
-                Location::Register { register: RegisterType::L }) => res.push(0x75),
+                Location::Register { register: RegisterType::L }) =>
+                res.push(StageOneValue::Word(0x75)),
+            (Location::Memory, Location::Memory) =>
+                res.push(StageOneValue::Word(0x76)),
             (Location::Memory,
-                Location::Memory) => res.push(0x76),
-            (Location::Memory,
-                Location::Register { register: RegisterType::A }) => res.push(0x77),
+                Location::Register { register: RegisterType::A }) =>
+                res.push(StageOneValue::Word(0x77)),
             (Location::Register { register: RegisterType::A },
-                Location::Register { register: RegisterType::B }) => res.push(0x78),
+                Location::Register { register: RegisterType::B }) =>
+                res.push(StageOneValue::Word(0x78)),
             (Location::Register { register: RegisterType::A },
-                Location::Register { register: RegisterType::C }) => res.push(0x79),
+                Location::Register { register: RegisterType::C }) =>
+                res.push(StageOneValue::Word(0x79)),
             (Location::Register { register: RegisterType::A },
-                Location::Register { register: RegisterType::D }) => res.push(0x7a),
+                Location::Register { register: RegisterType::D }) =>
+                res.push(StageOneValue::Word(0x7a)),
             (Location::Register { register: RegisterType::A },
-                Location::Register { register: RegisterType::E }) => res.push(0x7b),
+                Location::Register { register: RegisterType::E }) =>
+                res.push(StageOneValue::Word(0x7b)),
             (Location::Register { register: RegisterType::A },
-                Location::Register { register: RegisterType::H }) => res.push(0x7c),
+                Location::Register { register: RegisterType::H }) =>
+                res.push(StageOneValue::Word(0x7c)),
             (Location::Register { register: RegisterType::A },
-                Location::Register { register: RegisterType::L }) => res.push(0x7d),
+                Location::Register { register: RegisterType::L }) =>
+                res.push(StageOneValue::Word(0x7d)),
+            (Location::Register { register: RegisterType::A }, Location::Memory) =>
+                res.push(StageOneValue::Word(0x7e)),
             (Location::Register { register: RegisterType::A },
-                Location::Memory) => res.push(0x7e),
-            (Location::Register { register: RegisterType::A },
-                Location::Register { register: RegisterType::A }) => res.push(0x7f),
+                Location::Register { register: RegisterType::A }) =>
+                res.push(StageOneValue::Word(0x7f)),
             _ => panic!("Not implemented yet"),
         }
     }
@@ -631,7 +687,7 @@ impl Assembler {
     fn bytes_for_instruction(&self, instruction: Instruction) -> Result<Vec<StageOneValue>, Error> {
         let mut res = Vec::with_capacity(3);
         match instruction {
-            Instruction(InstructionCode::Noop, _, _) => res.push(0x00),
+            Instruction(InstructionCode::Noop, _, _) => res.push(StageOneValue::Word(0x00)),
             Instruction(
                 InstructionCode::Lxi,
                 Some(InstructionArgument::DataStore(Location::Register { register })),
@@ -656,7 +712,7 @@ impl Assembler {
                 Some(InstructionArgument::DataStore(location)),
                 Some(InstructionArgument::TwoWord(v)),
             ) => self.add_mvi_instruction(&mut res, location, v)?,
-            Instruction(InstructionCode::Rlc, _, _) => res.push(0x07),
+            Instruction(InstructionCode::Rlc, _, _) => res.push(StageOneValue::Word(0x07)),
             Instruction(
                 InstructionCode::Dad,
                 Some(InstructionArgument::DataStore(Location::Register { register })),
@@ -672,21 +728,21 @@ impl Assembler {
                 Some(InstructionArgument::DataStore(Location::Register { register })),
                 _
             ) => self.add_dcx_instruction(&mut res, register),
-            Instruction(InstructionCode::Rrc, _, _) => res.push(0x0f),
-            Instruction(InstructionCode::Ral, _, _) => res.push(0x17),
-            Instruction(InstructionCode::Rar, _, _) => res.push(0x1f),
+            Instruction(InstructionCode::Rrc, _, _) => res.push(StageOneValue::Word(0x0f)),
+            Instruction(InstructionCode::Ral, _, _) => res.push(StageOneValue::Word(0x17)),
+            Instruction(InstructionCode::Rar, _, _) => res.push(StageOneValue::Word(0x1f)),
             Instruction(InstructionCode::Shld, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0x22, &mut res, v)?,
-            Instruction(InstructionCode::Daa, _, _) => res.push(0x27),
+            Instruction(InstructionCode::Daa, _, _) => res.push(StageOneValue::Word(0x27)),
             Instruction(InstructionCode::Lhld, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0x2a, &mut res, v)?,
-            Instruction(InstructionCode::Cma, _, _) => res.push(0x2f),
+            Instruction(InstructionCode::Cma, _, _) => res.push(StageOneValue::Word(0x2f)),
             Instruction(InstructionCode::Sta, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0x32, &mut res, v)?,
-            Instruction(InstructionCode::Stc, _, _) => res.push(0x37),
+            Instruction(InstructionCode::Stc, _, _) => res.push(StageOneValue::Word(0x37)),
             Instruction(InstructionCode::Lda, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0x3a, &mut res, v)?,
-            Instruction(InstructionCode::Cmc, _, _) => res.push(0x3f),
+            Instruction(InstructionCode::Cmc, _, _) => res.push(StageOneValue::Word(0x3f)),
             Instruction(
                 InstructionCode::Mov,
                 Some(InstructionArgument::DataStore(d)),
@@ -708,7 +764,7 @@ impl Assembler {
                 self.add_ora_instruction(&mut res, location),
             Instruction(InstructionCode::Cmp, Some(InstructionArgument::DataStore(location)), _) =>
                 self.add_cmp_instruction(&mut res, location),
-            Instruction(InstructionCode::Rnz, _, _) => res.push(0xc0),
+            Instruction(InstructionCode::Rnz, _, _) => res.push(StageOneValue::Word(0xc0)),
             Instruction(
                 InstructionCode::Pop,
                 Some(InstructionArgument::DataStore(Location::Register { register })),
@@ -729,8 +785,8 @@ impl Assembler {
                 self.add_simple_word_instruction(0xc6, &mut res, v)?,
             Instruction(InstructionCode::Rst, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_rst_instruction(&mut res, v)?,
-            Instruction(InstructionCode::Rz, _, _) => res.push(0xc8),
-            Instruction(InstructionCode::Ret, _, _) => res.push(0xc9),
+            Instruction(InstructionCode::Rz, _, _) => res.push(StageOneValue::Word(0xc8)),
+            Instruction(InstructionCode::Ret, _, _) => res.push(StageOneValue::Word(0xc9)),
             Instruction(InstructionCode::Jz, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0xca, &mut res, v)?,
             Instruction(InstructionCode::Cz, Some(InstructionArgument::TwoWord(v)), _) =>
@@ -739,7 +795,7 @@ impl Assembler {
                 self.add_simple_two_word_instruction(0xcd, &mut res, v)?,
             Instruction(InstructionCode::Aci, Some(InstructionArgument::Word(v)), _) =>
                 self.add_simple_word_instruction(0xce, &mut res, v)?,
-            Instruction(InstructionCode::Rnc, _, _) => res.push(0xd0),
+            Instruction(InstructionCode::Rnc, _, _) => res.push(StageOneValue::Word(0xd0)),
             Instruction(InstructionCode::Jnc, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0xd2, &mut res, v)?,
             Instruction(InstructionCode::Out, Some(InstructionArgument::Word(v)), _) =>
@@ -748,7 +804,7 @@ impl Assembler {
                 self.add_simple_two_word_instruction(0xd4, &mut res, v)?,
             Instruction(InstructionCode::Sui, Some(InstructionArgument::Word(v)), _) =>
                 self.add_simple_word_instruction(0xd6, &mut res, v)?,
-            Instruction(InstructionCode::Rc, _, _) => res.push(0xd8),
+            Instruction(InstructionCode::Rc, _, _) => res.push(StageOneValue::Word(0xd8)),
             Instruction(InstructionCode::Jc, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0xda, &mut res, v)?,
             Instruction(InstructionCode::In, Some(InstructionArgument::Word(v)), _) =>
@@ -757,36 +813,36 @@ impl Assembler {
                 self.add_simple_two_word_instruction(0xdc, &mut res, v)?,
             Instruction(InstructionCode::Sbi, Some(InstructionArgument::Word(v)), _) =>
                 self.add_simple_word_instruction(0xde, &mut res, v)?,
-            Instruction(InstructionCode::Rpo, _, _) => res.push(0xe0),
+            Instruction(InstructionCode::Rpo, _, _) => res.push(StageOneValue::Word(0xe0)),
             Instruction(InstructionCode::Jpo, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0xe2, &mut res, v)?,
-            Instruction(InstructionCode::Xthl, _, _) => res.push(0xe3),
+            Instruction(InstructionCode::Xthl, _, _) => res.push(StageOneValue::Word(0xe3)),
             Instruction(InstructionCode::Cpo, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0xe4, &mut res, v)?,
             Instruction(InstructionCode::Ani, Some(InstructionArgument::Word(v)), _) =>
                 self.add_simple_word_instruction(0xe6, &mut res, v)?,
-            Instruction(InstructionCode::Rpe, _, _) => res.push(0xe8),
-            Instruction(InstructionCode::Pchl, _, _) => res.push(0xe9),
+            Instruction(InstructionCode::Rpe, _, _) => res.push(StageOneValue::Word(0xe8)),
+            Instruction(InstructionCode::Pchl, _, _) => res.push(StageOneValue::Word(0xe9)),
             Instruction(InstructionCode::Jpe, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0xea, &mut res, v)?,
-            Instruction(InstructionCode::Xchg, _, _) => res.push(0xeb),
+            Instruction(InstructionCode::Xchg, _, _) => res.push(StageOneValue::Word(0xeb)),
             Instruction(InstructionCode::Cpe, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0xec, &mut res, v)?,
             Instruction(InstructionCode::Xri, Some(InstructionArgument::Word(v)), _) =>
                 self.add_simple_word_instruction(0xee, &mut res, v)?,
-            Instruction(InstructionCode::Rp, _, _) => res.push(0xf0),
+            Instruction(InstructionCode::Rp, _, _) => res.push(StageOneValue::Word(0xf0)),
             Instruction(InstructionCode::Jp, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0xf2, &mut res, v)?,
-            Instruction(InstructionCode::Di, _, _) => res.push(0xf3),
+            Instruction(InstructionCode::Di, _, _) => res.push(StageOneValue::Word(0xf3)),
             Instruction(InstructionCode::Cp, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0xf4, &mut res, v)?,
             Instruction(InstructionCode::Ori, Some(InstructionArgument::Word(v)), _) =>
                 self.add_simple_word_instruction(0xf6, &mut res, v)?,
-            Instruction(InstructionCode::Rm, _, _) => res.push(0xf8),
-            Instruction(InstructionCode::Sphl, _, _) => res.push(0xf9),
+            Instruction(InstructionCode::Rm, _, _) => res.push(StageOneValue::Word(0xf8)),
+            Instruction(InstructionCode::Sphl, _, _) => res.push(StageOneValue::Word(0xf9)),
             Instruction(InstructionCode::Jm, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0xfa, &mut res, v)?,
-            Instruction(InstructionCode::Ei, _, _) => res.push(0xfb),
+            Instruction(InstructionCode::Ei, _, _) => res.push(StageOneValue::Word(0xfb)),
             Instruction(InstructionCode::Cm, Some(InstructionArgument::TwoWord(v)), _) =>
                 self.add_simple_two_word_instruction(0xfc, &mut res, v)?,
             Instruction(InstructionCode::Cpi, Some(InstructionArgument::Word(v)), _) =>
