@@ -523,7 +523,7 @@ impl Assembler {
         }
     }
 
-    fn add_add_instruction(&self, res: &mut Vec<u8>, location: Location) {
+    fn add_add_instruction(&self, res: &mut Vec<StageOneValue>, location: Location) {
         let opcode = match location {
             Location::Register { register: RegisterType::B } => 0x80,
             Location::Register { register: RegisterType::C } => 0x81,
@@ -535,10 +535,10 @@ impl Assembler {
             Location::Register { register: RegisterType::A } => 0x87,
             _ => panic!("Not implemented yet")
         };
-        res.push(opcode);
+        res.push(StageOneValue::Word(opcode));
     }
 
-    fn add_adc_instruction(&self, res: &mut Vec<u8>, location: Location) {
+    fn add_adc_instruction(&self, res: &mut Vec<StageOneValue>, location: Location) {
         let opcode = match location {
             Location::Register { register: RegisterType::B } => 0x88,
             Location::Register { register: RegisterType::C } => 0x89,
@@ -550,10 +550,10 @@ impl Assembler {
             Location::Register { register: RegisterType::A } => 0x8f,
             _ => panic!("Not implemented yet")
         };
-        res.push(opcode);
+        res.push(StageOneValue::Word(opcode));
     }
 
-    fn add_sub_instruction(&self, res: &mut Vec<u8>, location: Location) {
+    fn add_sub_instruction(&self, res: &mut Vec<StageOneValue>, location: Location) {
         let opcode = match location {
             Location::Register { register: RegisterType::B } => 0x90,
             Location::Register { register: RegisterType::C } => 0x91,
@@ -565,10 +565,10 @@ impl Assembler {
             Location::Register { register: RegisterType::A } => 0x97,
             _ => panic!("Not implemented yet")
         };
-        res.push(opcode);
+        res.push(StageOneValue::Word(opcode));
     }
 
-    fn add_sbb_instruction(&self, res: &mut Vec<u8>, location: Location) {
+    fn add_sbb_instruction(&self, res: &mut Vec<StageOneValue>, location: Location) {
         let opcode = match location {
             Location::Register { register: RegisterType::B } => 0x98,
             Location::Register { register: RegisterType::C } => 0x99,
@@ -580,10 +580,10 @@ impl Assembler {
             Location::Register { register: RegisterType::A } => 0x9f,
             _ => panic!("Not implemented yet")
         };
-        res.push(opcode);
+        res.push(StageOneValue::Word(opcode));
     }
 
-    fn add_ana_instruction(&self, res: &mut Vec<u8>, location: Location) {
+    fn add_ana_instruction(&self, res: &mut Vec<StageOneValue>, location: Location) {
         let opcode = match location {
             Location::Register { register: RegisterType::B } => 0xa0,
             Location::Register { register: RegisterType::C } => 0xa1,
@@ -595,10 +595,10 @@ impl Assembler {
             Location::Register { register: RegisterType::A } => 0xa7,
             _ => panic!("Not implemented yet")
         };
-        res.push(opcode);
+        res.push(StageOneValue::Word(opcode));
     }
 
-    fn add_xra_instruction(&self, res: &mut Vec<u8>, location: Location) {
+    fn add_xra_instruction(&self, res: &mut Vec<StageOneValue>, location: Location) {
         let opcode = match location {
             Location::Register { register: RegisterType::B } => 0xa8,
             Location::Register { register: RegisterType::C } => 0xa9,
@@ -610,10 +610,10 @@ impl Assembler {
             Location::Register { register: RegisterType::A } => 0xaf,
             _ => panic!("Not implemented yet")
         };
-        res.push(opcode);
+        res.push(StageOneValue::Word(opcode));
     }
 
-    fn add_ora_instruction(&self, res: &mut Vec<u8>, location: Location) {
+    fn add_ora_instruction(&self, res: &mut Vec<StageOneValue>, location: Location) {
         let opcode = match location {
             Location::Register { register: RegisterType::B } => 0xb0,
             Location::Register { register: RegisterType::C } => 0xb1,
@@ -625,10 +625,10 @@ impl Assembler {
             Location::Register { register: RegisterType::A } => 0xb7,
             _ => panic!("Not implemented yet")
         };
-        res.push(opcode);
+        res.push(StageOneValue::Word(opcode));
     }
 
-    fn add_cmp_instruction(&self, res: &mut Vec<u8>, location: Location) {
+    fn add_cmp_instruction(&self, res: &mut Vec<StageOneValue>, location: Location) {
         let opcode = match location {
             Location::Register { register: RegisterType::B } => 0xb8,
             Location::Register { register: RegisterType::C } => 0xb9,
@@ -640,10 +640,10 @@ impl Assembler {
             Location::Register { register: RegisterType::A } => 0xbf,
             _ => panic!("Not implemented yet")
         };
-        res.push(opcode);
+        res.push(StageOneValue::Word(opcode));
     }
 
-    fn add_pop_instruction(&self, res: &mut Vec<u8>, register: RegisterType) {
+    fn add_pop_instruction(&self, res: &mut Vec<StageOneValue>, register: RegisterType) {
         let opcode = match register {
             RegisterType::B => 0xc1,
             RegisterType::D => 0xd1,
@@ -651,10 +651,10 @@ impl Assembler {
             RegisterType::Psw => 0xf1,
             _ => panic!("Not implemented yet")
         };
-        res.push(opcode);
+        res.push(StageOneValue::Word(opcode));
     }
 
-    fn add_push_instruction(&self, res: &mut Vec<u8>, register: RegisterType) {
+    fn add_push_instruction(&self, res: &mut Vec<StageOneValue>, register: RegisterType) {
         let opcode = match register {
             RegisterType::B => 0xc5,
             RegisterType::D => 0xd5,
@@ -662,23 +662,23 @@ impl Assembler {
             RegisterType::Psw => 0xf5,
             _ => panic!("Not implemented yet")
         };
-        res.push(opcode);
+        res.push(StageOneValue::Word(opcode));
     }
 
     fn add_rst_instruction(
         &self,
-        res: &mut Vec<u8>,
+        res: &mut Vec<StageOneValue>,
         op: OperationExpression
     ) -> Result<(), Error> {
         match self.operation_to_u8(op)? {
-            0 => res.push(0xc7),
-            1 => res.push(0xcf),
-            2 => res.push(0xd7),
-            3 => res.push(0xdf),
-            4 => res.push(0xe7),
-            5 => res.push(0xef),
-            6 => res.push(0xf7),
-            7 => res.push(0xff),
+            0 => res.push(StageOneValue::Word(0xc7)),
+            1 => res.push(StageOneValue::Word(0xcf)),
+            2 => res.push(StageOneValue::Word(0xd7)),
+            3 => res.push(StageOneValue::Word(0xdf)),
+            4 => res.push(StageOneValue::Word(0xe7)),
+            5 => res.push(StageOneValue::Word(0xef)),
+            6 => res.push(StageOneValue::Word(0xf7)),
+            7 => res.push(StageOneValue::Word(0xff)),
             _ => panic!("Not implemented yet"),
         };
         Ok(())
@@ -849,6 +849,6 @@ impl Assembler {
                 self.add_simple_word_instruction(0xfe, &mut res, v)?,
             i => panic!("unfined method {:?}", i),
         };
-        Ok(res.into_iter().map(|b| StageOneValue::Word(b)).collect())
+        Ok(res)
     }
 }
