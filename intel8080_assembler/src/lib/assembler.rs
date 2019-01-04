@@ -40,8 +40,8 @@ impl Assembler {
     }
 
     pub fn assemble(mut self, statements: Vec<Statement>) -> Result<[u8; ROM_MEMORY_LIMIT], Error> {
-        self.stage_one(statements);
-        self.stage_two();
+        self.stage_one(statements)?;
+        self.stage_two()?;
         Ok(self.room)
     }
 
@@ -86,8 +86,7 @@ impl Assembler {
                     current_address += 1;
                 },
                 StageOneValue::ByteOperation(op) => {
-                    let tw = self.operation_to_u16(op.clone())?;
-                    self.room[current_address] = (tw & 0x00ff) as u8;
+                    self.room[current_address] = self.operation_to_u8(op.clone())?;
                     current_address += 1;
                 },
                 StageOneValue::TwoWord(tw) => {
@@ -161,22 +160,6 @@ impl Assembler {
                     .map(|n| *n)
                     .ok_or(Error::from(AssemblerError::LabelNotFound { label: l })),
             TwoWordExpression::Literal(v) => Ok(v),
-        }
-    }
-
-    fn operation_to_stage_one_value(&self, operation: OperationExpression) -> StageOneValue {
-        match operation {
-            OperationExpression::Operand(op) => self.operand_to_stage_one_value(op),
-            o => StageOneValue::ByteOperation(o),
-        }
-    }
-
-    fn operand_to_stage_one_value(&self, operand: TwoWordExpression) -> StageOneValue {
-        match operand {
-            TwoWordExpression::Char(char_value) => StageOneValue::TwoWord(char_value as u16),
-            TwoWordExpression::Dollar => StageOneValue::TwoWord(self.pc),
-            TwoWordExpression::Label(l) => StageOneValue::ByteLabel(l),
-            TwoWordExpression::Literal(v) => StageOneValue::TwoWord(v),
         }
     }
 
@@ -272,9 +255,8 @@ impl Assembler {
             Location::Register { register: RegisterType::A } => 0x3e,
             _ => panic!("Not implemented yet")
         };
-        let byte = self.operation_to_u8(op)?;
         res.push(StageOneValue::Word(opcode));
-        res.push(StageOneValue::Word(byte));
+        res.push(StageOneValue::ByteOperation(op));
         Ok(())
     }
 
@@ -315,10 +297,8 @@ impl Assembler {
         res: &mut Vec<StageOneValue>,
         op: OperationExpression
     ) -> Result<(), Error> {
-        let two_word = self.operation_to_u16(op)?;
         res.push(StageOneValue::Word(opcode));
-        res.push(StageOneValue::Word((two_word & 0x00ff) as u8));
-        res.push(StageOneValue::Word(((two_word & 0xff00) >> 8) as u8));
+        res.push(StageOneValue::TwoByteOperation(op));
         Ok(())
     }
 
@@ -329,7 +309,7 @@ impl Assembler {
         op: OperationExpression
     ) -> Result<(), Error> {
         res.push(StageOneValue::Word(opcode));
-        res.push(StageOneValue::Word(self.operation_to_u8(op)?));
+        res.push(StageOneValue::ByteOperation(op));
         Ok(())
     }
 
