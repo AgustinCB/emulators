@@ -10,10 +10,7 @@ const ROM_MEMORY_LIMIT: usize = 65536;
 
 #[derive(Clone, PartialEq)]
 enum StageOneValue {
-    ByteLabel(LabelExpression),
     ByteOperation(OperationExpression),
-    TwoWord(u16),
-    TwoByteLabel(LabelExpression),
     TwoByteOperation(OperationExpression),
     Word(u8),
 }
@@ -77,33 +74,8 @@ impl Assembler {
                     self.room[current_address] = b.clone();
                     current_address += 1;
                 },
-                StageOneValue::ByteLabel(l) => {
-                    let tw = self
-                        .two_words
-                        .get(&l).map(|v| v.clone())
-                        .ok_or(Error::from(AssemblerError::LabelNotFound { label: l.clone() }))?;
-                    self.room[current_address] = (tw & 0x00ff) as u8;
-                    current_address += 1;
-                },
                 StageOneValue::ByteOperation(op) => {
                     self.room[current_address] = self.operation_to_u8(op.clone())?;
-                    current_address += 1;
-                },
-                StageOneValue::TwoWord(tw) => {
-                    self.room[current_address] = (tw & 0x00ff) as u8;
-                    current_address += 1;
-                    self.room[current_address] = (tw & 0xff00) as u8;
-                    current_address += 1;
-                    iter.next();
-                },
-                StageOneValue::TwoByteLabel(l) => {
-                    let tw = self
-                        .two_words
-                        .get(&l).map(|v| v.clone())
-                        .ok_or(Error::from(AssemblerError::LabelNotFound { label: l.clone() }))?;
-                    self.room[current_address] = (tw & 0x00ff) as u8;
-                    current_address += 1;
-                    self.room[current_address] = (tw & 0xff00) as u8;
                     current_address += 1;
                 },
                 StageOneValue::TwoByteOperation(op) => {
