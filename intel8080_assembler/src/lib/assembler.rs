@@ -8,7 +8,7 @@ use super::*;
 
 const ROM_MEMORY_LIMIT: usize = 65536;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 enum StageOneValue {
     ByteOperation(OperationExpression),
     TwoByteOperation(OperationExpression),
@@ -24,14 +24,10 @@ pub struct Assembler {
 
 impl Assembler {
     pub fn new() -> Assembler {
-        let mut stage_one_room = Vec::with_capacity(ROM_MEMORY_LIMIT);
-        for _ in 0..ROM_MEMORY_LIMIT {
-            stage_one_room.push(StageOneValue::Word(0))
-        }
         Assembler {
             pc: 0,
             room: [0; ROM_MEMORY_LIMIT],
-            stage_one_room,
+            stage_one_room: Vec::with_capacity(ROM_MEMORY_LIMIT),
             two_words: HashMap::new(),
         }
     }
@@ -137,8 +133,12 @@ impl Assembler {
 
     fn add_instruction(&mut self, instruction: Instruction) -> Result<(), Error> {
         for v in self.bytes_for_instruction(instruction)? {
-            self.stage_one_room[self.pc as usize] = v;
-            self.pc = self.pc.wrapping_add(1);
+            let steps = match v {
+                StageOneValue::ByteOperation(_) | StageOneValue::Word(_) => 1,
+                _ => 2,
+            };
+            self.stage_one_room.push(v);
+            self.pc = self.pc.wrapping_add(steps);
         }
         Ok(())
     }
