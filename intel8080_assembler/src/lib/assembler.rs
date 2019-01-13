@@ -78,7 +78,7 @@ impl Assembler {
                     let tw = self.operation_to_u16(op.clone())?;
                     self.room[current_address] = (tw & 0x00ff) as u8;
                     current_address += 1;
-                    self.room[current_address] = (tw & 0xff00) as u8;
+                    self.room[current_address] = ((tw & 0xff00) >> 8) as u8;
                     current_address += 1;
                 },
             }
