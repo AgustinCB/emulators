@@ -63,23 +63,23 @@ impl Assembler {
 
     fn stage_two(&mut self) -> Result<(), Error> {
         let mut iter = self.stage_one_room.iter();
-        let mut current_address = 0;
+        self.pc = 0;
         while let Some(v) = iter.next() {
             match v {
                 StageOneValue::Word(b) => {
-                    self.room[current_address] = b.clone();
-                    current_address += 1;
+                    self.room[self.pc as usize] = b.clone();
+                    self.pc += 1;
                 },
                 StageOneValue::ByteOperation(op) => {
-                    self.room[current_address] = self.operation_to_u8(op.clone())?;
-                    current_address += 1;
+                    self.room[self.pc as usize] = self.operation_to_u8(op.clone())?;
+                    self.pc += 1;
                 },
                 StageOneValue::TwoByteOperation(op) => {
                     let tw = self.operation_to_u16(op.clone())?;
-                    self.room[current_address] = (tw & 0x00ff) as u8;
-                    current_address += 1;
-                    self.room[current_address] = ((tw & 0xff00) >> 8) as u8;
-                    current_address += 1;
+                    self.room[self.pc as usize] = (tw & 0x00ff) as u8;
+                    self.pc += 1;
+                    self.room[self.pc as usize] = ((tw & 0xff00) >> 8) as u8;
+                    self.pc += 1;
                 },
             }
         };
@@ -121,7 +121,7 @@ impl Assembler {
     fn operand_to_u16(&self, operand: TwoWordExpression) -> Result<u16, Error> {
         match operand {
             TwoWordExpression::Char(char_value) => Ok(char_value as u16),
-            TwoWordExpression::Dollar => Ok(self.pc),
+            TwoWordExpression::Dollar => Ok(self.pc-1),
             TwoWordExpression::Label(l) =>
                 self.two_words
                     .get(&l)
