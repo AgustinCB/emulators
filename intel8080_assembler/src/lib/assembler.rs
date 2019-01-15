@@ -11,6 +11,7 @@ const ROM_MEMORY_LIMIT: usize = 65536;
 #[derive(Clone, Debug, PartialEq)]
 enum StageOneValue {
     ByteOperation(OperationExpression),
+    OrgStatement(u16),
     TwoByteOperation(OperationExpression),
     Word(u8),
 }
@@ -47,7 +48,10 @@ impl Assembler {
                 Statement::LabelDefinitionStatement(label) => {
                     self.two_words.insert(label, self.pc);
                 },
-                Statement::OrgStatement(tw) => self.pc = tw,
+                Statement::OrgStatement(tw) => {
+                    self.pc = tw;
+                    self.stage_one_room.push(StageOneValue::OrgStatement(tw));
+                },
                 Statement::TwoWordDefinitionStatement(label, value) => {
                     let value = self.operation_to_u16(value)?;
                     self.two_words.insert(label, value);
@@ -66,20 +70,21 @@ impl Assembler {
         self.pc = 0;
         while let Some(v) = iter.next() {
             match v {
-                StageOneValue::Word(b) => {
-                    self.room[self.pc as usize] = b.clone();
-                    self.pc += 1;
-                },
                 StageOneValue::ByteOperation(op) => {
                     self.room[self.pc as usize] = self.operation_to_u8(op.clone())?;
-                    self.pc += 1;
+                    self.pc = self.pc.wrapping_add(1);
                 },
+                StageOneValue::OrgStatement(address) => self.pc = *address,
                 StageOneValue::TwoByteOperation(op) => {
                     let tw = self.operation_to_u16(op.clone())?;
                     self.room[self.pc as usize] = (tw & 0x00ff) as u8;
-                    self.pc += 1;
+                    self.pc = self.pc.wrapping_add(1);
                     self.room[self.pc as usize] = ((tw & 0xff00) >> 8) as u8;
-                    self.pc += 1;
+                    self.pc = self.pc.wrapping_add(1);
+                },
+                StageOneValue::Word(b) => {
+                    self.room[self.pc as usize] = b.clone();
+                    self.pc = self.pc.wrapping_add(1);
                 },
             }
         };
@@ -134,6 +139,7 @@ impl Assembler {
     fn add_instruction(&mut self, instruction: Instruction) -> Result<(), Error> {
         for v in self.bytes_for_instruction(instruction)? {
             let steps = match v {
+                StageOneValue::OrgStatement(_) => 0,
                 StageOneValue::ByteOperation(_) | StageOneValue::Word(_) => 1,
                 _ => 2,
             };
