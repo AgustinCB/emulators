@@ -4,7 +4,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 pub(crate) struct Register2000 {
-    pub(crate) value: u8
+    pub(crate) value: u8,
 }
 
 /**
@@ -12,9 +12,7 @@ pub(crate) struct Register2000 {
  */
 impl Register2000 {
     pub(crate) fn new() -> Register2000 {
-        Register2000 {
-            value: 0
-        }
+        Register2000 { value: 0 }
     }
     #[inline]
     pub(crate) fn get_name_table(&self) -> u8 {

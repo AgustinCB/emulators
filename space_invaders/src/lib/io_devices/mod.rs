@@ -21,6 +21,6 @@ impl InputDevice for DummyInputDevice {
     }
 }
 
-pub use self::external_shift::*;
 pub use self::buttons::*;
+pub use self::external_shift::*;
 pub use self::sounds::*;

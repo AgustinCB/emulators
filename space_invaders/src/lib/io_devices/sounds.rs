@@ -1,9 +1,9 @@
 extern crate ears;
 
 use self::ears::{AudioController, Sound};
-use super::intel8080cpu::OutputDevice;
-use super::super::ConsoleError;
 use super::super::failure::Error;
+use super::super::ConsoleError;
+use super::intel8080cpu::OutputDevice;
 
 pub struct SoundPort1 {
     last_value: u8,
@@ -57,11 +57,10 @@ impl SoundPort2 {
 
 macro_rules! maybe_play_instant_sound {
     ($position:expr, $byte:ident, $this:ident, $sound:ident) => {
-        if ($byte & $position) ^ ($byte & $this.last_value) > 0 &&
-            !$this.$sound.is_playing () {
+        if ($byte & $position) ^ ($byte & $this.last_value) > 0 && !$this.$sound.is_playing() {
             $this.$sound.play();
         }
-    }
+    };
 }
 impl OutputDevice for SoundPort1 {
     fn write(&mut self, byte: u8) {

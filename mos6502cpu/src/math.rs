@@ -1,5 +1,5 @@
-use {Mos6502Cpu, CpuError, CpuResult};
 use instruction::AddressingMode;
+use {CpuError, CpuResult, Mos6502Cpu};
 
 impl Mos6502Cpu {
     pub(crate) fn execute_adc(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
@@ -19,25 +19,30 @@ impl Mos6502Cpu {
         self.update_zero_flag(answer);
         self.update_negative_flag(answer);
         self.registers.p.carry = first_carry || second_carry;
-        self.registers.p.overflow =
-            self.calculate_overflow(self.registers.a, value, answer);
+        self.registers.p.overflow = self.calculate_overflow(self.registers.a, value, answer);
         self.registers.a = answer;
         Ok(())
     }
 
     #[inline]
-    pub(crate) fn execute_adc_decimal_unchecked(&mut self, addressing_mode: &AddressingMode)
-        -> CpuResult {
+    pub(crate) fn execute_adc_decimal_unchecked(
+        &mut self,
+        addressing_mode: &AddressingMode,
+    ) -> CpuResult {
         let value = self.get_value_from_addressing_mode(addressing_mode)?;
         let a = self.registers.a;
         let carry_as_u8 = self.registers.p.carry as u8;
         let mut al = (a & 0x0f) + (value & 0x0f) + carry_as_u8;
         let mut ah = (a >> 4) + (value >> 4) + (al > 0x09) as u8;
-        if al > 9 { al += 6 };
+        if al > 9 {
+            al += 6
+        };
         self.update_zero_flag(a.wrapping_add(value).wrapping_add(carry_as_u8));
         self.registers.p.negative = (ah & 0x08) > 0;
         self.registers.p.overflow = (((ah << 4) ^ a) & 0x80) > 0 && ((a ^ value) & 0x80) == 0;
-        if ah > 9 { ah += 6 };
+        if ah > 9 {
+            ah += 6
+        };
         self.registers.p.carry = ah > 15;
         self.registers.a = (ah << 4) | (al & 0x0f);
         Ok(())
@@ -89,14 +94,24 @@ impl Mos6502Cpu {
     }
 
     #[inline]
-    pub(crate) fn execute_sbc_decimal_unchecked(&mut self, addressing_mode: &AddressingMode)
-        -> CpuResult {
+    pub(crate) fn execute_sbc_decimal_unchecked(
+        &mut self,
+        addressing_mode: &AddressingMode,
+    ) -> CpuResult {
         let value = self.get_value_from_addressing_mode(addressing_mode)?;
         let a = self.registers.a;
-        let mut al = (a & 0x0f).wrapping_sub(value & 0x0f).wrapping_sub(!self.registers.p.carry as u8);
-        if (al & 0x10) > 0 { al -= 6 };
-        let mut ah = (a >> 4).wrapping_sub(value >> 4).wrapping_sub(((al & 0x10) > 0) as u8);
-        if (ah & 0x10) > 0 { ah -= 6 };
+        let mut al = (a & 0x0f)
+            .wrapping_sub(value & 0x0f)
+            .wrapping_sub(!self.registers.p.carry as u8);
+        if (al & 0x10) > 0 {
+            al -= 6
+        };
+        let mut ah = (a >> 4)
+            .wrapping_sub(value >> 4)
+            .wrapping_sub(((al & 0x10) > 0) as u8);
+        if (ah & 0x10) > 0 {
+            ah -= 6
+        };
         self.sbc_logic(value);
         self.registers.a = (ah << 4) | (al & 0x0f);
         Ok(())
@@ -134,8 +149,11 @@ impl Mos6502Cpu {
         match addressing_mode {
             AddressingMode::Immediate { byte: _ } => Ok(()),
             AddressingMode::ZeroPage { byte: _ } => Ok(()),
-            AddressingMode::Absolute { low_byte: _, high_byte: _ } => Ok(()),
-            _ => Err(CpuError::InvalidAddressingMode)
+            AddressingMode::Absolute {
+                low_byte: _,
+                high_byte: _,
+            } => Ok(()),
+            _ => Err(CpuError::InvalidAddressingMode),
         }
     }
 }
@@ -144,7 +162,7 @@ impl Mos6502Cpu {
 mod tests {
     use cpu::Cpu;
     use instruction::{AddressingMode, Mos6502Instruction, Mos6502InstructionCode};
-    use {AVAILABLE_MEMORY, Mos6502Cpu};
+    use {Mos6502Cpu, AVAILABLE_MEMORY};
 
     #[test]
     fn it_should_adc_without_prev_carry_overflow_carry_negative_nor_zero() {
@@ -155,7 +173,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Adc,
             addressing_mode: AddressingMode::Immediate { byte: 0x21 },
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.registers.a, 0x42);
         assert!(!cpu.registers.p.carry);
         assert!(!cpu.registers.p.zero);
@@ -172,7 +191,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Adc,
             addressing_mode: AddressingMode::Immediate { byte: 0x21 },
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.registers.a, 0x43);
         assert!(!cpu.registers.p.carry);
         assert!(!cpu.registers.p.zero);
@@ -189,7 +209,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Adc,
             addressing_mode: AddressingMode::Immediate { byte: 0x42 },
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.registers.a, 0x84);
         assert!(!cpu.registers.p.carry);
         assert!(!cpu.registers.p.zero);
@@ -206,7 +227,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Adc,
             addressing_mode: AddressingMode::Immediate { byte: 0x42 },
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.registers.a, 0x85);
         assert!(!cpu.registers.p.carry);
         assert!(!cpu.registers.p.zero);
@@ -223,7 +245,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Adc,
             addressing_mode: AddressingMode::Immediate { byte: 0x84 },
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.registers.a, 0x08);
         assert!(cpu.registers.p.carry);
         assert!(!cpu.registers.p.zero);
@@ -240,7 +263,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Adc,
             addressing_mode: AddressingMode::Immediate { byte: 0x84 },
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.registers.a, 0x09);
         assert!(cpu.registers.p.carry);
         assert!(!cpu.registers.p.zero);
@@ -257,7 +281,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Adc,
             addressing_mode: AddressingMode::Immediate { byte: 0xbe },
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.registers.a, 0);
         assert!(cpu.registers.p.carry);
         assert!(cpu.registers.p.zero);
@@ -274,7 +299,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Adc,
             addressing_mode: AddressingMode::Immediate { byte: 0xbe },
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.registers.a, 0);
         assert!(cpu.registers.p.carry);
         assert!(cpu.registers.p.zero);
@@ -292,7 +318,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Adc,
             addressing_mode: AddressingMode::Immediate { byte: 0xb0 },
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.registers.a, 0x11);
         assert!(cpu.registers.p.carry);
         assert!(!cpu.registers.p.zero);
@@ -308,7 +335,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Cmp,
             addressing_mode: AddressingMode::Immediate { byte: 0x42 },
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.registers.a, 0x42);
         assert!(cpu.registers.p.zero);
         assert!(cpu.registers.p.carry);
@@ -323,7 +351,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Cmp,
             addressing_mode: AddressingMode::Immediate { byte: 0x0 },
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.registers.a, 0x0);
         assert!(cpu.registers.p.zero);
         assert!(cpu.registers.p.carry);
@@ -338,7 +367,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Cmp,
             addressing_mode: AddressingMode::Immediate { byte: 0x41 },
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.registers.a, 0x42);
         assert!(!cpu.registers.p.zero);
         assert!(cpu.registers.p.carry);
@@ -353,7 +383,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Cmp,
             addressing_mode: AddressingMode::Immediate { byte: 0x43 },
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.registers.a, 0x42);
         assert!(!cpu.registers.p.zero);
         assert!(!cpu.registers.p.carry);
@@ -368,7 +399,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Cpx,
             addressing_mode: AddressingMode::Immediate { byte: 0x42 },
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.registers.x, 0x42);
         assert!(cpu.registers.p.zero);
         assert!(cpu.registers.p.carry);
@@ -383,7 +415,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Cpx,
             addressing_mode: AddressingMode::Immediate { byte: 0x41 },
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.registers.x, 0x42);
         assert!(!cpu.registers.p.zero);
         assert!(cpu.registers.p.carry);
@@ -398,7 +431,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Cpx,
             addressing_mode: AddressingMode::Immediate { byte: 0x43 },
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.registers.x, 0x42);
         assert!(!cpu.registers.p.zero);
         assert!(!cpu.registers.p.carry);
@@ -413,7 +447,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Cpy,
             addressing_mode: AddressingMode::Immediate { byte: 0x42 },
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.registers.y, 0x42);
         assert!(cpu.registers.p.zero);
         assert!(cpu.registers.p.carry);
@@ -428,7 +463,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Cpy,
             addressing_mode: AddressingMode::Immediate { byte: 0x41 },
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.registers.y, 0x42);
         assert!(!cpu.registers.p.zero);
         assert!(cpu.registers.p.carry);
@@ -443,7 +479,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Cpy,
             addressing_mode: AddressingMode::Immediate { byte: 0x43 },
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.registers.y, 0x42);
         assert!(!cpu.registers.p.zero);
         assert!(!cpu.registers.p.carry);
@@ -459,7 +496,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Sbc,
             addressing_mode: AddressingMode::Immediate { byte: 0x01 },
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.registers.a, 0x41);
         assert!(!cpu.registers.p.zero);
         assert!(cpu.registers.p.carry);
@@ -476,7 +514,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Sbc,
             addressing_mode: AddressingMode::Immediate { byte: 0x01 },
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.registers.a, 0x40);
         assert!(!cpu.registers.p.zero);
         assert!(cpu.registers.p.carry);
@@ -493,7 +532,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Sbc,
             addressing_mode: AddressingMode::Immediate { byte: 0x42 },
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.registers.a, 0x0);
         assert!(cpu.registers.p.zero);
         assert!(cpu.registers.p.carry);
@@ -510,7 +550,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Sbc,
             addressing_mode: AddressingMode::Immediate { byte: 0x40 },
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.registers.a, 0x80);
         assert!(!cpu.registers.p.zero);
         assert!(cpu.registers.p.carry);
@@ -527,7 +568,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Sbc,
             addressing_mode: AddressingMode::Immediate { byte: 0xff },
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.registers.a, 0x80);
         assert!(!cpu.registers.p.zero);
         assert!(!cpu.registers.p.carry);
@@ -544,7 +586,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Sbc,
             addressing_mode: AddressingMode::Immediate { byte: 0x80 },
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.registers.a, 0x80);
         assert!(!cpu.registers.p.zero);
         assert!(!cpu.registers.p.carry);
@@ -561,7 +604,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Sbc,
             addressing_mode: AddressingMode::Immediate { byte: 0x00 },
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.registers.a, 0xff);
         assert!(!cpu.registers.p.zero);
         assert!(!cpu.registers.p.carry);
@@ -578,7 +622,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Sbc,
             addressing_mode: AddressingMode::Immediate { byte: 0x00 },
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.registers.a, 0xff);
         assert!(!cpu.registers.p.zero);
         assert!(!cpu.registers.p.carry);
@@ -595,7 +640,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Sbc,
             addressing_mode: AddressingMode::Immediate { byte: 0x00 },
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.registers.a, 0x0);
         assert!(cpu.registers.p.zero);
         assert!(cpu.registers.p.carry);
@@ -613,7 +659,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Sbc,
             addressing_mode: AddressingMode::Immediate { byte: 0x01 },
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.registers.a, 0x4E);
         assert!(!cpu.registers.p.zero);
         assert!(cpu.registers.p.carry);

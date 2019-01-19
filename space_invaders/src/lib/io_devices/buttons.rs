@@ -41,7 +41,7 @@ impl KeypadController {
             Some(GameButton::Left) => result |= 0x20,
             Some(GameButton::Right) => result |= 0x40,
             Some(GameButton::Down) => result |= 0x80,
-            _ => {},
+            _ => {}
         };
         *(self.buttons_pressed.borrow_mut()) = result;
     }
@@ -57,7 +57,7 @@ impl KeypadController {
             Some(GameButton::Left) => result &= !0x20,
             Some(GameButton::Right) => result &= !0x40,
             Some(GameButton::Down) => result &= !0x80,
-            _ => {},
+            _ => {}
         };
         *(self.buttons_pressed.borrow_mut()) = result;
     }

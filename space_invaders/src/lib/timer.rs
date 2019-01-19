@@ -25,7 +25,7 @@ impl Timer {
     pub fn update_last_check(&mut self) -> usize {
         let new_time = Timer::get_millis();
         let elapsed = new_time - self.last_check;
-        self.last_check =  new_time;
+        self.last_check = new_time;
         elapsed
     }
 
@@ -40,9 +40,10 @@ impl Timer {
 
     fn get_millis() -> usize {
         let start = SystemTime::now();
-        let since_the_epoch = start.duration_since(UNIX_EPOCH)
+        let since_the_epoch = start
+            .duration_since(UNIX_EPOCH)
             .expect("Time went backwards");
-        (since_the_epoch.as_secs() * 1000) as usize +
-            since_the_epoch.subsec_nanos() as usize / 1_000_000
+        (since_the_epoch.as_secs() * 1000) as usize
+            + since_the_epoch.subsec_nanos() as usize / 1_000_000
     }
 }

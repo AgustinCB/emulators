@@ -1,5 +1,5 @@
-use intel8080cpu::Intel8080Cpu;
 use super::CpuError;
+use intel8080cpu::Intel8080Cpu;
 
 impl<'a> Intel8080Cpu<'a> {
     #[inline]
@@ -21,9 +21,9 @@ impl<'a> Intel8080Cpu<'a> {
 
 #[cfg(test)]
 mod tests {
-    use intel8080cpu::{Intel8080Cpu, ROM_MEMORY_LIMIT};
-    use instruction::Intel8080Instruction;
     use super::super::cpu::Cpu;
+    use instruction::Intel8080Instruction;
+    use intel8080cpu::{Intel8080Cpu, ROM_MEMORY_LIMIT};
 
     #[test]
     fn it_should_set_carry() {

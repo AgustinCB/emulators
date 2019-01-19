@@ -1,4 +1,5 @@
-#[macro_use] extern crate failure;
+#[macro_use]
+extern crate failure;
 extern crate intel8080cpu;
 
 use intel8080cpu::Location;
@@ -9,10 +10,7 @@ pub struct LabelExpression(String);
 #[derive(Debug, Fail)]
 pub enum AssemblerError {
     #[fail(display = "Unexpected character: {} at line {}", c, line)]
-    UnexpectedCharacter {
-        c: char,
-        line: usize,
-    },
+    UnexpectedCharacter { c: char, line: usize },
     #[fail(display = "Expecting {:?}, got {:?} ar line {}", expected, got, line)]
     ExpectingToken {
         expected: AssemblerTokenType,
@@ -30,15 +28,11 @@ pub enum AssemblerError {
         line: usize,
     },
     #[fail(display = "Expecting single character at line {}", line)]
-    ExpectingCharacter {
-        line: usize,
-    },
+    ExpectingCharacter { line: usize },
     #[fail(display = "Expecting single quote at line {}", line)]
-    ExpectingSingleQuote {
-        line: usize,
-    },
+    ExpectingSingleQuote { line: usize },
     #[fail(display = "Invalid argument for instruction at line {}", line)]
-    InvalidInstructionArgument { line: usize, },
+    InvalidInstructionArgument { line: usize },
     #[fail(display = "Invalid operation token at line {}.", line)]
     InvalidOperationToken { line: usize },
     #[fail(display = "Label doesn't exist at line {}.", line)]
@@ -48,7 +42,7 @@ pub enum AssemblerError {
     #[fail(display = "Unexpected end of expression at line {}", line)]
     UnexpectedEndOfExpression { line: usize },
     #[fail(display = "Label {:?} wasn't declared", label)]
-    LabelNotFound { label: LabelExpression }
+    LabelNotFound { label: LabelExpression },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -209,23 +203,27 @@ impl From<OperationExpression> for InstructionArgument {
 impl From<u8> for InstructionArgument {
     #[inline]
     fn from(byte: u8) -> InstructionArgument {
-        InstructionArgument::TwoWord(
-            OperationExpression::Operand(TwoWordExpression::Literal(byte as u16))
-        )
+        InstructionArgument::TwoWord(OperationExpression::Operand(TwoWordExpression::Literal(
+            byte as u16,
+        )))
     }
 }
 
 impl From<u16> for InstructionArgument {
     #[inline]
     fn from(two_word: u16) -> InstructionArgument {
-        InstructionArgument::TwoWord(
-            OperationExpression::Operand(TwoWordExpression::Literal(two_word))
-        )
+        InstructionArgument::TwoWord(OperationExpression::Operand(TwoWordExpression::Literal(
+            two_word,
+        )))
     }
 }
 
 #[derive(Debug)]
-pub struct Instruction(InstructionCode, Option<InstructionArgument>, Option<InstructionArgument>);
+pub struct Instruction(
+    InstructionCode,
+    Option<InstructionArgument>,
+    Option<InstructionArgument>,
+);
 
 pub enum Statement {
     WordDefinitionStatement(LabelExpression, OperationExpression),
@@ -235,9 +233,9 @@ pub enum Statement {
     TwoWordDefinitionStatement(LabelExpression, OperationExpression),
 }
 
+mod assembler;
 mod lexer;
 mod parser;
-mod assembler;
 pub use assembler::Assembler;
 pub use lexer::Lexer;
 pub use parser::Parser;

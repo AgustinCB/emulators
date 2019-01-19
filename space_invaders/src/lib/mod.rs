@@ -1,19 +1,14 @@
-#[macro_use] extern crate failure;
+#[macro_use]
+extern crate failure;
 
 #[derive(Debug, Fail)]
 pub enum ConsoleError {
     #[fail(display = "couldn't create cpu: {}", msg)]
-    CantCreateCpu {
-        msg: String,
-    },
+    CantCreateCpu { msg: String },
     #[fail(display = "couldn't create window: {}", msg)]
-    CantCreateWindow {
-        msg: String,
-    },
+    CantCreateWindow { msg: String },
     #[fail(display = "couldn't create sound: {}", msg)]
-    CantCreateSound {
-        msg: String,
-    },
+    CantCreateSound { msg: String },
 }
 
 pub mod console;

@@ -16,9 +16,9 @@ impl<'a> Intel8080Cpu<'a> {
 
 #[cfg(test)]
 mod tests {
-    use intel8080cpu::{Intel8080Cpu, State, ROM_MEMORY_LIMIT};
-    use instruction::Intel8080Instruction;
     use super::super::cpu::Cpu;
+    use instruction::Intel8080Instruction;
+    use intel8080cpu::{Intel8080Cpu, State, ROM_MEMORY_LIMIT};
 
     #[test]
     fn it_should_execute_ei() {

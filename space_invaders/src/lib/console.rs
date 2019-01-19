@@ -1,24 +1,24 @@
-extern crate intel8080cpu;
 extern crate glutin_window;
 extern crate graphics;
+extern crate intel8080cpu;
 extern crate opengl_graphics;
 extern crate piston;
 
-use self::intel8080cpu::*;
 use self::glutin_window::GlutinWindow as Window;
-use self::opengl_graphics::{ GlGraphics, OpenGL };
-use self::piston::window::WindowSettings;
+use self::intel8080cpu::*;
+use self::opengl_graphics::{GlGraphics, OpenGL};
 use self::piston::event_loop::*;
 use self::piston::input::*;
-use super::ConsoleError;
+use self::piston::window::WindowSettings;
 use super::failure::Error;
 use super::io_devices::*;
-use super::screen::{Screen, GameScreen};
+use super::screen::{GameScreen, Screen};
 use super::timer::Timer;
 use super::view::{View, WINDOW_HEIGHT, WINDOW_WIDTH};
+use super::ConsoleError;
 
 const FPS: f64 = 60.0;
-const SCREEN_INTERRUPTIONS_INTERVAL: f64 = (1.0/FPS*1000.0)/2.0;
+const SCREEN_INTERRUPTIONS_INTERVAL: f64 = (1.0 / FPS * 1000.0) / 2.0;
 const OPEN_GL: OpenGL = OpenGL::V3_2;
 pub(crate) const FRAME_BUFFER_ADDRESS: usize = 0x2400;
 pub(crate) const FRAME_BUFFER_SIZE: usize = 0x1C00;
@@ -81,7 +81,8 @@ impl<'a> Console<'a> {
 
     fn create_cpu<'b>(
         keypad_controller: &KeypadController,
-        options: ConsoleOptions) -> Result<Intel8080Cpu<'b>, Error> {
+        options: ConsoleOptions,
+    ) -> Result<Intel8080Cpu<'b>, Error> {
         let mut cpu = Intel8080Cpu::new(options.memory);
         let shift_writer = ExternalShiftWriter::new();
         let offset_writer = ExternalShiftOffsetWriter::new();
@@ -105,10 +106,7 @@ impl<'a> Console<'a> {
     }
 
     fn create_window() -> Result<Window, Error> {
-        WindowSettings::new(
-            "Space Invaders",
-            [WINDOW_WIDTH, WINDOW_HEIGHT]
-        )
+        WindowSettings::new("Space Invaders", [WINDOW_WIDTH, WINDOW_HEIGHT])
             .opengl(OPEN_GL)
             .exit_on_esc(true)
             .srgb(false)
@@ -118,8 +116,7 @@ impl<'a> Console<'a> {
 
     pub fn start(&mut self) -> Result<(), Error> {
         self.timer.reset();
-        let mut events = Events::new(
-            EventSettings::new().ups(1000).max_fps(60));
+        let mut events = Events::new(EventSettings::new().ups(1000).max_fps(60));
         while let Some(e) = events.next(&mut self.window) {
             if self.cpu.is_done() {
                 break;
@@ -147,19 +144,19 @@ impl<'a> Console<'a> {
         self.timer.update_last_check();
         if self.timer.should_trigger() && self.cpu.interruptions_enabled {
             self.prev_interruption = if self.prev_interruption == 1 {
-                let frame_buffer =
-                    &self.cpu.memory[FRAME_BUFFER_ADDRESS..(FRAME_BUFFER_ADDRESS + FRAME_BUFFER_SIZE)];
+                let frame_buffer = &self.cpu.memory
+                    [FRAME_BUFFER_ADDRESS..(FRAME_BUFFER_ADDRESS + FRAME_BUFFER_SIZE)];
                 self.screen.on_full_screen(frame_buffer);
                 2
             } else {
-                let frame_buffer =
-                    &self.cpu.memory[FRAME_BUFFER_ADDRESS..(FRAME_BUFFER_ADDRESS + FRAME_BUFFER_SIZE)];
+                let frame_buffer = &self.cpu.memory
+                    [FRAME_BUFFER_ADDRESS..(FRAME_BUFFER_ADDRESS + FRAME_BUFFER_SIZE)];
                 self.screen.on_mid_screen(frame_buffer);
                 1
             };
             self.view.update_image(self.screen.get_pixels());
             self.cpu.execute_instruction(&Intel8080Instruction::Rst {
-                byte: self.prev_interruption
+                byte: self.prev_interruption,
             })?;
         }
         let mut cycles_to_run = (args.dt * (HERTZ as f64)) as i64 + self.cycles_left;

@@ -1,9 +1,9 @@
 extern crate intel8080_assembler;
 
+use intel8080_assembler::{Assembler, Lexer, Parser};
 use std::env::args;
 use std::fs::File;
 use std::io::Write;
-use intel8080_assembler::{Assembler, Lexer, Parser};
 
 const USAGE: &'static str = "Usage: intel8080_assembler [input file] [output file]
 

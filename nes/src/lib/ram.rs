@@ -1,6 +1,6 @@
 extern crate mos6502cpu;
 
-use mos6502cpu::{AVAILABLE_MEMORY, Memory};
+use mos6502cpu::{Memory, AVAILABLE_MEMORY};
 use nes::InputOutputDevice;
 
 pub const ROM_SIZE: usize = 0x8000;
@@ -52,7 +52,7 @@ impl Ram {
             expansion_rom: [0; 0x1E00],
             sram: [0; 0x2000],
             io_registers,
-            rom
+            rom,
         }
     }
 

@@ -32,9 +32,7 @@ pub(crate) struct GameScreen {
 impl GameScreen {
     pub(crate) fn new() -> GameScreen {
         let lines = [[false; SCREEN_WIDTH]; SCREEN_HEIGHT];
-        GameScreen {
-            lines,
-        }
+        GameScreen { lines }
     }
 
     fn update_columns(&mut self, start_column: u16, end_column: u16, frame_buffer: &[u8]) {
@@ -53,7 +51,11 @@ impl GameScreen {
 
 impl Screen for GameScreen {
     fn on_mid_screen(&mut self, frame_buffer: &[u8]) {
-        self.update_columns(COLUMN_LIMIT_BETWEEN_INTERRUPTIONS, SCREEN_WIDTH as u16, frame_buffer);
+        self.update_columns(
+            COLUMN_LIMIT_BETWEEN_INTERRUPTIONS,
+            SCREEN_WIDTH as u16,
+            frame_buffer,
+        );
     }
 
     fn on_full_screen(&mut self, frame_buffer: &[u8]) {
@@ -67,8 +69,8 @@ impl Screen for GameScreen {
 
 #[cfg(test)]
 mod tests {
-    use super::{GameScreen, Screen, SCREEN_WIDTH};
     use super::super::console::FRAME_BUFFER_SIZE;
+    use super::{GameScreen, Screen, SCREEN_WIDTH};
 
     #[test]
     fn it_should_correctly_translate_from_memory() {
@@ -330,23 +332,21 @@ mod tests {
             [true; SCREEN_WIDTH],
             [true; SCREEN_WIDTH],
         ]
-            .iter()
-            .map(|s| s.to_vec())
-            .collect();
+        .iter()
+        .map(|s| s.to_vec())
+        .collect();
         let mut memory = [0; FRAME_BUFFER_SIZE];
         for counter in (0x1f..FRAME_BUFFER_SIZE).step_by(0x20) {
             memory[counter] = 0xf0;
         }
-        for counter in (0x00..(FRAME_BUFFER_SIZE-0x1f)).step_by(0x20) {
+        for counter in (0x00..(FRAME_BUFFER_SIZE - 0x1f)).step_by(0x20) {
             memory[counter] = 0x0f;
         }
         let mut screen = GameScreen::new();
         screen.on_full_screen(&memory);
         screen.on_mid_screen(&memory);
-        let actual_output: Vec<Vec<bool>> = screen.get_pixels()
-            .iter()
-            .map(|s| s.to_vec())
-            .collect();
+        let actual_output: Vec<Vec<bool>> =
+            screen.get_pixels().iter().map(|s| s.to_vec()).collect();
         assert_eq!(expected_output, actual_output);
     }
 }

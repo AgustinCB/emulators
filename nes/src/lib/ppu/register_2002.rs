@@ -3,7 +3,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 pub(crate) struct Register2002 {
-    value: u8
+    value: u8,
 }
 
 /**
@@ -11,9 +11,7 @@ pub(crate) struct Register2002 {
  */
 impl Register2002 {
     pub(crate) fn new() -> Register2002 {
-        Register2002 {
-            value: 0
-        }
+        Register2002 { value: 0 }
     }
     #[inline]
     pub(crate) fn enable_vram_writes(&mut self) {

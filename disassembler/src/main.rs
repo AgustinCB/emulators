@@ -1,12 +1,13 @@
 extern crate cpu;
-#[macro_use] extern crate failure;
+#[macro_use]
+extern crate failure;
 extern crate intel8080cpu;
 extern crate mos6502cpu;
 
 use cpu::Instruction;
 use failure::Error;
-use mos6502cpu::Mos6502Instruction;
 use intel8080cpu::Intel8080Instruction;
+use mos6502cpu::Mos6502Instruction;
 use std::cmp::min;
 use std::env::args;
 use std::fs::File;
@@ -28,25 +29,28 @@ Disassemble a binary file for an old cpu. So far, supports only:
 - mos6502
 - intel8080";
 
-fn get_instructions_for_cpu(cpu: &str, bytes: [u8; ROM_MEMORY_LIMIT])
-    -> Result<Vec<(u16, Box<ToString>)>, Error> {
+fn get_instructions_for_cpu(
+    cpu: &str,
+    bytes: [u8; ROM_MEMORY_LIMIT],
+) -> Result<Vec<(u16, Box<ToString>)>, Error> {
     match cpu {
         "mos6502" => get_instructions::<Mos6502Instruction>(bytes),
         "intel8080" => get_instructions::<Intel8080Instruction>(bytes),
-        _ => Err(Error::from(DisassemblerError::InvalidCpu { name: String::from(cpu) })),
+        _ => Err(Error::from(DisassemblerError::InvalidCpu {
+            name: String::from(cpu),
+        })),
     }
 }
 
-fn get_instructions<I: 'static + Instruction + ToString + From<Vec<u8>>>(bytes: [u8; ROM_MEMORY_LIMIT])
-    -> Result<Vec<(u16, Box<ToString>)>, Error> {
+fn get_instructions<I: 'static + Instruction + ToString + From<Vec<u8>>>(
+    bytes: [u8; ROM_MEMORY_LIMIT],
+) -> Result<Vec<(u16, Box<ToString>)>, Error> {
     let mut result: Vec<(u16, Box<ToString>)> = Vec::with_capacity(bytes.len());
     let mut pass = 0;
     let mut pc: usize = 0;
     for index in 0..bytes.len() {
         if pass == 0 {
-            let i =
-                I::from(
-                    bytes[index..min(index+3, bytes.len())].to_vec());
+            let i = I::from(bytes[index..min(index + 3, bytes.len())].to_vec());
             let instruction_size = i.size()?;
             pass = instruction_size - 1;
             result.push((pc as u16, Box::new(i)));
@@ -66,10 +70,10 @@ fn read_file(file_name: &str) -> std::io::Result<[u8; ROM_MEMORY_LIMIT]> {
 }
 
 fn disassemble(cpu: &str, memory: [u8; ROM_MEMORY_LIMIT]) -> Result<(), Error> {
-    let instructions = get_instructions_for_cpu(cpu,memory)?;
-    for (pc,instruction) in &instructions {
+    let instructions = get_instructions_for_cpu(cpu, memory)?;
+    for (pc, instruction) in &instructions {
         println!("{:04x} {}", pc, instruction.to_string());
-    };
+    }
     Ok(())
 }
 

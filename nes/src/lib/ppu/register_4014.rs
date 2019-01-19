@@ -16,7 +16,9 @@ pub(crate) struct Register4014 {
  */
 impl Register4014 {
     pub(crate) fn new(
-        ram: &Rc<RefCell<Ram>>, sprite_memory: &Rc<RefCell<SpriteMemory>>) -> Register4014 {
+        ram: &Rc<RefCell<Ram>>,
+        sprite_memory: &Rc<RefCell<SpriteMemory>>,
+    ) -> Register4014 {
         Register4014 {
             ram: ram.clone(),
             sprite_memory: sprite_memory.clone(),

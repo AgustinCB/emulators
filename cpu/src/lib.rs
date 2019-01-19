@@ -8,14 +8,17 @@ use failure::{Error, Fail};
 macro_rules! single {
     ($num:expr) => {
         Cycles::Single($num)
-    }
+    };
 }
 
 #[macro_export]
 macro_rules! conditional {
     ($not_met:expr, $met:expr) => {
-        Cycles::OneCondition { not_met: $not_met, met: $met }
-    }
+        Cycles::OneCondition {
+            not_met: $not_met,
+            met: $met,
+        }
+    };
 }
 
 #[macro_export]
@@ -26,7 +29,7 @@ macro_rules! bi_conditional {
             first_met: $first_met,
             second_met: $second_met,
         }
-    }
+    };
 }
 
 pub trait MemoryAddressWidth {}
@@ -38,8 +41,15 @@ impl MemoryAddressWidth for u64 {}
 
 pub enum Cycles {
     Single(u8),
-    OneCondition { not_met: u8, met: u8 },
-    TwoConditions { not_met: u8, first_met: u8, second_met: u8 },
+    OneCondition {
+        not_met: u8,
+        met: u8,
+    },
+    TwoConditions {
+        not_met: u8,
+        first_met: u8,
+        second_met: u8,
+    },
 }
 
 pub trait InputDevice {
@@ -56,9 +66,11 @@ pub trait Instruction {
 }
 
 pub trait Cpu<W, I, F>
-    where W: MemoryAddressWidth + Clone,
-          I: Instruction + ToString + From<Vec<W>>,
-          F: Fail {
+where
+    W: MemoryAddressWidth + Clone,
+    I: Instruction + ToString + From<Vec<W>>,
+    F: Fail,
+{
     fn execute(&mut self) -> Result<u8, Error> {
         let instruction = I::from(self.get_next_instruction_bytes());
         if !self.can_run(&instruction) {
@@ -75,10 +87,14 @@ pub trait Cpu<W, I, F>
         let cycles = instruction.get_cycles()?;
         match cycles {
             Cycles::Single(cycles) => Ok(cycles),
-            Cycles::OneCondition { not_met, met } =>
-                self.get_cycles_from_one_condition(instruction, not_met, met),
-            Cycles::TwoConditions { not_met, first_met, second_met } =>
-                self.get_cycles_from_two_conditions(instruction, not_met, first_met, second_met),
+            Cycles::OneCondition { not_met, met } => {
+                self.get_cycles_from_one_condition(instruction, not_met, met)
+            }
+            Cycles::TwoConditions {
+                not_met,
+                first_met,
+                second_met,
+            } => self.get_cycles_from_two_conditions(instruction, not_met, first_met, second_met),
         }
     }
 
@@ -92,14 +108,14 @@ pub trait Cpu<W, I, F>
         &self,
         instruction: &I,
         not_met: u8,
-        met: u8
+        met: u8,
     ) -> Result<u8, Error>;
     fn get_cycles_from_two_conditions(
         &self,
         instruction: &I,
         not_met: u8,
         first_met: u8,
-        second_met: u8
+        second_met: u8,
     ) -> Result<u8, Error>;
 }
 

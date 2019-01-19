@@ -1,5 +1,5 @@
-mod ppu;
 mod address_register;
+mod ppu;
 mod register_2000;
 mod register_2001;
 mod register_2002;

@@ -1,10 +1,10 @@
-extern crate intel8080cpu;
 extern crate emulator_space_invaders;
 extern crate failure;
+extern crate intel8080cpu;
 
-use intel8080cpu::*;
-use emulator_space_invaders::console::{ConsoleOptions, Console};
+use emulator_space_invaders::console::{Console, ConsoleOptions};
 use failure::Error;
+use intel8080cpu::*;
 use std::env::args;
 use std::fs::File;
 use std::io::Read;

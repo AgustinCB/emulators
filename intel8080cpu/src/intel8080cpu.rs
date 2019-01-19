@@ -1,8 +1,8 @@
+use super::cpu::{InputDevice, OutputDevice};
+use super::CpuError;
 use helpers::two_bytes_to_word;
 use std::boxed::Box;
 use std::fmt;
-use super::cpu::{InputDevice, OutputDevice};
-use super::CpuError;
 
 pub const ROM_MEMORY_LIMIT: usize = 8192;
 pub(crate) const MAX_INPUT_OUTPUT_DEVICES: usize = 0x100;
@@ -53,10 +53,10 @@ pub enum Location {
 }
 
 impl ToString for Location {
-    fn to_string(&self) -> String{
+    fn to_string(&self) -> String {
         match self {
             Location::Register { register } => register.to_string(),
-            Location::Memory => String::from("M")
+            Location::Memory => String::from("M"),
         }
     }
 }
@@ -64,17 +64,37 @@ impl ToString for Location {
 impl Location {
     pub fn from(location: &str) -> Result<Self, LocationParsingError> {
         match location {
-            "A" => Ok(Location::Register { register: RegisterType::A }),
-            "B" => Ok(Location::Register { register: RegisterType::B }),
-            "C" => Ok(Location::Register { register: RegisterType::C }),
-            "D" => Ok(Location::Register { register: RegisterType::D }),
-            "E" => Ok(Location::Register { register: RegisterType::E }),
-            "H" => Ok(Location::Register { register: RegisterType::H }),
-            "L" => Ok(Location::Register { register: RegisterType::L }),
+            "A" => Ok(Location::Register {
+                register: RegisterType::A,
+            }),
+            "B" => Ok(Location::Register {
+                register: RegisterType::B,
+            }),
+            "C" => Ok(Location::Register {
+                register: RegisterType::C,
+            }),
+            "D" => Ok(Location::Register {
+                register: RegisterType::D,
+            }),
+            "E" => Ok(Location::Register {
+                register: RegisterType::E,
+            }),
+            "H" => Ok(Location::Register {
+                register: RegisterType::H,
+            }),
+            "L" => Ok(Location::Register {
+                register: RegisterType::L,
+            }),
             "M" => Ok(Location::Memory),
-            "SP" => Ok(Location::Register { register: RegisterType::Sp }),
-            "PSW" => Ok(Location::Register { register: RegisterType::Psw }),
-            _ => Err(LocationParsingError { register: String::from(location) }),
+            "SP" => Ok(Location::Register {
+                register: RegisterType::Sp,
+            }),
+            "PSW" => Ok(Location::Register {
+                register: RegisterType::Psw,
+            }),
+            _ => Err(LocationParsingError {
+                register: String::from(location),
+            }),
         }
     }
 }
@@ -92,7 +112,16 @@ pub(crate) struct RegisterSet {
 
 impl RegisterSet {
     pub(crate) fn new() -> RegisterSet {
-        RegisterSet { a: 0, b: 0, c: 0, d: 0, e: 0, h: 0, l: 0, sp: 0xffff }
+        RegisterSet {
+            a: 0,
+            b: 0,
+            c: 0,
+            d: 0,
+            e: 0,
+            h: 0,
+            l: 0,
+            sp: 0xffff,
+        }
     }
 }
 
@@ -103,7 +132,7 @@ pub(crate) enum State {
 }
 
 pub trait Printer {
-    fn print (&mut self, bytes: &[u8]);
+    fn print(&mut self, bytes: &[u8]);
 }
 
 pub(crate) struct Flags {
@@ -140,7 +169,10 @@ pub struct Intel8080Cpu<'a> {
 }
 
 impl<'a> Intel8080Cpu<'a> {
-    pub fn new_cp_m_compatible(rom_memory: [u8; ROM_MEMORY_LIMIT], screen: &mut Printer) -> Intel8080Cpu {
+    pub fn new_cp_m_compatible(
+        rom_memory: [u8; ROM_MEMORY_LIMIT],
+        screen: &mut Printer,
+    ) -> Intel8080Cpu {
         let mut cpu = Intel8080Cpu::new(rom_memory);
         cpu.cp_m_compatibility = true;
         cpu.printer = Some(screen);
@@ -243,8 +275,10 @@ impl<'a> Intel8080Cpu<'a> {
     }
 
     #[inline]
-    pub(crate) fn get_current_single_register_value(&self, register: &RegisterType)
-        -> Result<u8, CpuError> {
+    pub(crate) fn get_current_single_register_value(
+        &self,
+        register: &RegisterType,
+    ) -> Result<u8, CpuError> {
         match register {
             RegisterType::A => Ok(self.registers.a),
             RegisterType::B => Ok(self.registers.b),
@@ -253,7 +287,9 @@ impl<'a> Intel8080Cpu<'a> {
             RegisterType::E => Ok(self.registers.e),
             RegisterType::H => Ok(self.registers.h),
             RegisterType::L => Ok(self.registers.l),
-            _ => Err(CpuError::VirtualRegister { register: *register }),
+            _ => Err(CpuError::VirtualRegister {
+                register: *register,
+            }),
         }
     }
 
@@ -268,38 +304,43 @@ impl<'a> Intel8080Cpu<'a> {
     }
 
     #[inline]
-    pub(crate) fn save_to_single_register(&mut self, new_value: u8, register: &RegisterType)
-        -> Result<(), CpuError> {
+    pub(crate) fn save_to_single_register(
+        &mut self,
+        new_value: u8,
+        register: &RegisterType,
+    ) -> Result<(), CpuError> {
         match register {
             RegisterType::A => {
                 self.registers.a = new_value;
                 Ok(())
-            },
+            }
             RegisterType::B => {
                 self.registers.b = new_value;
                 Ok(())
-            },
+            }
             RegisterType::C => {
                 self.registers.c = new_value;
                 Ok(())
-            },
+            }
             RegisterType::D => {
                 self.registers.d = new_value;
                 Ok(())
-            },
+            }
             RegisterType::E => {
                 self.registers.e = new_value;
                 Ok(())
-            },
+            }
             RegisterType::H => {
                 self.registers.h = new_value;
                 Ok(())
-            },
+            }
             RegisterType::L => {
                 self.registers.l = new_value;
                 Ok(())
-            },
-            _ => Err(CpuError::VirtualRegister { register: *register }),
+            }
+            _ => Err(CpuError::VirtualRegister {
+                register: *register,
+            }),
         }
     }
 

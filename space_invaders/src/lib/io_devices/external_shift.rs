@@ -62,13 +62,15 @@ pub struct ExternalShiftReader {
 impl InputDevice for ExternalShiftReader {
     fn read(&mut self) -> u8 {
         let v = ((*self.shift0.borrow() as u16) << 8) | *self.shift1.borrow() as u16;
-        (v >> (8-*self.shift_offset.borrow())) as u8
+        (v >> (8 - *self.shift_offset.borrow())) as u8
     }
 }
 
 impl ExternalShiftReader {
-    pub fn new(shift_writer: &ExternalShiftWriter, offset_writer: &ExternalShiftOffsetWriter)
-               -> ExternalShiftReader {
+    pub fn new(
+        shift_writer: &ExternalShiftWriter,
+        offset_writer: &ExternalShiftOffsetWriter,
+    ) -> ExternalShiftReader {
         ExternalShiftReader {
             shift_offset: offset_writer.get_shift_offset(),
             shift0: shift_writer.get_shift0(),

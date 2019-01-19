@@ -4,7 +4,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 pub(crate) struct Register2001 {
-    pub(crate) value: u8
+    pub(crate) value: u8,
 }
 
 /**
@@ -12,9 +12,7 @@ pub(crate) struct Register2001 {
  */
 impl Register2001 {
     pub(crate) fn new() -> Register2001 {
-        Register2001 {
-            value: 0
-        }
+        Register2001 { value: 0 }
     }
     #[inline]
     pub(crate) fn get_color_mode(&self) -> ColorMode {

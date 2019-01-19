@@ -1,6 +1,6 @@
-use {Mos6502Cpu, CpuError, CpuResult};
 use instruction::AddressingMode;
 use mos6502cpu::ProcessorStatus;
+use {CpuError, CpuResult, Mos6502Cpu};
 
 impl Mos6502Cpu {
     pub(crate) fn execute_pha(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
@@ -50,7 +50,7 @@ impl Mos6502Cpu {
 mod tests {
     use cpu::Cpu;
     use instruction::{AddressingMode, Mos6502Instruction, Mos6502InstructionCode};
-    use {AVAILABLE_MEMORY, Memory, Mos6502Cpu};
+    use {Memory, Mos6502Cpu, AVAILABLE_MEMORY};
 
     #[test]
     fn it_should_push_accumulator_onto_stack() {
@@ -61,7 +61,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Pha,
             addressing_mode: AddressingMode::Implicit,
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.memory.get(0x1ff), 0x42);
         assert_eq!(cpu.registers.s, 0xfe);
     }
@@ -76,7 +77,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Php,
             addressing_mode: AddressingMode::Implicit,
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.memory.get(0x1ff), expected);
         assert_eq!(cpu.registers.s, 0xfe);
     }
@@ -91,7 +93,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Pla,
             addressing_mode: AddressingMode::Implicit,
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.registers.a, 0x42);
         assert_eq!(cpu.registers.s, 0xff);
         assert!(!cpu.registers.p.zero);
@@ -108,7 +111,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Pla,
             addressing_mode: AddressingMode::Implicit,
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.registers.a, 0x0);
         assert_eq!(cpu.registers.s, 0xff);
         assert!(cpu.registers.p.zero);
@@ -125,7 +129,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Pla,
             addressing_mode: AddressingMode::Implicit,
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.registers.a, 0x80);
         assert_eq!(cpu.registers.s, 0xff);
         assert!(!cpu.registers.p.zero);
@@ -143,7 +148,8 @@ mod tests {
         cpu.execute_instruction(&Mos6502Instruction {
             instruction: Mos6502InstructionCode::Plp,
             addressing_mode: AddressingMode::Implicit,
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(cpu.registers.s, 0xff);
         assert!(cpu.registers.p.carry);
         assert!(!cpu.registers.p.zero);

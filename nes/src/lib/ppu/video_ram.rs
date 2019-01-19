@@ -49,7 +49,7 @@ impl VideoRam {
         let from = index.wrapping_mul(0x10) as usize;
         let to = index.wrapping_add(1).wrapping_mul(0x10) as usize;
         let mut result = Vec::with_capacity(8);
-        for i in from..(to/2) {
+        for i in from..(to / 2) {
             let current_row = self.get_tile_row(i);
             result.push(current_row);
         }

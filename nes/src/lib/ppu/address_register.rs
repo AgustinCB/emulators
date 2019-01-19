@@ -12,9 +12,7 @@ pub(crate) struct AddressRegister {
  */
 impl AddressRegister {
     pub(crate) fn new() -> AddressRegister {
-        AddressRegister {
-            value: 0
-        }
+        AddressRegister { value: 0 }
     }
 }
 

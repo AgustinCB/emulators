@@ -1,14 +1,13 @@
-use ppu::address_register::AddressRegister;
 use nes::InputOutputDevice;
+use ppu::address_register::AddressRegister;
+use ppu::video_ram::VideoRam;
 use std::cell::RefCell;
 use std::rc::Rc;
-use ppu::video_ram::VideoRam;
 
 #[inline]
 fn two_bytes_to_word(high_byte: u8, low_byte: u8) -> u16 {
     (high_byte as u16) << 8 | (low_byte as u16)
 }
-
 
 pub(crate) struct Register2007 {
     register2005: Rc<RefCell<AddressRegister>>,
@@ -23,11 +22,12 @@ impl Register2007 {
     pub(crate) fn new(
         register2005: &Rc<RefCell<AddressRegister>>,
         register2006: &Rc<RefCell<AddressRegister>>,
-        video_ram: &Rc<RefCell<VideoRam>>) -> Register2007 {
+        video_ram: &Rc<RefCell<VideoRam>>,
+    ) -> Register2007 {
         Register2007 {
             register2005: register2005.clone(),
             register2006: register2006.clone(),
-            video_ram: video_ram.clone()
+            video_ram: video_ram.clone(),
         }
     }
     #[inline]

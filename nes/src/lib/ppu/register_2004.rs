@@ -1,6 +1,6 @@
 use nes::InputOutputDevice;
-use ppu::SpriteMemory;
 use ppu::address_register::AddressRegister;
+use ppu::SpriteMemory;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -15,10 +15,11 @@ pub(crate) struct Register2004 {
 impl Register2004 {
     pub(crate) fn new(
         register2003: &Rc<RefCell<AddressRegister>>,
-        sprite_memory: &Rc<RefCell<SpriteMemory>>) -> Register2004 {
+        sprite_memory: &Rc<RefCell<SpriteMemory>>,
+    ) -> Register2004 {
         Register2004 {
             register2003: register2003.clone(),
-            sprite_memory: sprite_memory.clone()
+            sprite_memory: sprite_memory.clone(),
         }
     }
     #[inline]

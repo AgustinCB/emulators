@@ -1,8 +1,8 @@
-extern crate mos6502cpu;
 extern crate failure;
+extern crate mos6502cpu;
 
 use failure::Error;
-use mos6502cpu::{AVAILABLE_MEMORY, Cpu, Mos6502Cpu};
+use mos6502cpu::{Cpu, Mos6502Cpu, AVAILABLE_MEMORY};
 use std::env::args;
 use std::fs::File;
 use std::io::Read;

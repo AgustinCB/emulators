@@ -1,9 +1,9 @@
+use super::failure::Error;
+use super::{AssemblerError, AssemblerToken, AssemblerTokenType, InstructionCode, LabelExpression};
 use intel8080cpu::Location;
 use std::io::{Bytes, Read};
 use std::iter::Peekable;
 use std::str::FromStr;
-use super::{InstructionCode, AssemblerToken, AssemblerTokenType, LabelExpression, AssemblerError};
-use super::failure::Error;
 
 pub struct Lexer<R: Read> {
     source: Peekable<Bytes<R>>,
@@ -33,11 +33,10 @@ impl<R: Read> Lexer<R> {
             '\n' => {
                 self.line += 1;
                 Ok(None)
-            },
+            }
             c if c.is_whitespace() => Ok(None),
             c if c.is_digit(10) => self.maybe_scan_number(input),
-            c if c.is_alphabetic() || c == '?' || c == '@' =>
-                self.either_label_or_keyword(input),
+            c if c.is_alphabetic() || c == '?' || c == '@' => self.either_label_or_keyword(input),
             '\'' => self.scan_char(),
             '(' => Ok(Some(AssemblerTokenType::LeftParen)),
             ')' => Ok(Some(AssemblerTokenType::RightParen)),
@@ -45,14 +44,17 @@ impl<R: Read> Lexer<R> {
             ';' => {
                 self.consume(|c| c != '\n')?;
                 Ok(None)
-            },
+            }
             ',' => Ok(Some(AssemblerTokenType::Comma)),
             '+' => Ok(Some(AssemblerTokenType::Plus)),
             '-' => Ok(Some(AssemblerTokenType::Minus)),
             '$' => Ok(Some(AssemblerTokenType::Dollar)),
             '*' => Ok(Some(AssemblerTokenType::Mult)),
             '/' => Ok(Some(AssemblerTokenType::Div)),
-            _ => Err(Error::from(AssemblerError::UnexpectedCharacter { c: input, line: self.line })),
+            _ => Err(Error::from(AssemblerError::UnexpectedCharacter {
+                c: input,
+                line: self.line,
+            })),
         }?;
         if let Some(t) = token {
             self.tokens.push(AssemblerToken {
@@ -72,13 +74,16 @@ impl<R: Read> Lexer<R> {
     }
 
     #[inline]
-    fn either_label_or_keyword(&mut self, first_char: char)
-                               -> Result<Option<AssemblerTokenType>, Error> {
+    fn either_label_or_keyword(
+        &mut self,
+        first_char: char,
+    ) -> Result<Option<AssemblerTokenType>, Error> {
         let rest = self.consume(|c| c.is_alphabetic() || c == '_')?;
         let literal = format!("{}{}", first_char, rest);
         Ok(match literal.as_str() {
-            "A" | "B" | "C" | "D" | "E" | "H" | "L" | "M" | "PSW" | "SP" =>
-                Some(AssemblerTokenType::DataStore(Location::from(&literal)?)),
+            "A" | "B" | "C" | "D" | "E" | "H" | "L" | "M" | "PSW" | "SP" => {
+                Some(AssemblerTokenType::DataStore(Location::from(&literal)?))
+            }
             "AND" => Some(AssemblerTokenType::And),
             "DB" => Some(AssemblerTokenType::Db),
             "DW" => Some(AssemblerTokenType::Dw),
@@ -167,12 +172,15 @@ impl<R: Read> Lexer<R> {
             "EI" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Ei)),
             "CM" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Cm)),
             "CPI" => Some(AssemblerTokenType::InstructionCode(InstructionCode::Cpi)),
-            _ => Some(AssemblerTokenType::LabelToken(LabelExpression(literal)))
+            _ => Some(AssemblerTokenType::LabelToken(LabelExpression(literal))),
         })
     }
 
     #[inline]
-    fn maybe_scan_number(&mut self, first_digit: char) -> Result<Option<AssemblerTokenType>, Error> {
+    fn maybe_scan_number(
+        &mut self,
+        first_digit: char,
+    ) -> Result<Option<AssemblerTokenType>, Error> {
         let rest = self.consume(|c| c.is_alphanumeric())?;
         let mut number_string = format!("{}{}", first_digit, rest);
         let radix_marker = number_string.pop().unwrap(); // Safe because len(number_string) > 0
