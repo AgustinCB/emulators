@@ -549,7 +549,7 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
 #[cfg(test)]
 mod tests {
     use instruction::AddressingMode;
-    use mos6502cpu::{Memory, Mos6502Cpu, AVAILABLE_MEMORY};
+    use mos6502cpu::{Mos6502Cpu, AVAILABLE_MEMORY};
 
     #[test]
     fn it_should_get_value_from_addressing_mode_for_accumulator() {

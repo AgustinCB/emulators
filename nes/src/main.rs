@@ -8,7 +8,7 @@ use std::env::args;
 use std::fs::File;
 use std::io::Read;
 
-const USAGE: &'static str = "Usage: nes [game file]";
+const USAGE: &str = "Usage: nes [game file]";
 
 fn read_file(file_name: &str) -> std::io::Result<[u8; ROM_SIZE]> {
     let mut f = File::open(file_name)?;

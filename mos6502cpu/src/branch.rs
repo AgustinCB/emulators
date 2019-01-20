@@ -201,7 +201,7 @@ impl Mos6502Cpu {
 mod tests {
     use cpu::Cpu;
     use instruction::{AddressingMode, Mos6502Instruction, Mos6502InstructionCode};
-    use {Memory, Mos6502Cpu, AVAILABLE_MEMORY};
+    use {Mos6502Cpu, AVAILABLE_MEMORY};
 
     #[test]
     fn it_should_branch_if_carry_is_clear_on_bcc() {
