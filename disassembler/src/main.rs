@@ -22,17 +22,18 @@ enum DisassemblerError {
 // This is an arbitrarily chosen number. We either need RFC 2000 or something else that I dunno yet
 const ROM_MEMORY_LIMIT: usize = 0x10000;
 
-const USAGE: &'static str = "Usage: disassembler [cpu] [file]
+const USAGE: &str = "Usage: disassembler [cpu] [file]
 
 Disassemble a binary file for an old cpu. So far, supports only:
 
 - mos6502
 - intel8080";
+type InstructionsResult = Result<Vec<(u16, Box<ToString>)>, Error>;
 
 fn get_instructions_for_cpu(
     cpu: &str,
     bytes: [u8; ROM_MEMORY_LIMIT],
-) -> Result<Vec<(u16, Box<ToString>)>, Error> {
+) -> InstructionsResult {
     match cpu {
         "mos6502" => get_instructions::<Mos6502Instruction>(bytes),
         "intel8080" => get_instructions::<Intel8080Instruction>(bytes),
@@ -44,7 +45,7 @@ fn get_instructions_for_cpu(
 
 fn get_instructions<I: 'static + Instruction + ToString + From<Vec<u8>>>(
     bytes: [u8; ROM_MEMORY_LIMIT],
-) -> Result<Vec<(u16, Box<ToString>)>, Error> {
+) -> InstructionsResult {
     let mut result: Vec<(u16, Box<ToString>)> = Vec::with_capacity(bytes.len());
     let mut pass = 0;
     let mut pc: usize = 0;
@@ -65,7 +66,7 @@ fn get_instructions<I: 'static + Instruction + ToString + From<Vec<u8>>>(
 fn read_file(file_name: &str) -> std::io::Result<[u8; ROM_MEMORY_LIMIT]> {
     let mut f = File::open(file_name)?;
     let mut memory = [0; ROM_MEMORY_LIMIT];
-    f.read(&mut memory)?;
+    f.read_exact(&mut memory)?;
     Ok(memory)
 }
 
