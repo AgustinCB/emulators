@@ -181,7 +181,7 @@ impl<R: Read> Lexer<R> {
         &mut self,
         first_digit: char,
     ) -> Result<Option<AssemblerTokenType>, Error> {
-        let rest = self.consume(|c| c.is_alphanumeric())?;
+        let rest = self.consume(char::is_alphanumeric)?;
         let mut number_string = format!("{}{}", first_digit, rest);
         let radix_marker = number_string.pop().unwrap(); // Safe because len(number_string) > 0
         let radix = if radix_marker == 'H' {

@@ -51,7 +51,7 @@ impl Parser {
                 ref got,
             ) => Err(Error::from(AssemblerError::ExpectingNumber {
                 got: got.clone().map(|v| v.token_type),
-                line: line.clone(),
+                line: *line,
             })),
             (
                 AssemblerToken {
@@ -126,7 +126,7 @@ impl Parser {
 
     fn parse_operation(&mut self, line: usize) -> Result<OperationExpression, Error> {
         let left_side = self.parse_and_operation(line)?;
-        let next = self.source.peek().map(|t| t.clone());
+        let next = self.source.peek().cloned();
         match next {
             Some(AssemblerToken {
                 token_type: AssemblerTokenType::Or,
@@ -171,14 +171,14 @@ impl Parser {
     }
 
     fn parse_not_operation(&mut self, line: usize) -> Result<OperationExpression, Error> {
-        let next = self.source.peek().map(|t| t.clone());
+        let next = self.source.peek().cloned();
         match next {
             Some(AssemblerToken {
                 token_type: AssemblerTokenType::Not,
                 line,
             }) => {
                 self.source.next();
-                let right_side = self.parse_sum_operations(line.clone())?;
+                let right_side = self.parse_sum_operations(line)?;
                 Ok(OperationExpression::Not(Box::new(right_side)))
             }
             Some(AssemblerToken {
@@ -252,22 +252,22 @@ impl Parser {
     }
 
     fn parse_group(&mut self, line: usize) -> Result<OperationExpression, Error> {
-        let next = self.source.peek().map(|v| v.clone());
+        let next = self.source.peek().cloned();
         match next {
             Some(AssemblerToken {
                 token_type: AssemblerTokenType::LeftParen,
                 line,
             }) => {
                 self.source.next();
-                let op = self.parse_operation(line.clone())?;
-                self.consume(AssemblerTokenType::RightParen, line.clone())?;
+                let op = self.parse_operation(line)?;
+                self.consume(AssemblerTokenType::RightParen, line)?;
                 Ok(OperationExpression::Group(Box::new(op)))
             }
             Some(AssemblerToken {
                 token_type: _,
                 line,
             }) => {
-                let word = self.parse_two_word(line.clone())?;
+                let word = self.parse_two_word(line)?;
                 Ok(OperationExpression::Operand(word))
             }
             None => Err(Error::from(AssemblerError::UnexpectedEndOfExpression {
