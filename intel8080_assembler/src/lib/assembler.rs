@@ -23,14 +23,20 @@ pub struct Assembler {
     two_words: HashMap<LabelExpression, u16>,
 }
 
-impl Assembler {
-    pub fn new() -> Assembler {
+impl Default for Assembler {
+    fn default() -> Assembler {
         Assembler {
             pc: 0,
             room: [0; ROM_MEMORY_LIMIT],
             stage_one_room: Vec::with_capacity(ROM_MEMORY_LIMIT),
             two_words: HashMap::new(),
         }
+    }
+}
+
+impl Assembler {
+    pub fn new() -> Assembler {
+        Assembler::default()
     }
 
     pub fn assemble(mut self, statements: Vec<Statement>) -> Result<[u8; ROM_MEMORY_LIMIT], Error> {
@@ -57,7 +63,7 @@ impl Assembler {
                     self.two_words.insert(label, value);
                 }
                 Statement::WordDefinitionStatement(label, value) => {
-                    let value = self.operation_to_u8(value)? as u16;
+                    let value = u16::from(self.operation_to_u8(value)?);
                     self.two_words.insert(label, value);
                 }
             };
@@ -68,7 +74,7 @@ impl Assembler {
     fn stage_two(&mut self) -> Result<(), Error> {
         let mut iter = self.stage_one_room.iter();
         self.pc = 0;
-        while let Some(v) = iter.next() {
+        for v in iter {
             match v {
                 StageOneValue::ByteOperation(op) => {
                     self.room[self.pc as usize] = self.operation_to_u8(op.clone())?;
@@ -83,7 +89,7 @@ impl Assembler {
                     self.pc = self.pc.wrapping_add(1);
                 }
                 StageOneValue::Word(b) => {
-                    self.room[self.pc as usize] = b.clone();
+                    self.room[self.pc as usize] = *b;
                     self.pc = self.pc.wrapping_add(1);
                 }
             }
@@ -123,7 +129,7 @@ impl Assembler {
                 .wrapping_shl(self.operation_to_u16(*right)? as u32)),
             OperationExpression::Shr(left, right) => Ok(self
                 .operation_to_u16(*left)?
-                .wrapping_shr(self.operation_to_u16(*right)? as u32)),
+                .wrapping_shr(u32::from(self.operation_to_u16(*right)?))),
             OperationExpression::Sum(left, right) => Ok(self
                 .operation_to_u16(*left)?
                 .wrapping_add(self.operation_to_u16(*right)?)),
@@ -140,8 +146,8 @@ impl Assembler {
             TwoWordExpression::Label(l) => self
                 .two_words
                 .get(&l)
-                .map(|n| *n)
-                .ok_or(Error::from(AssemblerError::LabelNotFound { label: l })),
+                .copied()
+                .ok_or_else(|| Error::from(AssemblerError::LabelNotFound { label: l })),
             TwoWordExpression::Literal(v) => Ok(v),
         }
     }
