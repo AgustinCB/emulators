@@ -33,11 +33,11 @@ impl Parser {
             (
                 AssemblerToken {
                     token_type: AssemblerTokenType::Org,
-                    line: _,
+                    ..
                 },
                 Some(AssemblerToken {
                     token_type: AssemblerTokenType::TwoWord(n),
-                    line: _,
+                    ..
                 }),
             ) => {
                 self.source.next();
@@ -56,11 +56,11 @@ impl Parser {
             (
                 AssemblerToken {
                     token_type: AssemblerTokenType::LabelToken(ref label),
-                    line: _,
+                    ..
                 },
                 Some(AssemblerToken {
                     token_type: AssemblerTokenType::Colon,
-                    line: _,
+                    ..
                 }),
             ) => {
                 self.source.next();
@@ -69,7 +69,7 @@ impl Parser {
             (
                 AssemblerToken {
                     token_type: AssemblerTokenType::LabelToken(ref label),
-                    line: _,
+                    ..
                 },
                 Some(AssemblerToken {
                     token_type: AssemblerTokenType::Dw,
@@ -80,7 +80,7 @@ impl Parser {
             (
                 AssemblerToken {
                     token_type: AssemblerTokenType::LabelToken(ref label),
-                    line: _,
+                    ..
                 },
                 Some(AssemblerToken {
                     token_type: AssemblerTokenType::Db,
@@ -182,8 +182,8 @@ impl Parser {
                 Ok(OperationExpression::Not(Box::new(right_side)))
             }
             Some(AssemblerToken {
-                token_type: _,
                 line,
+                ..
             }) => self.parse_sum_operations(line),
             None => Err(Error::from(AssemblerError::UnexpectedEndOfExpression {
                 line,
@@ -264,8 +264,8 @@ impl Parser {
                 Ok(OperationExpression::Group(Box::new(op)))
             }
             Some(AssemblerToken {
-                token_type: _,
                 line,
+                ..
             }) => {
                 let word = self.parse_two_word(line)?;
                 Ok(OperationExpression::Operand(word))
@@ -1586,19 +1586,19 @@ impl Parser {
         match self.source.next() {
             Some(AssemblerToken {
                 ref token_type,
-                line: _,
+                ..
             }) if token_type == &token => Ok(()),
             Some(AssemblerToken { token_type, line }) => {
                 Err(Error::from(AssemblerError::ExpectingToken {
                     expected: token,
                     got: Some(token_type),
-                    line: line,
+                    line,
                 }))
             }
             None => Err(Error::from(AssemblerError::ExpectingToken {
                 expected: token,
                 got: None,
-                line: line,
+                line,
             })),
         }
     }

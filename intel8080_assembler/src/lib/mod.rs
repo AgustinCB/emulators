@@ -204,7 +204,7 @@ impl From<u8> for InstructionArgument {
     #[inline]
     fn from(byte: u8) -> InstructionArgument {
         InstructionArgument::TwoWord(OperationExpression::Operand(TwoWordExpression::Literal(
-            byte as u16,
+            u16::from(byte),
         )))
     }
 }

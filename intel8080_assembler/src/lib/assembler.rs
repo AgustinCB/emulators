@@ -72,7 +72,7 @@ impl Assembler {
     }
 
     fn stage_two(&mut self) -> Result<(), Error> {
-        let mut iter = self.stage_one_room.iter();
+        let iter = self.stage_one_room.iter();
         self.pc = 0;
         for v in iter {
             match v {
@@ -126,7 +126,7 @@ impl Assembler {
                 .wrapping_sub(self.operation_to_u16(*right)?)),
             OperationExpression::Shl(left, right) => Ok(self
                 .operation_to_u16(*left)?
-                .wrapping_shl(self.operation_to_u16(*right)? as u32)),
+                .wrapping_shl(u32::from(self.operation_to_u16(*right)?))),
             OperationExpression::Shr(left, right) => Ok(self
                 .operation_to_u16(*left)?
                 .wrapping_shr(u32::from(self.operation_to_u16(*right)?))),
