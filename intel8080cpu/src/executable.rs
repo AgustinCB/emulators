@@ -98,8 +98,8 @@ impl<'a> Cpu<u8, Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
             } => self.save_to_single_register(byte, &register)?,
             Intel8080Instruction::Noop => self.execute_noop(),
             Intel8080Instruction::Pchl => self.execute_pchl(),
-            Intel8080Instruction::Pop { register } => self.execute_pop(&register)?,
-            Intel8080Instruction::Push { register } => self.execute_push(&register)?,
+            Intel8080Instruction::Pop { register } => self.execute_pop(register)?,
+            Intel8080Instruction::Push { register } => self.execute_push(register)?,
             Intel8080Instruction::Ora {
                 source: Location::Register { register },
             } => self.execute_ora_by_register(&register)?,

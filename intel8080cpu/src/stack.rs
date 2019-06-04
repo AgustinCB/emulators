@@ -2,7 +2,7 @@ use super::CpuError;
 use intel8080cpu::{Intel8080Cpu, RegisterType};
 
 impl<'a> Intel8080Cpu<'a> {
-    pub(crate) fn execute_push(&mut self, register: &RegisterType) -> Result<(), CpuError> {
+    pub(crate) fn execute_push(&mut self, register: RegisterType) -> Result<(), CpuError> {
         let sp = self.get_current_sp_value() as usize;
         let (first_byte, second_byte) = match register {
             RegisterType::B => Ok((
@@ -19,7 +19,7 @@ impl<'a> Intel8080Cpu<'a> {
             )),
             RegisterType::Psw => Ok((self.get_current_a_value()?, self.get_current_flags_byte())),
             _ => Err(CpuError::InvalidRegisterArgument {
-                register: *register,
+                register: register,
             }),
         }?;
         self.memory[sp - 1] = first_byte;
@@ -28,7 +28,7 @@ impl<'a> Intel8080Cpu<'a> {
         Ok(())
     }
 
-    pub(crate) fn execute_pop(&mut self, register: &RegisterType) -> Result<(), CpuError> {
+    pub(crate) fn execute_pop(&mut self, register: RegisterType) -> Result<(), CpuError> {
         let sp = self.get_current_sp_value() as usize;
         let first_byte = self.memory[sp + 1];
         let second_byte = self.memory[sp];
@@ -51,7 +51,7 @@ impl<'a> Intel8080Cpu<'a> {
                 self.save_to_a(first_byte)
             }
             _ => Err(CpuError::InvalidRegisterArgument {
-                register: *register,
+                register: register,
             }),
         }
     }
