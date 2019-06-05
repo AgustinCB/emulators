@@ -49,7 +49,10 @@ impl<'a> Intel8080Cpu<'a> {
                 self.save_to_single_register(high_byte, &RegisterType::H)?;
                 self.save_to_single_register(low_byte, &RegisterType::L)
             }
-            RegisterType::Sp => Ok(self.save_to_sp(two_bytes_to_word(high_byte, low_byte))),
+            RegisterType::Sp => {
+                self.save_to_sp(two_bytes_to_word(high_byte, low_byte));
+                Ok(())
+            },
             _ => Err(CpuError::InvalidRegisterArgument {
                 register: *register_type,
             }),
@@ -59,18 +62,18 @@ impl<'a> Intel8080Cpu<'a> {
     #[inline]
     pub(crate) fn execute_mov(
         &mut self,
-        destiny: &Location,
-        source: &Location,
+        destiny: Location,
+        source: Location,
     ) -> Result<(), CpuError> {
         match (destiny, source) {
             (Location::Register { register: destiny }, Location::Register { register: source }) => {
-                self.execute_mov_register_to_register(&destiny, &source)
+                self.execute_mov_register_to_register(destiny, source)
             }
             (Location::Register { register: destiny }, Location::Memory) => {
-                self.execute_mov_memory_to_register(&destiny)
+                self.execute_mov_memory_to_register(destiny)
             }
             (Location::Memory, Location::Register { register: source }) => {
-                self.execute_mov_register_to_memory(&source)
+                self.execute_mov_register_to_memory(source)
             }
             (Location::Memory, Location::Memory) => Err(CpuError::InvalidMemoryAccess),
         }
@@ -103,7 +106,7 @@ impl<'a> Intel8080Cpu<'a> {
         Ok(())
     }
 
-    pub(crate) fn execute_stax(&mut self, register: &RegisterType) -> Result<(), CpuError> {
+    pub(crate) fn execute_stax(&mut self, register: RegisterType) -> Result<(), CpuError> {
         let value = self.get_current_a_value()?;
         let destiny_address = match register {
             RegisterType::B => self.get_current_bc_value(),
@@ -143,22 +146,22 @@ impl<'a> Intel8080Cpu<'a> {
     #[inline]
     fn execute_mov_register_to_register(
         &mut self,
-        destiny: &RegisterType,
-        source: &RegisterType,
+        destiny: RegisterType,
+        source: RegisterType,
     ) -> Result<(), CpuError> {
-        let source_value = self.get_current_single_register_value(source)?;
-        self.save_to_single_register(source_value, destiny)
+        let source_value = self.get_current_single_register_value(&source)?;
+        self.save_to_single_register(source_value, &destiny)
     }
 
     #[inline]
-    fn execute_mov_memory_to_register(&mut self, destiny: &RegisterType) -> Result<(), CpuError> {
+    fn execute_mov_memory_to_register(&mut self, destiny: RegisterType) -> Result<(), CpuError> {
         let source_value = self.get_value_in_memory_at_hl();
-        self.save_to_single_register(source_value, destiny)
+        self.save_to_single_register(source_value, &destiny)
     }
 
     #[inline]
-    fn execute_mov_register_to_memory(&mut self, source: &RegisterType) -> Result<(), CpuError> {
-        let source_value = self.get_current_single_register_value(source)?;
+    fn execute_mov_register_to_memory(&mut self, source: RegisterType) -> Result<(), CpuError> {
+        let source_value = self.get_current_single_register_value(&source)?;
         self.set_value_in_memory_at_hl(source_value);
         Ok(())
     }

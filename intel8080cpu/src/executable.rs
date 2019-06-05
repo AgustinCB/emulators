@@ -87,7 +87,7 @@ impl<'a> Cpu<u8, Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
                 low_byte,
                 high_byte,
             } => self.execute_lxi(&register, high_byte, low_byte)?,
-            Intel8080Instruction::Mov { destiny, source } => self.execute_mov(&destiny, &source)?,
+            Intel8080Instruction::Mov { destiny, source } => self.execute_mov(destiny, source)?,
             Intel8080Instruction::Mvi {
                 source: Location::Memory,
                 byte,
@@ -131,7 +131,7 @@ impl<'a> Cpu<u8, Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
             Intel8080Instruction::Sbi { byte } => self.execute_sbi(byte)?,
             Intel8080Instruction::Shld { address } => self.execute_shld(address[1], address[0])?,
             Intel8080Instruction::Sta { address } => self.execute_sta(address[1], address[0])?,
-            Intel8080Instruction::Stax { register } => self.execute_stax(&register)?,
+            Intel8080Instruction::Stax { register } => self.execute_stax(register)?,
             Intel8080Instruction::Stc => self.execute_stc(),
             Intel8080Instruction::Sphl => self.execute_sphl(),
             Intel8080Instruction::Sub {
