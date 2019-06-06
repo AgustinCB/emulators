@@ -80,13 +80,13 @@ impl<'a> Cpu<u8, Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
             Intel8080Instruction::Jpo { address } => self.execute_jpo(address[1], address[0]),
             Intel8080Instruction::Jz { address } => self.execute_jz(address[1], address[0]),
             Intel8080Instruction::Lda { address } => self.execute_lda(address[1], address[0])?,
-            Intel8080Instruction::Ldax { register } => self.execute_ldax(&register)?,
+            Intel8080Instruction::Ldax { register } => self.execute_ldax(register)?,
             Intel8080Instruction::Lhld { address } => self.execute_lhld(address[1], address[0])?,
             Intel8080Instruction::Lxi {
                 register,
                 low_byte,
                 high_byte,
-            } => self.execute_lxi(&register, high_byte, low_byte)?,
+            } => self.execute_lxi(register, high_byte, low_byte)?,
             Intel8080Instruction::Mov { destiny, source } => self.execute_mov(destiny, source)?,
             Intel8080Instruction::Mvi {
                 source: Location::Memory,

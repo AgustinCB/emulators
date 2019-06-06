@@ -9,7 +9,7 @@ impl<'a> Intel8080Cpu<'a> {
         self.save_to_a(value)
     }
 
-    pub(crate) fn execute_ldax(&mut self, register: &RegisterType) -> Result<(), CpuError> {
+    pub(crate) fn execute_ldax(&mut self, register: RegisterType) -> Result<(), CpuError> {
         let source_address = match register {
             RegisterType::B => self.get_current_bc_value(),
             RegisterType::D => self.get_current_de_value(),
@@ -32,7 +32,7 @@ impl<'a> Intel8080Cpu<'a> {
 
     pub(crate) fn execute_lxi(
         &mut self,
-        register_type: &RegisterType,
+        register_type: RegisterType,
         high_byte: u8,
         low_byte: u8,
     ) -> Result<(), CpuError> {
@@ -54,7 +54,7 @@ impl<'a> Intel8080Cpu<'a> {
                 Ok(())
             },
             _ => Err(CpuError::InvalidRegisterArgument {
-                register: *register_type,
+                register: register_type,
             }),
         }
     }
