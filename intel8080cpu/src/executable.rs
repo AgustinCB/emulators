@@ -58,7 +58,7 @@ impl<'a> Cpu<u8, Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
             Intel8080Instruction::Dcr {
                 source: Location::Memory,
             } => self.execute_dcr_by_memory(),
-            Intel8080Instruction::Dcx { register } => self.execute_dcx(&register)?,
+            Intel8080Instruction::Dcx { register } => self.execute_dcx(register)?,
             Intel8080Instruction::Di => self.execute_di(),
             Intel8080Instruction::Ei => self.execute_ei(),
             Intel8080Instruction::Hlt => self.execute_hlt(),
@@ -69,7 +69,7 @@ impl<'a> Cpu<u8, Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
             Intel8080Instruction::Inr {
                 source: Location::Memory,
             } => self.execute_inr_by_memory(),
-            Intel8080Instruction::Inx { register } => self.execute_inx(&register)?,
+            Intel8080Instruction::Inx { register } => self.execute_inx(register)?,
             Intel8080Instruction::Jc { address } => self.execute_jc(address[1], address[0]),
             Intel8080Instruction::Jm { address } => self.execute_jm(address[1], address[0]),
             Intel8080Instruction::Jnc { address } => self.execute_jnc(address[1], address[0]),
@@ -136,7 +136,7 @@ impl<'a> Cpu<u8, Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
             Intel8080Instruction::Sphl => self.execute_sphl(),
             Intel8080Instruction::Sub {
                 source: Location::Register { register },
-            } => self.execute_sub_by_register(&register)?,
+            } => self.execute_sub_by_register(register)?,
             Intel8080Instruction::Sub {
                 source: Location::Memory,
             } => self.execute_sub_by_memory()?,

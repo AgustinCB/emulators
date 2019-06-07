@@ -131,7 +131,7 @@ impl<'a> Intel8080Cpu<'a> {
         self.set_value_in_memory_at_hl(new_value);
     }
 
-    pub(crate) fn execute_dcx(&mut self, register_type: &RegisterType) -> Result<(), CpuError> {
+    pub(crate) fn execute_dcx(&mut self, register_type: RegisterType) -> Result<(), CpuError> {
         self.perform_step_on_double_register(register_type, false)
     }
 
@@ -150,7 +150,7 @@ impl<'a> Intel8080Cpu<'a> {
         self.set_value_in_memory_at_hl(new_value);
     }
 
-    pub(crate) fn execute_inx(&mut self, register_type: &RegisterType) -> Result<(), CpuError> {
+    pub(crate) fn execute_inx(&mut self, register_type: RegisterType) -> Result<(), CpuError> {
         self.perform_step_on_double_register(register_type, true)
     }
 
@@ -167,40 +167,40 @@ impl<'a> Intel8080Cpu<'a> {
     }
 
     pub(crate) fn execute_sbb_by_memory(&mut self) -> Result<(), CpuError> {
-        let destiny_value = self.get_current_a_value()? as u16;
-        let carry = self.flags.carry as u8;
-        let source_value = (self.get_value_in_memory_at_hl() + carry) as u16;
+        let destiny_value = u16::from(self.get_current_a_value()?);
+        let carry = u8::from(self.flags.carry);
+        let source_value = u16::from(self.get_value_in_memory_at_hl() + carry);
         let new_value = self.perform_sub_with_carry(destiny_value, source_value);
         self.save_to_a(new_value)
     }
 
     pub(crate) fn execute_sbi(&mut self, byte: u8) -> Result<(), CpuError> {
-        let destiny_value = self.get_current_a_value()? as u16;
-        let add = byte as u16 + self.flags.carry as u16;
+        let destiny_value = u16::from(self.get_current_a_value()?);
+        let add = u16::from(byte) + u16::from(self.flags.carry);
         let new_value = self.perform_sub_with_carry(destiny_value, add);
         self.save_to_a(new_value)
     }
 
     pub(crate) fn execute_sub_by_register(
         &mut self,
-        register_type: &RegisterType,
+        register_type: RegisterType,
     ) -> Result<(), CpuError> {
-        let destiny_value = self.get_current_a_value()? as u16;
-        let source_value = self.get_current_single_register_value(register_type)? as u16;
+        let destiny_value = u16::from(self.get_current_a_value()?);
+        let source_value = u16::from(self.get_current_single_register_value(&register_type)?);
         let new_value = self.perform_sub_with_carry(destiny_value, source_value);
         self.save_to_a(new_value)
     }
 
     pub(crate) fn execute_sub_by_memory(&mut self) -> Result<(), CpuError> {
-        let destiny_value = self.get_current_a_value()? as u16;
-        let source_value = self.get_value_in_memory_at_hl() as u16;
+        let destiny_value = u16::from(self.get_current_a_value()?);
+        let source_value = u16::from(self.get_value_in_memory_at_hl());
         let new_value = self.perform_sub_with_carry(destiny_value, source_value);
         self.save_to_a(new_value)
     }
 
     pub(crate) fn execute_sui(&mut self, byte: u8) -> Result<(), CpuError> {
-        let destiny_value = self.get_current_a_value()? as u16;
-        let new_value = self.perform_sub_with_carry(destiny_value, byte as u16);
+        let destiny_value = u16::from(self.get_current_a_value()?);
+        let new_value = self.perform_sub_with_carry(destiny_value, u16::from(byte));
         self.save_to_a(new_value)
     }
 
@@ -217,14 +217,14 @@ impl<'a> Intel8080Cpu<'a> {
     #[inline]
     fn perform_step_on_double_register(
         &mut self,
-        register_type: &RegisterType,
+        register_type: RegisterType,
         inc: bool,
     ) -> Result<(), CpuError> {
         let destiny_value = match register_type {
-            RegisterType::B => self.get_current_bc_value() as u32,
-            RegisterType::D => self.get_current_de_value() as u32,
-            RegisterType::H => self.get_current_hl_value() as u32,
-            RegisterType::Sp => self.get_current_sp_value() as u32,
+            RegisterType::B => u32::from(self.get_current_bc_value()),
+            RegisterType::D => u32::from(self.get_current_de_value()),
+            RegisterType::H => u32::from(self.get_current_hl_value()),
+            RegisterType::Sp => u32::from(self.get_current_sp_value()),
             _ => panic!("{} is not a valid INX argument!", register_type.to_string()),
         };
         let result = if inc {
@@ -245,9 +245,12 @@ impl<'a> Intel8080Cpu<'a> {
                 self.save_to_single_register((result >> 8) as u8, &RegisterType::H)?;
                 self.save_to_single_register(result as u8, &RegisterType::L)
             }
-            RegisterType::Sp => Ok(self.save_to_sp(result as u16)),
+            RegisterType::Sp => {
+                self.save_to_sp(result as u16);
+                Ok(())
+            },
             _ => Err(CpuError::InvalidRegisterArgument {
-                register: *register_type,
+                register: register_type,
             }),
         }
     }
