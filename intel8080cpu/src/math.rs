@@ -74,13 +74,13 @@ impl<'a> Intel8080Cpu<'a> {
 
     #[inline]
     pub(crate) fn execute_cpi(&mut self, byte: u8) -> Result<(), CpuError> {
-        let destiny_value = self.get_current_a_value()? as u16;
-        self.perform_sub_with_carry(destiny_value, byte as u16);
+        let destiny_value = u16::from(self.get_current_a_value()?);
+        self.perform_sub_with_carry(destiny_value, u16::from(byte));
         Ok(())
     }
 
     pub(crate) fn execute_daa(&mut self) -> Result<(), CpuError> {
-        let destiny_value = self.get_current_a_value()? as u16;
+        let destiny_value = u16::from(self.get_current_a_value()?);
         let mut least_significant = destiny_value & 0x0f;
         let mut result = destiny_value;
         if least_significant > 9 || self.flags.auxiliary_carry {
@@ -99,15 +99,15 @@ impl<'a> Intel8080Cpu<'a> {
         self.save_to_a(result as u8)
     }
 
-    pub(crate) fn execute_dad(&mut self, register_type: &RegisterType) -> Result<(), CpuError> {
-        let destiny_value = self.get_current_hl_value() as u32;
+    pub(crate) fn execute_dad(&mut self, register_type: RegisterType) -> Result<(), CpuError> {
+        let destiny_value = u32::from(self.get_current_hl_value());
         let source_value = match register_type {
-            RegisterType::B => Ok(self.get_current_bc_value() as u32),
-            RegisterType::D => Ok(self.get_current_de_value() as u32),
-            RegisterType::H => Ok(self.get_current_hl_value() as u32),
-            RegisterType::Sp => Ok(self.get_current_sp_value() as u32),
+            RegisterType::B => Ok(u32::from(self.get_current_bc_value())),
+            RegisterType::D => Ok(u32::from(self.get_current_de_value())),
+            RegisterType::H => Ok(u32::from(self.get_current_hl_value())),
+            RegisterType::Sp => Ok(u32::from(self.get_current_sp_value())),
             _ => Err(CpuError::InvalidRegisterArgument {
-                register: *register_type,
+                register: register_type,
             }),
         }?;
         let result = destiny_value + source_value;
@@ -118,15 +118,15 @@ impl<'a> Intel8080Cpu<'a> {
 
     pub(crate) fn execute_dcr_by_register(
         &mut self,
-        register_type: &RegisterType,
+        register_type: RegisterType,
     ) -> Result<(), CpuError> {
-        let source_value = self.get_current_single_register_value(register_type)? as u16;
+        let source_value = u16::from(self.get_current_single_register_value(&register_type)?);
         let new_value = self.perform_sub_without_carry(source_value, 1);
-        self.save_to_single_register(new_value, register_type)
+        self.save_to_single_register(new_value, &register_type)
     }
 
     pub(crate) fn execute_dcr_by_memory(&mut self) {
-        let source_value = self.get_value_in_memory_at_hl() as u16;
+        let source_value = u16::from(self.get_value_in_memory_at_hl());
         let new_value = self.perform_sub_without_carry(source_value, 1);
         self.set_value_in_memory_at_hl(new_value);
     }
@@ -137,15 +137,15 @@ impl<'a> Intel8080Cpu<'a> {
 
     pub(crate) fn execute_inr_by_register(
         &mut self,
-        register_type: &RegisterType,
+        register_type: RegisterType,
     ) -> Result<(), CpuError> {
-        let source_value = self.get_current_single_register_value(register_type)? as u16;
+        let source_value = u16::from(self.get_current_single_register_value(&register_type)?);
         let new_value = self.perform_add_without_carry(source_value, 1);
-        self.save_to_single_register(new_value, register_type)
+        self.save_to_single_register(new_value, &register_type)
     }
 
     pub(crate) fn execute_inr_by_memory(&mut self) {
-        let source_value = self.get_value_in_memory_at_hl() as u16;
+        let source_value = u16::from(self.get_value_in_memory_at_hl());
         let new_value = self.perform_add_without_carry(source_value, 1);
         self.set_value_in_memory_at_hl(new_value);
     }
@@ -156,12 +156,12 @@ impl<'a> Intel8080Cpu<'a> {
 
     pub(crate) fn execute_sbb_by_register(
         &mut self,
-        register_type: &RegisterType,
+        register_type: RegisterType,
     ) -> Result<(), CpuError> {
-        let destiny_value = self.get_current_a_value()? as u16;
+        let destiny_value = u16::from(self.get_current_a_value()?);
         let carry = self.flags.carry as u8;
         let source_value =
-            ((self.get_current_single_register_value(register_type)? + carry) & 0xff) as u16;
+            u16::from(self.get_current_single_register_value(&register_type)? + carry);
         let new_value = self.perform_sub_with_carry(destiny_value, source_value);
         self.save_to_a(new_value)
     }

@@ -51,10 +51,10 @@ impl<'a> Cpu<u8, Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
             Intel8080Instruction::Cpi { byte } => self.execute_cpi(byte)?,
             Intel8080Instruction::Cz { address } => self.execute_cz(address[1], address[0]),
             Intel8080Instruction::Daa => self.execute_daa()?,
-            Intel8080Instruction::Dad { register } => self.execute_dad(&register)?,
+            Intel8080Instruction::Dad { register } => self.execute_dad(register)?,
             Intel8080Instruction::Dcr {
                 source: Location::Register { register },
-            } => self.execute_dcr_by_register(&register)?,
+            } => self.execute_dcr_by_register(register)?,
             Intel8080Instruction::Dcr {
                 source: Location::Memory,
             } => self.execute_dcr_by_memory(),
@@ -65,7 +65,7 @@ impl<'a> Cpu<u8, Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
             Intel8080Instruction::In { byte } => self.execute_in(byte)?,
             Intel8080Instruction::Inr {
                 source: Location::Register { register },
-            } => self.execute_inr_by_register(&register)?,
+            } => self.execute_inr_by_register(register)?,
             Intel8080Instruction::Inr {
                 source: Location::Memory,
             } => self.execute_inr_by_memory(),
@@ -124,7 +124,7 @@ impl<'a> Cpu<u8, Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
             Intel8080Instruction::Rz => self.execute_rz(),
             Intel8080Instruction::Sbb {
                 source: Location::Register { register },
-            } => self.execute_sbb_by_register(&register)?,
+            } => self.execute_sbb_by_register(register)?,
             Intel8080Instruction::Sbb {
                 source: Location::Memory,
             } => self.execute_sbb_by_memory()?,
