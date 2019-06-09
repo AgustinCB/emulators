@@ -13,13 +13,13 @@ impl<'a> Cpu<u8, Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
         match *instruction {
             Intel8080Instruction::Adc {
                 source: Location::Register { register },
-            } => self.execute_adc_by_register(&register)?,
+            } => self.execute_adc_by_register(register)?,
             Intel8080Instruction::Adc {
                 source: Location::Memory,
             } => self.execute_adc_by_memory()?,
             Intel8080Instruction::Add {
                 source: Location::Register { register },
-            } => self.execute_add_by_register(&register)?,
+            } => self.execute_add_by_register(register)?,
             Intel8080Instruction::Add {
                 source: Location::Memory,
             } => self.execute_add_by_memory()?,
@@ -39,7 +39,7 @@ impl<'a> Cpu<u8, Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
             Intel8080Instruction::Cmc => self.execute_cmc(),
             Intel8080Instruction::Cmp {
                 source: Location::Register { register },
-            } => self.execute_cmp_by_register(&register)?,
+            } => self.execute_cmp_by_register(register)?,
             Intel8080Instruction::Cmp {
                 source: Location::Memory,
             } => self.execute_cmp_by_memory()?,

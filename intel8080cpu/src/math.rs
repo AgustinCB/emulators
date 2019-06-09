@@ -4,51 +4,51 @@ use intel8080cpu::{Intel8080Cpu, RegisterType};
 impl<'a> Intel8080Cpu<'a> {
     pub(crate) fn execute_aci(&mut self, byte: u8) -> Result<(), CpuError> {
         let carry_as_u16 = self.flags.carry as u16;
-        let destiny_value = (self.get_current_a_value()? as u16 + carry_as_u16) & 0xff;
-        let new_value = self.perform_add_with_carry(byte as u16, destiny_value);
+        let destiny_value = (u16::from(self.get_current_a_value()?) + carry_as_u16) & 0xff;
+        let new_value = self.perform_add_with_carry(u16::from(byte), destiny_value);
         self.save_to_a(new_value)
     }
 
     pub(crate) fn execute_adi(&mut self, byte: u8) -> Result<(), CpuError> {
-        let destiny_value = self.get_current_a_value()? as u16;
-        let new_value = self.perform_add_with_carry(byte as u16, destiny_value);
+        let destiny_value = u16::from(self.get_current_a_value()?);
+        let new_value = self.perform_add_with_carry(u16::from(byte), destiny_value);
         self.save_to_a(new_value)
     }
 
     pub(crate) fn execute_adc_by_register(
         &mut self,
-        register_type: &RegisterType,
+        register_type: RegisterType,
     ) -> Result<(), CpuError> {
-        let destiny_value = self.get_current_a_value()? as u16;
-        let source_value = self.get_current_single_register_value(register_type)? as u16;
+        let destiny_value = u16::from(self.get_current_a_value()?);
+        let source_value = u16::from(self.get_current_single_register_value(&register_type)?);
         let carry_as_u16 = self.flags.carry as u16;
         let new_value = self.perform_add_with_carry(source_value, destiny_value);
-        let new_value = self.perform_add_with_carry(carry_as_u16, new_value as u16);
+        let new_value = self.perform_add_with_carry(carry_as_u16, u16::from(new_value));
         self.save_to_a(new_value)
     }
 
     pub(crate) fn execute_adc_by_memory(&mut self) -> Result<(), CpuError> {
-        let destiny_value = self.get_current_a_value()? as u16;
-        let source_value = self.get_value_in_memory_at_hl() as u16;
+        let destiny_value = u16::from(self.get_current_a_value()?);
+        let source_value = u16::from(self.get_value_in_memory_at_hl());
         let carry_as_u16 = self.flags.carry as u16;
         let new_value = self.perform_add_with_carry(source_value, destiny_value);
-        let new_value = self.perform_add_with_carry(carry_as_u16, new_value as u16);
+        let new_value = self.perform_add_with_carry(carry_as_u16, u16::from(new_value));
         self.save_to_a(new_value)
     }
 
     pub(crate) fn execute_add_by_register(
         &mut self,
-        register_type: &RegisterType,
+        register_type: RegisterType,
     ) -> Result<(), CpuError> {
-        let destiny_value = self.get_current_a_value()? as u16;
-        let source_value = self.get_current_single_register_value(register_type)? as u16;
+        let destiny_value = u16::from(self.get_current_a_value()?);
+        let source_value = u16::from(self.get_current_single_register_value(&register_type)?);
         let new_value = self.perform_add_with_carry(source_value, destiny_value);
         self.save_to_a(new_value)
     }
 
     pub(crate) fn execute_add_by_memory(&mut self) -> Result<(), CpuError> {
-        let destiny_value = self.get_current_a_value()? as u16;
-        let source_value = self.get_value_in_memory_at_hl() as u16;
+        let destiny_value = u16::from(self.get_current_a_value()?);
+        let source_value = u16::from(self.get_value_in_memory_at_hl());
         let new_value = self.perform_add_with_carry(source_value, destiny_value);
         self.save_to_a(new_value)
     }
@@ -56,18 +56,18 @@ impl<'a> Intel8080Cpu<'a> {
     #[inline]
     pub(crate) fn execute_cmp_by_register(
         &mut self,
-        register_type: &RegisterType,
+        register_type: RegisterType,
     ) -> Result<(), CpuError> {
-        let destiny_value = self.get_current_a_value()? as u16;
-        let source_value = self.get_current_single_register_value(register_type)? as u16;
+        let destiny_value = u16::from(self.get_current_a_value()?);
+        let source_value = u16::from(self.get_current_single_register_value(&register_type)?);
         self.perform_sub_with_carry(destiny_value, source_value);
         Ok(())
     }
 
     #[inline]
     pub(crate) fn execute_cmp_by_memory(&mut self) -> Result<(), CpuError> {
-        let destiny_value = self.get_current_a_value()? as u16;
-        let source_value = self.get_value_in_memory_at_hl() as u16;
+        let destiny_value = u16::from(self.get_current_a_value()?);
+        let source_value = u16::from(self.get_value_in_memory_at_hl());
         self.perform_sub_with_carry(destiny_value, source_value);
         Ok(())
     }
