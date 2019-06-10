@@ -27,7 +27,7 @@ impl<'a> Cpu<u8, Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
             Intel8080Instruction::Adi { byte } => self.execute_adi(byte)?,
             Intel8080Instruction::Ana {
                 source: Location::Register { register },
-            } => self.execute_ana_by_register(&register)?,
+            } => self.execute_ana_by_register(register)?,
             Intel8080Instruction::Ana {
                 source: Location::Memory,
             } => self.execute_ana_by_memory()?,
@@ -102,7 +102,7 @@ impl<'a> Cpu<u8, Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
             Intel8080Instruction::Push { register } => self.execute_push(register)?,
             Intel8080Instruction::Ora {
                 source: Location::Register { register },
-            } => self.execute_ora_by_register(&register)?,
+            } => self.execute_ora_by_register(register)?,
             Intel8080Instruction::Ora {
                 source: Location::Memory,
             } => self.execute_ora_by_memory()?,
@@ -144,7 +144,7 @@ impl<'a> Cpu<u8, Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
             Intel8080Instruction::Xchg => self.execute_xchg()?,
             Intel8080Instruction::Xra {
                 source: Location::Register { register },
-            } => self.execute_xra_by_register(&register)?,
+            } => self.execute_xra_by_register(register)?,
             Intel8080Instruction::Xra {
                 source: Location::Memory,
             } => self.execute_xra_by_memory()?,

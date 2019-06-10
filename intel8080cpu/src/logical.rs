@@ -4,10 +4,10 @@ use intel8080cpu::{Intel8080Cpu, RegisterType};
 impl<'a> Intel8080Cpu<'a> {
     pub(crate) fn execute_ana_by_register(
         &mut self,
-        register_type: &RegisterType,
+        register_type: RegisterType,
     ) -> Result<(), CpuError> {
         let destiny_value = self.get_current_a_value()?;
-        let source_value = self.get_current_single_register_value(register_type)?;
+        let source_value = self.get_current_single_register_value(&register_type)?;
         let new_value = self.perform_and(destiny_value, source_value);
         self.save_to_a(new_value)
     }
@@ -27,10 +27,10 @@ impl<'a> Intel8080Cpu<'a> {
 
     pub(crate) fn execute_ora_by_register(
         &mut self,
-        register_type: &RegisterType,
+        register_type: RegisterType,
     ) -> Result<(), CpuError> {
         let destiny_value = self.get_current_a_value()?;
-        let source_value = self.get_current_single_register_value(register_type)?;
+        let source_value = self.get_current_single_register_value(&register_type)?;
         let new_value = self.perform_or(destiny_value, source_value);
         self.save_to_a(new_value)
     }
@@ -89,10 +89,10 @@ impl<'a> Intel8080Cpu<'a> {
 
     pub(crate) fn execute_xra_by_register(
         &mut self,
-        register_type: &RegisterType,
+        register_type: RegisterType,
     ) -> Result<(), CpuError> {
         let destiny_value = self.get_current_a_value()?;
-        let source_value = self.get_current_single_register_value(register_type)?;
+        let source_value = self.get_current_single_register_value(&register_type)?;
         let new_value = self.perform_xor(destiny_value, source_value);
         self.save_to_a(new_value)
     }
@@ -114,7 +114,7 @@ impl<'a> Intel8080Cpu<'a> {
     #[inline]
     fn perform_and(&mut self, destiny: u8, source: u8) -> u8 {
         let answer = destiny & source;
-        self.update_flags(answer as u16, false);
+        self.update_flags(u16::from(answer), false);
         self.flags.carry = false;
         self.flags.auxiliary_carry = false;
         answer
@@ -123,7 +123,7 @@ impl<'a> Intel8080Cpu<'a> {
     #[inline]
     fn perform_or(&mut self, destiny: u8, source: u8) -> u8 {
         let answer = destiny | source;
-        self.update_flags(answer as u16, false);
+        self.update_flags(u16::from(answer), false);
         self.flags.carry = false;
         self.flags.auxiliary_carry = false;
         answer
@@ -132,7 +132,7 @@ impl<'a> Intel8080Cpu<'a> {
     #[inline]
     fn perform_xor(&mut self, destiny: u8, source: u8) -> u8 {
         let answer = destiny ^ source;
-        self.update_flags(answer as u16, false);
+        self.update_flags(u16::from(answer), false);
         self.flags.carry = false;
         self.flags.auxiliary_carry = false;
         answer
