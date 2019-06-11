@@ -90,7 +90,7 @@ impl<'a> Intel8080Cpu<'a> {
 
     #[inline]
     fn handle_cp_m_print(&mut self) -> Result<(), CpuError> {
-        let c_value = self.get_current_single_register_value(&RegisterType::C)?;
+        let c_value = self.get_current_single_register_value(RegisterType::C)?;
         if c_value == 9 {
             self.print_de_to_screen();
         } else if c_value == 2 {
@@ -101,7 +101,7 @@ impl<'a> Intel8080Cpu<'a> {
 
     #[inline]
     fn print_e_value_to_screen(&mut self) -> Result<(), CpuError> {
-        let e_value = self.get_current_single_register_value(&RegisterType::E)?;
+        let e_value = self.get_current_single_register_value(RegisterType::E)?;
         self.print_message(&['E' as u8, ' ' as u8, e_value]);
         Ok(())
     }
@@ -163,9 +163,9 @@ mod tests {
         {
             let mut cpu = Intel8080Cpu::new_cp_m_compatible([0; ROM_MEMORY_LIMIT], screen);
             cpu.pc = 0x2c03;
-            cpu.save_to_single_register(9, &RegisterType::C).unwrap();
-            cpu.save_to_single_register(0, &RegisterType::D).unwrap();
-            cpu.save_to_single_register(0, &RegisterType::E).unwrap();
+            cpu.save_to_single_register(9, RegisterType::C).unwrap();
+            cpu.save_to_single_register(0, RegisterType::D).unwrap();
+            cpu.save_to_single_register(0, RegisterType::E).unwrap();
             cpu.memory[3] = '4' as u8;
             cpu.memory[4] = '2' as u8;
             cpu.memory[5] = '$' as u8;

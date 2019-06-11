@@ -20,7 +20,7 @@ impl<'a> Intel8080Cpu<'a> {
         register_type: RegisterType,
     ) -> Result<(), CpuError> {
         let destiny_value = u16::from(self.get_current_a_value()?);
-        let source_value = u16::from(self.get_current_single_register_value(&register_type)?);
+        let source_value = u16::from(self.get_current_single_register_value(register_type)?);
         let carry_as_u16 = self.flags.carry as u16;
         let new_value = self.perform_add_with_carry(source_value, destiny_value);
         let new_value = self.perform_add_with_carry(carry_as_u16, u16::from(new_value));
@@ -41,7 +41,7 @@ impl<'a> Intel8080Cpu<'a> {
         register_type: RegisterType,
     ) -> Result<(), CpuError> {
         let destiny_value = u16::from(self.get_current_a_value()?);
-        let source_value = u16::from(self.get_current_single_register_value(&register_type)?);
+        let source_value = u16::from(self.get_current_single_register_value(register_type)?);
         let new_value = self.perform_add_with_carry(source_value, destiny_value);
         self.save_to_a(new_value)
     }
@@ -59,7 +59,7 @@ impl<'a> Intel8080Cpu<'a> {
         register_type: RegisterType,
     ) -> Result<(), CpuError> {
         let destiny_value = u16::from(self.get_current_a_value()?);
-        let source_value = u16::from(self.get_current_single_register_value(&register_type)?);
+        let source_value = u16::from(self.get_current_single_register_value(register_type)?);
         self.perform_sub_with_carry(destiny_value, source_value);
         Ok(())
     }
@@ -112,17 +112,17 @@ impl<'a> Intel8080Cpu<'a> {
         }?;
         let result = destiny_value + source_value;
         self.flags.carry = result > 0xffff;
-        self.save_to_single_register((result >> 8) as u8, &RegisterType::H)?;
-        self.save_to_single_register(result as u8, &RegisterType::L)
+        self.save_to_single_register((result >> 8) as u8, RegisterType::H)?;
+        self.save_to_single_register(result as u8, RegisterType::L)
     }
 
     pub(crate) fn execute_dcr_by_register(
         &mut self,
         register_type: RegisterType,
     ) -> Result<(), CpuError> {
-        let source_value = u16::from(self.get_current_single_register_value(&register_type)?);
+        let source_value = u16::from(self.get_current_single_register_value(register_type)?);
         let new_value = self.perform_sub_without_carry(source_value, 1);
-        self.save_to_single_register(new_value, &register_type)
+        self.save_to_single_register(new_value, register_type)
     }
 
     pub(crate) fn execute_dcr_by_memory(&mut self) {
@@ -139,9 +139,9 @@ impl<'a> Intel8080Cpu<'a> {
         &mut self,
         register_type: RegisterType,
     ) -> Result<(), CpuError> {
-        let source_value = u16::from(self.get_current_single_register_value(&register_type)?);
+        let source_value = u16::from(self.get_current_single_register_value(register_type)?);
         let new_value = self.perform_add_without_carry(source_value, 1);
-        self.save_to_single_register(new_value, &register_type)
+        self.save_to_single_register(new_value, register_type)
     }
 
     pub(crate) fn execute_inr_by_memory(&mut self) {
@@ -161,7 +161,7 @@ impl<'a> Intel8080Cpu<'a> {
         let destiny_value = u16::from(self.get_current_a_value()?);
         let carry = self.flags.carry as u8;
         let source_value =
-            u16::from(self.get_current_single_register_value(&register_type)? + carry);
+            u16::from(self.get_current_single_register_value(register_type)? + carry);
         let new_value = self.perform_sub_with_carry(destiny_value, source_value);
         self.save_to_a(new_value)
     }
@@ -186,7 +186,7 @@ impl<'a> Intel8080Cpu<'a> {
         register_type: RegisterType,
     ) -> Result<(), CpuError> {
         let destiny_value = u16::from(self.get_current_a_value()?);
-        let source_value = u16::from(self.get_current_single_register_value(&register_type)?);
+        let source_value = u16::from(self.get_current_single_register_value(register_type)?);
         let new_value = self.perform_sub_with_carry(destiny_value, source_value);
         self.save_to_a(new_value)
     }
@@ -234,16 +234,16 @@ impl<'a> Intel8080Cpu<'a> {
         };
         match register_type {
             RegisterType::B => {
-                self.save_to_single_register((result >> 8) as u8, &RegisterType::B)?;
-                self.save_to_single_register(result as u8, &RegisterType::C)
+                self.save_to_single_register((result >> 8) as u8, RegisterType::B)?;
+                self.save_to_single_register(result as u8, RegisterType::C)
             }
             RegisterType::D => {
-                self.save_to_single_register((result >> 8) as u8, &RegisterType::D)?;
-                self.save_to_single_register(result as u8, &RegisterType::E)
+                self.save_to_single_register((result >> 8) as u8, RegisterType::D)?;
+                self.save_to_single_register(result as u8, RegisterType::E)
             }
             RegisterType::H => {
-                self.save_to_single_register((result >> 8) as u8, &RegisterType::H)?;
-                self.save_to_single_register(result as u8, &RegisterType::L)
+                self.save_to_single_register((result >> 8) as u8, RegisterType::H)?;
+                self.save_to_single_register(result as u8, RegisterType::L)
             }
             RegisterType::Sp => {
                 self.save_to_sp(result as u16);
@@ -349,7 +349,7 @@ mod tests {
     fn it_should_execute_adc_by_register() {
         let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x42).unwrap();
-        cpu.save_to_single_register(0x3d, &RegisterType::C).unwrap();
+        cpu.save_to_single_register(0x3d, RegisterType::C).unwrap();
         cpu.flags.carry = false;
         cpu.execute_instruction(&Intel8080Instruction::Adc {
             source: Location::Register {
@@ -369,8 +369,8 @@ mod tests {
     fn it_should_execute_adc_by_memory() {
         let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x42).unwrap();
-        cpu.save_to_single_register(0x0, &RegisterType::H).unwrap();
-        cpu.save_to_single_register(0x0, &RegisterType::L).unwrap();
+        cpu.save_to_single_register(0x0, RegisterType::H).unwrap();
+        cpu.save_to_single_register(0x0, RegisterType::L).unwrap();
         cpu.memory[0] = 0x3d;
         cpu.flags.carry = true;
         cpu.execute_instruction(&Intel8080Instruction::Adc {
@@ -407,8 +407,8 @@ mod tests {
     fn it_should_execute_add_by_memory() {
         let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x6c).unwrap();
-        cpu.save_to_single_register(0x0, &RegisterType::H).unwrap();
-        cpu.save_to_single_register(0x0, &RegisterType::L).unwrap();
+        cpu.save_to_single_register(0x0, RegisterType::H).unwrap();
+        cpu.save_to_single_register(0x0, RegisterType::L).unwrap();
         cpu.memory[0] = 0x2e;
         cpu.execute_instruction(&Intel8080Instruction::Add {
             source: Location::Memory,
@@ -426,7 +426,7 @@ mod tests {
     fn it_should_execute_cmp_by_register() {
         let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x0a).unwrap();
-        cpu.save_to_single_register(0x05, &RegisterType::E).unwrap();
+        cpu.save_to_single_register(0x05, RegisterType::E).unwrap();
         cpu.execute_instruction(&Intel8080Instruction::Cmp {
             source: Location::Register {
                 register: RegisterType::E,
@@ -435,7 +435,7 @@ mod tests {
         .unwrap();
         assert_eq!(cpu.get_current_a_value().unwrap(), 0x0a);
         assert_eq!(
-            cpu.get_current_single_register_value(&RegisterType::E)
+            cpu.get_current_single_register_value(RegisterType::E)
                 .unwrap(),
             0x05
         );
@@ -450,8 +450,8 @@ mod tests {
     fn it_should_execute_cmp_by_memory() {
         let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x02).unwrap();
-        cpu.save_to_single_register(0x0, &RegisterType::H).unwrap();
-        cpu.save_to_single_register(0x0, &RegisterType::L).unwrap();
+        cpu.save_to_single_register(0x0, RegisterType::H).unwrap();
+        cpu.save_to_single_register(0x0, RegisterType::L).unwrap();
         cpu.memory[0] = 0x05;
         cpu.execute_instruction(&Intel8080Instruction::Cmp {
             source: Location::Memory,
@@ -527,10 +527,10 @@ mod tests {
     #[test]
     fn it_should_execute_dad() {
         let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
-        cpu.save_to_single_register(0x33, &RegisterType::B).unwrap();
-        cpu.save_to_single_register(0x9f, &RegisterType::C).unwrap();
-        cpu.save_to_single_register(0xa1, &RegisterType::H).unwrap();
-        cpu.save_to_single_register(0x7b, &RegisterType::L).unwrap();
+        cpu.save_to_single_register(0x33, RegisterType::B).unwrap();
+        cpu.save_to_single_register(0x9f, RegisterType::C).unwrap();
+        cpu.save_to_single_register(0xa1, RegisterType::H).unwrap();
+        cpu.save_to_single_register(0x7b, RegisterType::L).unwrap();
         cpu.execute_instruction(&Intel8080Instruction::Dad {
             register: RegisterType::B,
         })
@@ -564,8 +564,8 @@ mod tests {
     #[test]
     fn it_should_execute_dcr_by_memory() {
         let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
-        cpu.save_to_single_register(0x3a, &RegisterType::H).unwrap();
-        cpu.save_to_single_register(0x7c, &RegisterType::L).unwrap();
+        cpu.save_to_single_register(0x3a, RegisterType::H).unwrap();
+        cpu.save_to_single_register(0x7c, RegisterType::L).unwrap();
         cpu.memory[0x3a7c] = 0x40;
         cpu.execute_instruction(&Intel8080Instruction::Dcr {
             source: Location::Memory,
@@ -582,8 +582,8 @@ mod tests {
     #[test]
     fn it_should_execute_dcx() {
         let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
-        cpu.save_to_single_register(0x98, &RegisterType::H).unwrap();
-        cpu.save_to_single_register(0x00, &RegisterType::L).unwrap();
+        cpu.save_to_single_register(0x98, RegisterType::H).unwrap();
+        cpu.save_to_single_register(0x00, RegisterType::L).unwrap();
         cpu.execute_instruction(&Intel8080Instruction::Dcx {
             register: RegisterType::H,
         })
@@ -599,8 +599,8 @@ mod tests {
     #[test]
     fn it_should_execute_dcx_when_zero() {
         let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
-        cpu.save_to_single_register(0x00, &RegisterType::H).unwrap();
-        cpu.save_to_single_register(0x00, &RegisterType::L).unwrap();
+        cpu.save_to_single_register(0x00, RegisterType::H).unwrap();
+        cpu.save_to_single_register(0x00, RegisterType::L).unwrap();
         cpu.execute_instruction(&Intel8080Instruction::Dcx {
             register: RegisterType::H,
         })
@@ -616,7 +616,7 @@ mod tests {
     #[test]
     fn it_should_execute_inr_by_register() {
         let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
-        cpu.save_to_single_register(0x99, &RegisterType::C).unwrap();
+        cpu.save_to_single_register(0x99, RegisterType::C).unwrap();
         cpu.execute_instruction(&Intel8080Instruction::Inr {
             source: Location::Register {
                 register: RegisterType::C,
@@ -624,7 +624,7 @@ mod tests {
         })
         .unwrap();
         assert_eq!(
-            cpu.get_current_single_register_value(&RegisterType::C)
+            cpu.get_current_single_register_value(RegisterType::C)
                 .unwrap(),
             0x9a
         );
@@ -638,8 +638,8 @@ mod tests {
     #[test]
     fn it_should_execute_inr_by_memory() {
         let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
-        cpu.save_to_single_register(0x3a, &RegisterType::H).unwrap();
-        cpu.save_to_single_register(0x7c, &RegisterType::L).unwrap();
+        cpu.save_to_single_register(0x3a, RegisterType::H).unwrap();
+        cpu.save_to_single_register(0x7c, RegisterType::L).unwrap();
         cpu.memory[0x3a7c] = 0x99;
         cpu.execute_instruction(&Intel8080Instruction::Inr {
             source: Location::Memory,
@@ -656,8 +656,8 @@ mod tests {
     #[test]
     fn it_should_execute_inx() {
         let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
-        cpu.save_to_single_register(0x38, &RegisterType::D).unwrap();
-        cpu.save_to_single_register(0xff, &RegisterType::E).unwrap();
+        cpu.save_to_single_register(0x38, RegisterType::D).unwrap();
+        cpu.save_to_single_register(0xff, RegisterType::E).unwrap();
         cpu.execute_instruction(&Intel8080Instruction::Inx {
             register: RegisterType::D,
         })
@@ -674,7 +674,7 @@ mod tests {
     fn it_should_execute_sbb_by_register() {
         let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x04).unwrap();
-        cpu.save_to_single_register(0x02, &RegisterType::L).unwrap();
+        cpu.save_to_single_register(0x02, RegisterType::L).unwrap();
         cpu.flags.carry = true;
         cpu.execute_instruction(&Intel8080Instruction::Sbb {
             source: Location::Register {
@@ -694,8 +694,8 @@ mod tests {
     fn it_should_execute_sbb_by_memory() {
         let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x04).unwrap();
-        cpu.save_to_single_register(0x0, &RegisterType::H).unwrap();
-        cpu.save_to_single_register(0x0, &RegisterType::L).unwrap();
+        cpu.save_to_single_register(0x0, RegisterType::H).unwrap();
+        cpu.save_to_single_register(0x0, RegisterType::L).unwrap();
         cpu.memory[0] = 0x02;
         cpu.flags.carry = false;
         cpu.execute_instruction(&Intel8080Instruction::Sbb {
@@ -762,8 +762,8 @@ mod tests {
     fn it_should_execute_sub_by_memory() {
         let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         cpu.save_to_a(0x3e).unwrap();
-        cpu.save_to_single_register(0x0, &RegisterType::H).unwrap();
-        cpu.save_to_single_register(0x0, &RegisterType::L).unwrap();
+        cpu.save_to_single_register(0x0, RegisterType::H).unwrap();
+        cpu.save_to_single_register(0x0, RegisterType::L).unwrap();
         cpu.memory[0] = 0x3d;
         cpu.execute_instruction(&Intel8080Instruction::Sub {
             source: Location::Memory,

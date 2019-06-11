@@ -95,7 +95,7 @@ impl<'a> Cpu<u8, Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
             Intel8080Instruction::Mvi {
                 source: Location::Register { register },
                 byte,
-            } => self.save_to_single_register(byte, &register)?,
+            } => self.save_to_single_register(byte, register)?,
             Intel8080Instruction::Noop => self.execute_noop(),
             Intel8080Instruction::Pchl => self.execute_pchl(),
             Intel8080Instruction::Pop { register } => self.execute_pop(register)?,

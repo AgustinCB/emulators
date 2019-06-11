@@ -223,7 +223,7 @@ impl<'a> Intel8080Cpu<'a> {
 
     #[inline]
     pub(crate) fn update_flags(&mut self, answer: u16, with_carry: bool) {
-        self.flags.zero = (answer & 0xff) == 0;
+        self.flags.zero = answer.trailing_zeros() >= 8;
         self.flags.sign = (answer & 0x80) != 0;
         if with_carry {
             self.flags.carry = answer > 0xff;
@@ -266,7 +266,7 @@ impl<'a> Intel8080Cpu<'a> {
 
     #[inline]
     pub(crate) fn get_current_a_value(&self) -> Result<u8, CpuError> {
-        self.get_current_single_register_value(&RegisterType::A)
+        self.get_current_single_register_value(RegisterType::A)
     }
 
     #[inline]
@@ -277,7 +277,7 @@ impl<'a> Intel8080Cpu<'a> {
     #[inline]
     pub(crate) fn get_current_single_register_value(
         &self,
-        register: &RegisterType,
+        register: RegisterType,
     ) -> Result<u8, CpuError> {
         match register {
             RegisterType::A => Ok(self.registers.a),
@@ -287,15 +287,13 @@ impl<'a> Intel8080Cpu<'a> {
             RegisterType::E => Ok(self.registers.e),
             RegisterType::H => Ok(self.registers.h),
             RegisterType::L => Ok(self.registers.l),
-            _ => Err(CpuError::VirtualRegister {
-                register: *register,
-            }),
+            _ => Err(CpuError::VirtualRegister { register }),
         }
     }
 
     #[inline]
     pub(crate) fn save_to_a(&mut self, new_value: u8) -> Result<(), CpuError> {
-        self.save_to_single_register(new_value, &RegisterType::A)
+        self.save_to_single_register(new_value, RegisterType::A)
     }
 
     #[inline]
@@ -307,7 +305,7 @@ impl<'a> Intel8080Cpu<'a> {
     pub(crate) fn save_to_single_register(
         &mut self,
         new_value: u8,
-        register: &RegisterType,
+        register: RegisterType,
     ) -> Result<(), CpuError> {
         match register {
             RegisterType::A => {
@@ -338,9 +336,7 @@ impl<'a> Intel8080Cpu<'a> {
                 self.registers.l = new_value;
                 Ok(())
             }
-            _ => Err(CpuError::VirtualRegister {
-                register: *register,
-            }),
+            _ => Err(CpuError::VirtualRegister { register }),
         }
     }
 

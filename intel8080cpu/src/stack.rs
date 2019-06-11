@@ -6,16 +6,16 @@ impl<'a> Intel8080Cpu<'a> {
         let sp = self.get_current_sp_value() as usize;
         let (first_byte, second_byte) = match register {
             RegisterType::B => Ok((
-                self.get_current_single_register_value(&RegisterType::B)?,
-                self.get_current_single_register_value(&RegisterType::C)?,
+                self.get_current_single_register_value(RegisterType::B)?,
+                self.get_current_single_register_value(RegisterType::C)?,
             )),
             RegisterType::D => Ok((
-                self.get_current_single_register_value(&RegisterType::D)?,
-                self.get_current_single_register_value(&RegisterType::E)?,
+                self.get_current_single_register_value(RegisterType::D)?,
+                self.get_current_single_register_value(RegisterType::E)?,
             )),
             RegisterType::H => Ok((
-                self.get_current_single_register_value(&RegisterType::H)?,
-                self.get_current_single_register_value(&RegisterType::L)?,
+                self.get_current_single_register_value(RegisterType::H)?,
+                self.get_current_single_register_value(RegisterType::L)?,
             )),
             RegisterType::Psw => Ok((self.get_current_a_value()?, self.get_current_flags_byte())),
             _ => Err(CpuError::InvalidRegisterArgument {
@@ -35,16 +35,16 @@ impl<'a> Intel8080Cpu<'a> {
         self.save_to_sp((sp + 2) as u16);
         match register {
             RegisterType::B => {
-                self.save_to_single_register(first_byte, &RegisterType::B)?;
-                self.save_to_single_register(second_byte, &RegisterType::C)
+                self.save_to_single_register(first_byte, RegisterType::B)?;
+                self.save_to_single_register(second_byte, RegisterType::C)
             }
             RegisterType::D => {
-                self.save_to_single_register(first_byte, &RegisterType::D)?;
-                self.save_to_single_register(second_byte, &RegisterType::E)
+                self.save_to_single_register(first_byte, RegisterType::D)?;
+                self.save_to_single_register(second_byte, RegisterType::E)
             }
             RegisterType::H => {
-                self.save_to_single_register(first_byte, &RegisterType::H)?;
-                self.save_to_single_register(second_byte, &RegisterType::L)
+                self.save_to_single_register(first_byte, RegisterType::H)?;
+                self.save_to_single_register(second_byte, RegisterType::L)
             }
             RegisterType::Psw => {
                 self.set_flags_byte(second_byte);
@@ -90,23 +90,23 @@ mod tests {
         cpu
     }
 
-    fn get_push_ready_cpu(register: &RegisterType) -> Intel8080Cpu {
+    fn get_push_ready_cpu<'a>(register: RegisterType) -> Intel8080Cpu<'a> {
         let mut cpu = Intel8080Cpu::new([0; ROM_MEMORY_LIMIT]);
         match register {
             RegisterType::B => {
-                cpu.save_to_single_register(0x8f, &RegisterType::B).unwrap();
-                cpu.save_to_single_register(0x9d, &RegisterType::C).unwrap();
+                cpu.save_to_single_register(0x8f, RegisterType::B).unwrap();
+                cpu.save_to_single_register(0x9d, RegisterType::C).unwrap();
             }
             RegisterType::D => {
-                cpu.save_to_single_register(0x8f, &RegisterType::D).unwrap();
-                cpu.save_to_single_register(0x9d, &RegisterType::E).unwrap();
+                cpu.save_to_single_register(0x8f, RegisterType::D).unwrap();
+                cpu.save_to_single_register(0x9d, RegisterType::E).unwrap();
             }
             RegisterType::H => {
-                cpu.save_to_single_register(0x8f, &RegisterType::H).unwrap();
-                cpu.save_to_single_register(0x9d, &RegisterType::L).unwrap();
+                cpu.save_to_single_register(0x8f, RegisterType::H).unwrap();
+                cpu.save_to_single_register(0x9d, RegisterType::L).unwrap();
             }
             RegisterType::Psw => {
-                cpu.save_to_single_register(0x8f, &RegisterType::A).unwrap();
+                cpu.save_to_single_register(0x8f, RegisterType::A).unwrap();
                 cpu.flags.zero = true;
                 cpu.flags.sign = false;
                 cpu.flags.parity = true;
@@ -173,7 +173,7 @@ mod tests {
 
     #[test]
     fn it_should_push_from_stack_to_b() {
-        let mut cpu = get_push_ready_cpu(&RegisterType::B);
+        let mut cpu = get_push_ready_cpu(RegisterType::B);
         cpu.execute_instruction(&Intel8080Instruction::Push {
             register: RegisterType::B,
         })
@@ -185,7 +185,7 @@ mod tests {
 
     #[test]
     fn it_should_push_from_stack_to_d() {
-        let mut cpu = get_push_ready_cpu(&RegisterType::D);
+        let mut cpu = get_push_ready_cpu(RegisterType::D);
         cpu.execute_instruction(&Intel8080Instruction::Push {
             register: RegisterType::D,
         })
@@ -197,7 +197,7 @@ mod tests {
 
     #[test]
     fn it_should_push_from_stack_to_h() {
-        let mut cpu = get_push_ready_cpu(&RegisterType::H);
+        let mut cpu = get_push_ready_cpu(RegisterType::H);
         cpu.execute_instruction(&Intel8080Instruction::Push {
             register: RegisterType::H,
         })
@@ -209,7 +209,7 @@ mod tests {
 
     #[test]
     fn it_should_push_from_stack_to_a_and_flags() {
-        let mut cpu = get_push_ready_cpu(&RegisterType::Psw);
+        let mut cpu = get_push_ready_cpu(RegisterType::Psw);
         cpu.execute_instruction(&Intel8080Instruction::Push {
             register: RegisterType::Psw,
         })
