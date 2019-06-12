@@ -1580,7 +1580,7 @@ impl ToString for Intel8080Instruction {
             Intel8080Instruction::Mov { destiny, source } => {
                 format!("MOV {},{}", destiny.to_string(), source.to_string())
             }
-            Intel8080Instruction::Hlt => format!("HLT"),
+            Intel8080Instruction::Hlt => "HLT".to_string(),
             Intel8080Instruction::Add { source } => format!("ADD {}", source.to_string()),
             Intel8080Instruction::Adc { source } => format!("ADC {}", source.to_string()),
             Intel8080Instruction::Sub { source } => format!("SUB {}", source.to_string()),
