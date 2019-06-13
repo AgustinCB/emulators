@@ -183,7 +183,7 @@ impl<'a> Cpu<u8, Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
     }
 
     fn increase_pc(&mut self, steps: u8) {
-        self.pc += steps as u16;
+        self.pc += u16::from(steps);
     }
 
     fn get_cycles_from_one_condition(

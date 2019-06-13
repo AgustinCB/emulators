@@ -102,7 +102,7 @@ impl<'a> Intel8080Cpu<'a> {
     #[inline]
     fn print_e_value_to_screen(&mut self) -> Result<(), CpuError> {
         let e_value = self.get_current_single_register_value(RegisterType::E)?;
-        self.print_message(&['E' as u8, ' ' as u8, e_value]);
+        self.print_message(&[b'E', b' ', e_value]);
         Ok(())
     }
 
