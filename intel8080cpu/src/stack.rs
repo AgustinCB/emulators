@@ -18,9 +18,7 @@ impl<'a> Intel8080Cpu<'a> {
                 self.get_current_single_register_value(RegisterType::L)?,
             )),
             RegisterType::Psw => Ok((self.get_current_a_value()?, self.get_current_flags_byte())),
-            _ => Err(CpuError::InvalidRegisterArgument {
-                register: register,
-            }),
+            _ => Err(CpuError::InvalidRegisterArgument { register }),
         }?;
         self.memory[sp - 1] = first_byte;
         self.memory[sp - 2] = second_byte;
@@ -50,9 +48,7 @@ impl<'a> Intel8080Cpu<'a> {
                 self.set_flags_byte(second_byte);
                 self.save_to_a(first_byte)
             }
-            _ => Err(CpuError::InvalidRegisterArgument {
-                register: register,
-            }),
+            _ => Err(CpuError::InvalidRegisterArgument { register }),
         }
     }
 
