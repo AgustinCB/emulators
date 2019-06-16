@@ -15,11 +15,11 @@ impl Register2002 {
     }
     #[inline]
     pub(crate) fn enable_vram_writes(&mut self) {
-        self.value = self.value & 0x10;
+        self.value &= 0x10;
     }
     #[inline]
     pub(crate) fn disable_vram_writes(&mut self) {
-        self.value = self.value & !0x10;
+        self.value &= !0x10;
     }
     #[inline]
     pub(crate) fn is_scanline_sprite_count_bigger_than_eight(&self) -> bool {
@@ -31,11 +31,11 @@ impl Register2002 {
     }
     #[inline]
     pub(crate) fn set_vblank_is_occurring(&mut self) {
-        self.value = self.value | 0x80;
+        self.value |= 0x80;
     }
     #[inline]
     pub(crate) fn set_vblank_stopped(&mut self) {
-        self.value = self.value & !0x80;
+        self.value &= !0x80;
     }
     #[inline]
     pub(crate) fn value(&self) -> u8 {

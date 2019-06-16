@@ -13,7 +13,7 @@ const USAGE: &str = "Usage: nes [game file]";
 fn read_file(file_name: &str) -> std::io::Result<[u8; ROM_SIZE]> {
     let mut f = File::open(file_name)?;
     let mut memory = [0; ROM_SIZE];
-    f.read(&mut memory)?;
+    f.read_exact(&mut memory)?;
     Ok(memory)
 }
 

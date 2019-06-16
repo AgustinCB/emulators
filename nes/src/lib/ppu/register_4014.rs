@@ -59,7 +59,7 @@ impl InputOutputDevice for Register4014Connector {
         // I'm not really sure how to express that right now. Possible ideas:
         // 1. Let the user pass a possible delay to the execute_instruction method.
         // 2. Make the Memory trait somehow express the delays in reading to it.
-        self.save_to_sprite_memory((value as u16).wrapping_mul(0x100));
+        self.save_to_sprite_memory(u16::from(value).wrapping_mul(0x100));
         value
     }
 }

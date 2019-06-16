@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 #[inline]
 fn two_bytes_to_word(high_byte: u8, low_byte: u8) -> u16 {
-    (high_byte as u16) << 8 | (low_byte as u16)
+    u16::from(high_byte) << 8 | u16::from(low_byte)
 }
 
 pub(crate) struct Register2007 {
