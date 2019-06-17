@@ -314,10 +314,10 @@ impl Mos6502Cpu {
                 Ok(())
             }
             AddressingMode::IndirectIndexed { byte } => {
-                let y = self.registers.y as u16;
+                let y = u16::from(self.registers.y);
                 let (low_byte, high_byte) = (
-                    self.memory.get(*byte as u16),
-                    self.memory.get(*byte as u16 + 1),
+                    self.memory.get(u16::from(*byte)),
+                    self.memory.get(u16::from(*byte) + 1),
                 );
                 let indirect_address = two_bytes_to_word(high_byte, low_byte);
                 let direct_address = indirect_address + y;
@@ -336,14 +336,14 @@ impl Mos6502Cpu {
 
     #[inline]
     pub(crate) fn push(&mut self, value: u8) {
-        self.memory.set(self.registers.s as u16 + 0x100, value);
+        self.memory.set(u16::from(self.registers.s) + 0x100, value);
         self.registers.s = self.registers.s.wrapping_sub(1);
     }
 
     #[inline]
     pub(crate) fn pull(&mut self) -> u8 {
         self.registers.s = self.registers.s.wrapping_add(1);
-        self.memory.get(self.registers.s as u16 + 0x100)
+        self.memory.get(u16::from(self.registers.s) + 0x100)
     }
 }
 
@@ -478,7 +478,7 @@ impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
     }
 
     fn increase_pc(&mut self, steps: u8) {
-        self.registers.pc += steps as u16
+        self.registers.pc += u16::from(steps)
     }
 
     fn get_cycles_from_one_condition(
