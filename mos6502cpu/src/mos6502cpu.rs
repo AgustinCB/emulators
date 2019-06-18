@@ -266,12 +266,12 @@ impl Mos6502Cpu {
             AddressingMode::Accumulator => Ok(self.registers.a = new_value),
             AddressingMode::ZeroPage { byte } => Ok(self.memory.set(*byte as u16, new_value)),
             AddressingMode::ZeroPageIndexedX { byte } => {
-                let address = self.registers.x.wrapping_add(*byte) as u16;
+                let address = u16::from(self.registers.x.wrapping_add(*byte));
                 self.memory.set(address, new_value);
                 Ok(())
             }
             AddressingMode::ZeroPageIndexedY { byte } => {
-                let address = self.registers.y.wrapping_add(*byte) as u16;
+                let address = u16::from(self.registers.y.wrapping_add(*byte));
                 self.memory.set(address, new_value);
                 Ok(())
             }
@@ -287,7 +287,7 @@ impl Mos6502Cpu {
                 high_byte,
                 low_byte,
             } => {
-                let x = self.registers.x as u16;
+                let x = u16::from(self.registers.x);
                 let address = two_bytes_to_word(*high_byte, *low_byte);
                 self.memory.set(address + x, new_value);
                 self.update_page_crossed_status(address, address + x);
@@ -297,14 +297,14 @@ impl Mos6502Cpu {
                 high_byte,
                 low_byte,
             } => {
-                let y = self.registers.y as u16;
+                let y = u16::from(self.registers.y);
                 let address = two_bytes_to_word(*high_byte, *low_byte);
                 self.memory.set(address + y, new_value);
                 self.update_page_crossed_status(address, address + y);
                 Ok(())
             }
             AddressingMode::IndexedIndirect { byte } => {
-                let indirect_address = ((*byte as u16 + self.registers.x as u16) as u8) as u16;
+                let indirect_address = u16::from((u16::from(*byte) + u16::from(self.registers.x)) as u8);
                 let (low_byte, high_byte) = (
                     self.memory.get(indirect_address),
                     self.memory.get(indirect_address + 1),
