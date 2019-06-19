@@ -197,7 +197,7 @@ impl Mos6502Cpu {
                 Ok(self.registers.y.wrapping_add(*byte) as u16)
             }
             AddressingMode::IndexedIndirect { byte } => {
-                let indirect_address = ((*byte as u16 + self.registers.x as u16) as u8) as u16;
+                let indirect_address = u16::from((u16::from(*byte) + u16::from(self.registers.x)) as u8);
                 let (low_byte, high_byte) = (
                     self.memory.get(indirect_address),
                     self.memory.get(indirect_address + 1),
@@ -206,10 +206,10 @@ impl Mos6502Cpu {
             }
             AddressingMode::IndirectIndexed { byte } => {
                 let (low_byte, high_byte) = (
-                    self.memory.get(*byte as u16),
-                    self.memory.get(*byte as u16 + 1),
+                    self.memory.get(u16::from(*byte)),
+                    self.memory.get(u16::from(*byte) + 1),
                 );
-                Ok(two_bytes_to_word(high_byte, low_byte) + self.registers.y as u16)
+                Ok(two_bytes_to_word(high_byte, low_byte) + u16::from(self.registers.y))
             }
             _ => Err(CpuError::InvalidAddressingMode),
         }
@@ -222,7 +222,7 @@ impl Mos6502Cpu {
         match addressing_mode {
             AddressingMode::Accumulator => Ok(self.registers.a),
             AddressingMode::Immediate { byte } => Ok(*byte),
-            AddressingMode::ZeroPage { byte } => Ok(self.memory.get(*byte as u16)),
+            AddressingMode::ZeroPage { byte } => Ok(self.memory.get(u16::from(*byte))),
             AddressingMode::ZeroPageIndexedX { byte: _ } => Ok(self
                 .memory
                 .get(self.get_address_from_addressing_mode(addressing_mode)?)),
@@ -263,8 +263,14 @@ impl Mos6502Cpu {
         new_value: u8,
     ) -> CpuResult {
         match addressing_mode {
-            AddressingMode::Accumulator => Ok(self.registers.a = new_value),
-            AddressingMode::ZeroPage { byte } => Ok(self.memory.set(*byte as u16, new_value)),
+            AddressingMode::Accumulator => {
+                self.registers.a = new_value;
+                Ok(())
+            },
+            AddressingMode::ZeroPage { byte } => {
+                self.memory.set(u16::from(*byte), new_value);
+                Ok(())
+            },
             AddressingMode::ZeroPageIndexedX { byte } => {
                 let address = u16::from(self.registers.x.wrapping_add(*byte));
                 self.memory.set(address, new_value);
