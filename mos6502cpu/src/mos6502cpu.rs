@@ -95,6 +95,9 @@ pub trait Memory {
     fn set(&mut self, index: u16, new_value: u8);
     fn get(&self, index: u16) -> u8;
     fn len(&self) -> usize;
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 
 impl Memory for [u8; AVAILABLE_MEMORY] {
@@ -180,21 +183,21 @@ impl Mos6502Cpu {
                 high_byte,
             } => {
                 let address = two_bytes_to_word(*high_byte, *low_byte) as u16;
-                Ok(address + self.registers.x as u16)
+                Ok(address + u16::from(self.registers.x))
             }
             AddressingMode::AbsoluteIndexedY {
                 low_byte,
                 high_byte,
             } => {
                 let address = two_bytes_to_word(*high_byte, *low_byte) as u16;
-                Ok(address + self.registers.y as u16)
+                Ok(address + u16::from(self.registers.y))
             }
-            AddressingMode::ZeroPage { byte } => Ok(*byte as u16),
+            AddressingMode::ZeroPage { byte } => Ok(u16::from(*byte)),
             AddressingMode::ZeroPageIndexedX { byte } => {
-                Ok(self.registers.x.wrapping_add(*byte) as u16)
+                Ok(u16::from(self.registers.x.wrapping_add(*byte)))
             }
             AddressingMode::ZeroPageIndexedY { byte } => {
-                Ok(self.registers.y.wrapping_add(*byte) as u16)
+                Ok(u16::from(self.registers.y.wrapping_add(*byte)))
             }
             AddressingMode::IndexedIndirect { byte } => {
                 let indirect_address = u16::from((u16::from(*byte) + u16::from(self.registers.x)) as u8);
