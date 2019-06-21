@@ -173,9 +173,9 @@ impl Mos6502Cpu {
     fn update_pc_from_offset(&mut self, offset: u8) {
         let pc = self.registers.pc;
         let new_pc = if offset & 0x80 == 0 {
-            pc + offset as u16
+            pc + u16::from(offset)
         } else {
-            pc - two_complement(offset) as u16
+            pc - u16::from(two_complement(offset))
         };
         self.update_page_crossed_status(pc, new_pc);
         self.registers.pc = new_pc;
