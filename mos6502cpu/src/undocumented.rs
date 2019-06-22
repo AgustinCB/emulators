@@ -7,11 +7,8 @@ use {CpuError, CpuResult, Mos6502Cpu};
 impl Mos6502Cpu {
     pub(crate) fn execute_ahx(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         match addressing_mode {
-            AddressingMode::IndirectIndexed { byte: _ }
-            | AddressingMode::AbsoluteIndexedY {
-                high_byte: _,
-                low_byte: _,
-            } => {
+            AddressingMode::IndirectIndexed { .. }
+            | AddressingMode::AbsoluteIndexedY { .. } => {
                 let address = self.get_address_from_addressing_mode(addressing_mode)?;
                 let (_, high_byte) = word_to_two_bytes(address);
                 let answer = self.registers.x & self.registers.a & high_byte;
@@ -22,7 +19,7 @@ impl Mos6502Cpu {
     }
 
     pub(crate) fn execute_alr(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
-        if let AddressingMode::Immediate { byte: _ } = addressing_mode {
+        if let AddressingMode::Immediate { .. } = addressing_mode {
             self.execute_and_unchecked(addressing_mode)?;
             self.execute_lsr_unchecked(addressing_mode)
         } else {
@@ -42,7 +39,7 @@ impl Mos6502Cpu {
     }
 
     pub(crate) fn execute_arr(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
-        if let AddressingMode::Immediate { byte: _ } = addressing_mode {
+        if let AddressingMode::Immediate { .. } = addressing_mode {
             self.execute_and_unchecked(addressing_mode)?;
             self.execute_ror_unchecked(addressing_mode)
         } else {
@@ -74,11 +71,7 @@ impl Mos6502Cpu {
     }
 
     pub(crate) fn execute_las(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
-        if let AddressingMode::AbsoluteIndexedY {
-            high_byte: _,
-            low_byte: _,
-        } = addressing_mode
-        {
+        if let AddressingMode::AbsoluteIndexedY { .. } = addressing_mode {
             let value = self.get_value_from_addressing_mode(addressing_mode)?;
             let answer = value & self.registers.p.to_byte();
             self.registers.x = answer;
@@ -92,23 +85,17 @@ impl Mos6502Cpu {
 
     pub(crate) fn execute_lax(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         match addressing_mode {
-            AddressingMode::Immediate { byte: _ } => {
+            AddressingMode::Immediate { .. } => {
                 self.execute_lda_unchecked(addressing_mode)?;
                 self.execute_tax_unchecked();
                 Ok(())
             }
-            AddressingMode::ZeroPage { byte: _ }
-            | AddressingMode::ZeroPageIndexedY { byte: _ }
-            | AddressingMode::IndexedIndirect { byte: _ }
-            | AddressingMode::IndirectIndexed { byte: _ }
-            | AddressingMode::Absolute {
-                low_byte: _,
-                high_byte: _,
-            }
-            | AddressingMode::AbsoluteIndexedY {
-                low_byte: _,
-                high_byte: _,
-            } => {
+            AddressingMode::ZeroPage { .. }
+            | AddressingMode::ZeroPageIndexedY { .. }
+            | AddressingMode::IndexedIndirect { .. }
+            | AddressingMode::IndirectIndexed { .. }
+            | AddressingMode::Absolute { .. }
+            | AddressingMode::AbsoluteIndexedY { .. } => {
                 self.execute_lda_unchecked(addressing_mode)?;
                 self.execute_ldx_unchecked(addressing_mode)
             }
@@ -130,13 +117,10 @@ impl Mos6502Cpu {
 
     pub(crate) fn execute_sax(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         match addressing_mode {
-            AddressingMode::IndexedIndirect { byte: _ }
-            | AddressingMode::ZeroPage { byte: _ }
-            | AddressingMode::ZeroPageIndexedY { byte: _ }
-            | AddressingMode::Absolute {
-                low_byte: _,
-                high_byte: _,
-            } => {
+            AddressingMode::IndexedIndirect { .. }
+            | AddressingMode::ZeroPage { .. }
+            | AddressingMode::ZeroPageIndexedY { .. }
+            | AddressingMode::Absolute { .. } => {
                 let answer = self.registers.a & self.registers.x;
                 self.set_value_to_addressing_mode(addressing_mode, answer)
             }
@@ -145,11 +129,7 @@ impl Mos6502Cpu {
     }
 
     pub(crate) fn execute_shx(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
-        if let AddressingMode::AbsoluteIndexedY {
-            high_byte: _,
-            low_byte: _,
-        } = addressing_mode
-        {
+        if let AddressingMode::AbsoluteIndexedY { .. } = addressing_mode {
             let address = self.get_address_from_addressing_mode(addressing_mode)?;
             let (_, high_byte) = word_to_two_bytes(address);
             let answer = self.registers.x & high_byte;
@@ -160,11 +140,7 @@ impl Mos6502Cpu {
     }
 
     pub(crate) fn execute_shy(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
-        if let AddressingMode::AbsoluteIndexedX {
-            high_byte: _,
-            low_byte: _,
-        } = addressing_mode
-        {
+        if let AddressingMode::AbsoluteIndexedX { .. } = addressing_mode {
             let address = self.get_address_from_addressing_mode(addressing_mode)?;
             let (_, high_byte) = word_to_two_bytes(address);
             let answer = self.registers.y & high_byte;
@@ -187,11 +163,7 @@ impl Mos6502Cpu {
     }
 
     pub(crate) fn execute_tas(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
-        if let AddressingMode::AbsoluteIndexedY {
-            high_byte: _,
-            low_byte: _,
-        } = addressing_mode
-        {
+        if let AddressingMode::AbsoluteIndexedY { .. } = addressing_mode {
             self.registers.p = ProcessorStatus::from_byte(self.registers.a & self.registers.x);
             self.execute_ahx(addressing_mode)
         } else {
@@ -200,7 +172,7 @@ impl Mos6502Cpu {
     }
 
     pub(crate) fn execute_xaa(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
-        if let AddressingMode::Immediate { byte: _ } = addressing_mode {
+        if let AddressingMode::Immediate { .. } = addressing_mode {
             self.execute_txa_unchecked();
             self.execute_and_unchecked(addressing_mode)
         } else {
