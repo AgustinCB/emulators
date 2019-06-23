@@ -226,34 +226,25 @@ impl Mos6502Cpu {
             AddressingMode::Accumulator => Ok(self.registers.a),
             AddressingMode::Immediate { byte } => Ok(*byte),
             AddressingMode::ZeroPage { byte } => Ok(self.memory.get(u16::from(*byte))),
-            AddressingMode::ZeroPageIndexedX { byte: _ } => Ok(self
+            AddressingMode::ZeroPageIndexedX { .. } => Ok(self
                 .memory
                 .get(self.get_address_from_addressing_mode(addressing_mode)?)),
-            AddressingMode::ZeroPageIndexedY { byte: _ } => Ok(self
+            AddressingMode::ZeroPageIndexedY { .. } => Ok(self
                 .memory
                 .get(self.get_address_from_addressing_mode(addressing_mode)?)),
-            AddressingMode::Absolute {
-                high_byte: _,
-                low_byte: _,
-            } => Ok(self
+            AddressingMode::Absolute { .. } => Ok(self
                 .memory
                 .get(self.get_address_from_addressing_mode(addressing_mode)?)),
-            AddressingMode::AbsoluteIndexedX {
-                high_byte: _,
-                low_byte: _,
-            } => Ok(self
+            AddressingMode::AbsoluteIndexedX { .. } => Ok(self
                 .memory
                 .get(self.get_address_from_addressing_mode(addressing_mode)?)),
-            AddressingMode::AbsoluteIndexedY {
-                high_byte: _,
-                low_byte: _,
-            } => Ok(self
+            AddressingMode::AbsoluteIndexedY { .. } => Ok(self
                 .memory
                 .get(self.get_address_from_addressing_mode(addressing_mode)?)),
-            AddressingMode::IndexedIndirect { byte: _ } => Ok(self
+            AddressingMode::IndexedIndirect { .. } => Ok(self
                 .memory
                 .get(self.get_address_from_addressing_mode(addressing_mode)?)),
-            AddressingMode::IndirectIndexed { byte: _ } => Ok(self
+            AddressingMode::IndirectIndexed { .. } => Ok(self
                 .memory
                 .get(self.get_address_from_addressing_mode(addressing_mode)?)),
             _ => Err(CpuError::InvalidAddressingMode),
