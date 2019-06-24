@@ -255,45 +255,27 @@ impl Mos6502Instruction {
     }
     fn alu_size(&self) -> Result<u8, Error> {
         match self.addressing_mode {
-            AddressingMode::Immediate { byte: _ } => Ok(2),
-            AddressingMode::ZeroPage { byte: _ } => Ok(2),
-            AddressingMode::ZeroPageIndexedX { byte: _ } => Ok(2),
-            AddressingMode::IndexedIndirect { byte: _ } => Ok(2),
-            AddressingMode::IndirectIndexed { byte: _ } => Ok(2),
-            AddressingMode::Absolute {
-                low_byte: _,
-                high_byte: _,
-            } => Ok(3),
-            AddressingMode::AbsoluteIndexedX {
-                low_byte: _,
-                high_byte: _,
-            } => Ok(3),
-            AddressingMode::AbsoluteIndexedY {
-                low_byte: _,
-                high_byte: _,
-            } => Ok(3),
+            AddressingMode::Immediate { .. } => Ok(2),
+            AddressingMode::ZeroPage { .. } => Ok(2),
+            AddressingMode::ZeroPageIndexedX { .. } => Ok(2),
+            AddressingMode::IndexedIndirect { .. } => Ok(2),
+            AddressingMode::IndirectIndexed { .. } => Ok(2),
+            AddressingMode::Absolute { .. } => Ok(3),
+            AddressingMode::AbsoluteIndexedX { .. } => Ok(3),
+            AddressingMode::AbsoluteIndexedY { .. } => Ok(3),
             _ => Err(self.invalid_addressing_mode()),
         }
     }
 
     fn alu_accumulator_size(&self) -> Result<u8, Error> {
         match self.addressing_mode {
-            AddressingMode::ZeroPage { byte: _ } => Ok(2),
-            AddressingMode::ZeroPageIndexedX { byte: _ } => Ok(2),
-            AddressingMode::IndexedIndirect { byte: _ } => Ok(2),
-            AddressingMode::IndirectIndexed { byte: _ } => Ok(2),
-            AddressingMode::Absolute {
-                low_byte: _,
-                high_byte: _,
-            } => Ok(3),
-            AddressingMode::AbsoluteIndexedX {
-                low_byte: _,
-                high_byte: _,
-            } => Ok(3),
-            AddressingMode::AbsoluteIndexedY {
-                low_byte: _,
-                high_byte: _,
-            } => Ok(3),
+            AddressingMode::ZeroPage { .. } => Ok(2),
+            AddressingMode::ZeroPageIndexedX { .. } => Ok(2),
+            AddressingMode::IndexedIndirect { .. } => Ok(2),
+            AddressingMode::IndirectIndexed { .. } => Ok(2),
+            AddressingMode::Absolute { .. } => Ok(3),
+            AddressingMode::AbsoluteIndexedX { .. } => Ok(3),
+            AddressingMode::AbsoluteIndexedY { .. } => Ok(3),
             _ => Err(self.invalid_addressing_mode()),
         }
     }
@@ -301,83 +283,50 @@ impl Mos6502Instruction {
     fn data_movement_size(&self) -> Result<u8, Error> {
         match self.addressing_mode {
             AddressingMode::Accumulator => Ok(1),
-            AddressingMode::ZeroPage { byte: _ } => Ok(2),
-            AddressingMode::ZeroPageIndexedX { byte: _ } => Ok(2),
-            AddressingMode::Absolute {
-                low_byte: _,
-                high_byte: _,
-            } => Ok(3),
-            AddressingMode::AbsoluteIndexedX {
-                low_byte: _,
-                high_byte: _,
-            } => Ok(3),
+            AddressingMode::ZeroPage { .. } => Ok(2),
+            AddressingMode::ZeroPageIndexedX { .. } => Ok(2),
+            AddressingMode::Absolute { .. } => Ok(3),
+            AddressingMode::AbsoluteIndexedX { .. } => Ok(3),
             _ => Err(self.invalid_addressing_mode()),
         }
     }
 
     fn alu_cycles(&self) -> Result<Cycles, Error> {
         match self.addressing_mode {
-            AddressingMode::Immediate { byte: _ } => Ok(single!(2)),
-            AddressingMode::ZeroPage { byte: _ } => Ok(single!(3)),
-            AddressingMode::ZeroPageIndexedX { byte: _ } => Ok(single!(4)),
-            AddressingMode::IndexedIndirect { byte: _ } => Ok(single!(6)),
-            AddressingMode::IndirectIndexed { byte: _ } => Ok(conditional!(5, 6)),
-            AddressingMode::Absolute {
-                low_byte: _,
-                high_byte: _,
-            } => Ok(single!(4)),
-            AddressingMode::AbsoluteIndexedX {
-                low_byte: _,
-                high_byte: _,
-            } => Ok(conditional!(4, 5)),
-            AddressingMode::AbsoluteIndexedY {
-                low_byte: _,
-                high_byte: _,
-            } => Ok(conditional!(4, 5)),
+            AddressingMode::Immediate { .. } => Ok(single!(2)),
+            AddressingMode::ZeroPage { .. } => Ok(single!(3)),
+            AddressingMode::ZeroPageIndexedX { .. } => Ok(single!(4)),
+            AddressingMode::IndexedIndirect { .. } => Ok(single!(6)),
+            AddressingMode::IndirectIndexed { .. } => Ok(conditional!(5, 6)),
+            AddressingMode::Absolute { .. } => Ok(single!(4)),
+            AddressingMode::AbsoluteIndexedX { .. } => Ok(conditional!(4, 5)),
+            AddressingMode::AbsoluteIndexedY { .. } => Ok(conditional!(4, 5)),
             _ => Err(self.invalid_addressing_mode()),
         }
     }
 
     fn alu_accumulator_cycles(&self) -> Result<Cycles, Error> {
         match self.addressing_mode {
-            AddressingMode::ZeroPage { byte: _ } => Ok(single!(3)),
-            AddressingMode::ZeroPageIndexedX { byte: _ } => Ok(single!(4)),
-            AddressingMode::IndexedIndirect { byte: _ } => Ok(single!(6)),
-            AddressingMode::IndirectIndexed { byte: _ } => Ok(single!(6)),
-            AddressingMode::Absolute {
-                low_byte: _,
-                high_byte: _,
-            } => Ok(single!(4)),
-            AddressingMode::AbsoluteIndexedX {
-                low_byte: _,
-                high_byte: _,
-            } => Ok(single!(5)),
-            AddressingMode::AbsoluteIndexedY {
-                low_byte: _,
-                high_byte: _,
-            } => Ok(single!(5)),
+            AddressingMode::ZeroPage { .. } => Ok(single!(3)),
+            AddressingMode::ZeroPageIndexedX { .. } => Ok(single!(4)),
+            AddressingMode::IndexedIndirect { .. } => Ok(single!(6)),
+            AddressingMode::IndirectIndexed { .. } => Ok(single!(6)),
+            AddressingMode::Absolute { .. } => Ok(single!(4)),
+            AddressingMode::AbsoluteIndexedX { .. } => Ok(single!(5)),
+            AddressingMode::AbsoluteIndexedY { .. } => Ok(single!(5)),
             _ => Err(self.invalid_addressing_mode()),
         }
     }
 
     fn unofficial_alu_accumulator_cycles(&self) -> Result<Cycles, Error> {
         match self.addressing_mode {
-            AddressingMode::ZeroPage { byte: _ } => Ok(single!(5)),
-            AddressingMode::ZeroPageIndexedX { byte: _ } => Ok(single!(6)),
-            AddressingMode::IndexedIndirect { byte: _ } => Ok(single!(8)),
-            AddressingMode::IndirectIndexed { byte: _ } => Ok(single!(8)),
-            AddressingMode::Absolute {
-                low_byte: _,
-                high_byte: _,
-            } => Ok(single!(6)),
-            AddressingMode::AbsoluteIndexedX {
-                low_byte: _,
-                high_byte: _,
-            } => Ok(single!(7)),
-            AddressingMode::AbsoluteIndexedY {
-                low_byte: _,
-                high_byte: _,
-            } => Ok(single!(7)),
+            AddressingMode::ZeroPage { .. } => Ok(single!(5)),
+            AddressingMode::ZeroPageIndexedX { .. } => Ok(single!(6)),
+            AddressingMode::IndexedIndirect { .. } => Ok(single!(8)),
+            AddressingMode::IndirectIndexed { .. } => Ok(single!(8)),
+            AddressingMode::Absolute { .. } => Ok(single!(6)),
+            AddressingMode::AbsoluteIndexedX { .. } => Ok(single!(7)),
+            AddressingMode::AbsoluteIndexedY { .. } => Ok(single!(7)),
             _ => Err(self.invalid_addressing_mode()),
         }
     }
@@ -385,16 +334,10 @@ impl Mos6502Instruction {
     fn data_movement_cycles(&self) -> Result<Cycles, Error> {
         match self.addressing_mode {
             AddressingMode::Accumulator => Ok(single!(2)),
-            AddressingMode::ZeroPage { byte: _ } => Ok(single!(5)),
-            AddressingMode::ZeroPageIndexedX { byte: _ } => Ok(single!(6)),
-            AddressingMode::Absolute {
-                low_byte: _,
-                high_byte: _,
-            } => Ok(single!(6)),
-            AddressingMode::AbsoluteIndexedX {
-                low_byte: _,
-                high_byte: _,
-            } => Ok(single!(7)),
+            AddressingMode::ZeroPage { .. } => Ok(single!(5)),
+            AddressingMode::ZeroPageIndexedX { .. } => Ok(single!(6)),
+            AddressingMode::Absolute { .. } => Ok(single!(6)),
+            AddressingMode::AbsoluteIndexedX { .. } => Ok(single!(7)),
             _ => Err(self.invalid_addressing_mode()),
         }
     }
@@ -413,11 +356,8 @@ impl Instruction for Mos6502Instruction {
         match self.instruction {
             Mos6502InstructionCode::Adc => self.alu_size(),
             Mos6502InstructionCode::Ahx => match self.addressing_mode {
-                AddressingMode::AbsoluteIndexedY {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(3),
-                AddressingMode::IndirectIndexed { byte: _ } => Ok(2),
+                AddressingMode::AbsoluteIndexedY { .. } => Ok(3),
+                AddressingMode::IndirectIndexed { .. } => Ok(2),
                 _ => Err(self.invalid_addressing_mode()),
             },
             Mos6502InstructionCode::Alr => Ok(2),
@@ -430,11 +370,8 @@ impl Instruction for Mos6502Instruction {
             Mos6502InstructionCode::Bcs => Ok(2),
             Mos6502InstructionCode::Beq => Ok(2),
             Mos6502InstructionCode::Bit => match self.addressing_mode {
-                AddressingMode::ZeroPage { byte: _ } => Ok(2),
-                AddressingMode::Absolute {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(3),
+                AddressingMode::ZeroPage { .. } => Ok(2),
+                AddressingMode::Absolute { .. } => Ok(3),
                 _ => Err(self.invalid_addressing_mode()),
             },
             Mos6502InstructionCode::Bmi => Ok(2),
@@ -449,51 +386,33 @@ impl Instruction for Mos6502Instruction {
             Mos6502InstructionCode::Clv => Ok(1),
             Mos6502InstructionCode::Cmp => self.alu_size(),
             Mos6502InstructionCode::Cpx => match self.addressing_mode {
-                AddressingMode::Immediate { byte: _ } => Ok(2),
-                AddressingMode::ZeroPage { byte: _ } => Ok(2),
-                AddressingMode::Absolute {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(3),
+                AddressingMode::Immediate { .. } => Ok(2),
+                AddressingMode::ZeroPage { .. } => Ok(2),
+                AddressingMode::Absolute { .. } => Ok(3),
                 _ => Err(self.invalid_addressing_mode()),
             },
             Mos6502InstructionCode::Cpy => match self.addressing_mode {
-                AddressingMode::Immediate { byte: _ } => Ok(2),
-                AddressingMode::ZeroPage { byte: _ } => Ok(2),
-                AddressingMode::Absolute {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(3),
+                AddressingMode::Immediate { .. } => Ok(2),
+                AddressingMode::ZeroPage { .. } => Ok(2),
+                AddressingMode::Absolute { .. } => Ok(3),
                 _ => Err(self.invalid_addressing_mode()),
             },
             Mos6502InstructionCode::Dcp => self.alu_accumulator_size(),
             Mos6502InstructionCode::Dec => match self.addressing_mode {
-                AddressingMode::ZeroPage { byte: _ } => Ok(2),
-                AddressingMode::ZeroPageIndexedX { byte: _ } => Ok(2),
-                AddressingMode::Absolute {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(3),
-                AddressingMode::AbsoluteIndexedX {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(3),
+                AddressingMode::ZeroPage { .. } => Ok(2),
+                AddressingMode::ZeroPageIndexedX { .. } => Ok(2),
+                AddressingMode::Absolute { .. } => Ok(3),
+                AddressingMode::AbsoluteIndexedX { .. } => Ok(3),
                 _ => Err(self.invalid_addressing_mode()),
             },
             Mos6502InstructionCode::Dex => Ok(1),
             Mos6502InstructionCode::Dey => Ok(1),
             Mos6502InstructionCode::Eor => self.alu_size(),
             Mos6502InstructionCode::Inc => match self.addressing_mode {
-                AddressingMode::ZeroPage { byte: _ } => Ok(2),
-                AddressingMode::ZeroPageIndexedX { byte: _ } => Ok(2),
-                AddressingMode::Absolute {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(3),
-                AddressingMode::AbsoluteIndexedX {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(3),
+                AddressingMode::ZeroPage { .. } => Ok(2),
+                AddressingMode::ZeroPageIndexedX { .. } => Ok(2),
+                AddressingMode::Absolute { .. } => Ok(3),
+                AddressingMode::AbsoluteIndexedX { .. } => Ok(3),
                 _ => Err(self.invalid_addressing_mode()),
             },
             Mos6502InstructionCode::Inx => Ok(1),
@@ -503,61 +422,37 @@ impl Instruction for Mos6502Instruction {
             })),
             Mos6502InstructionCode::Isc => self.alu_accumulator_size(),
             Mos6502InstructionCode::Jmp => match self.addressing_mode {
-                AddressingMode::Indirect {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(3),
-                AddressingMode::Absolute {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(3),
+                AddressingMode::Indirect { .. } => Ok(3),
+                AddressingMode::Absolute { .. } => Ok(3),
                 _ => Err(self.invalid_addressing_mode()),
             },
             Mos6502InstructionCode::Jsr => Ok(3),
             Mos6502InstructionCode::Las => Ok(3),
             Mos6502InstructionCode::Lax => match self.addressing_mode {
-                AddressingMode::Immediate { byte: _ } => Ok(2),
-                AddressingMode::ZeroPage { byte: _ } => Ok(2),
-                AddressingMode::ZeroPageIndexedY { byte: _ } => Ok(2),
-                AddressingMode::IndexedIndirect { byte: _ } => Ok(2),
-                AddressingMode::IndirectIndexed { byte: _ } => Ok(2),
-                AddressingMode::Absolute {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(3),
-                AddressingMode::AbsoluteIndexedY {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(3),
+                AddressingMode::Immediate { .. } => Ok(2),
+                AddressingMode::ZeroPage { .. } => Ok(2),
+                AddressingMode::ZeroPageIndexedY { .. } => Ok(2),
+                AddressingMode::IndexedIndirect { .. } => Ok(2),
+                AddressingMode::IndirectIndexed { .. } => Ok(2),
+                AddressingMode::Absolute { .. } => Ok(3),
+                AddressingMode::AbsoluteIndexedY { .. } => Ok(3),
                 _ => Err(self.invalid_addressing_mode()),
             },
             Mos6502InstructionCode::Lda => self.alu_size(),
             Mos6502InstructionCode::Ldx => match self.addressing_mode {
-                AddressingMode::Immediate { byte: _ } => Ok(2),
-                AddressingMode::ZeroPage { byte: _ } => Ok(2),
-                AddressingMode::ZeroPageIndexedY { byte: _ } => Ok(2),
-                AddressingMode::Absolute {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(3),
-                AddressingMode::AbsoluteIndexedY {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(3),
+                AddressingMode::Immediate { .. } => Ok(2),
+                AddressingMode::ZeroPage { .. } => Ok(2),
+                AddressingMode::ZeroPageIndexedY { .. } => Ok(2),
+                AddressingMode::Absolute { .. } => Ok(3),
+                AddressingMode::AbsoluteIndexedY { .. } => Ok(3),
                 _ => Err(self.invalid_addressing_mode()),
             },
             Mos6502InstructionCode::Ldy => match self.addressing_mode {
-                AddressingMode::Immediate { byte: _ } => Ok(2),
-                AddressingMode::ZeroPage { byte: _ } => Ok(2),
-                AddressingMode::ZeroPageIndexedX { byte: _ } => Ok(2),
-                AddressingMode::Absolute {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(3),
-                AddressingMode::AbsoluteIndexedX {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(3),
+                AddressingMode::Immediate { .. } => Ok(2),
+                AddressingMode::ZeroPage { .. } => Ok(2),
+                AddressingMode::ZeroPageIndexedX { .. } => Ok(2),
+                AddressingMode::Absolute { .. } => Ok(3),
+                AddressingMode::AbsoluteIndexedX { .. } => Ok(3),
                 _ => Err(self.invalid_addressing_mode()),
             },
             Mos6502InstructionCode::Lsr => self.data_movement_size(),
@@ -580,13 +475,10 @@ impl Instruction for Mos6502Instruction {
             Mos6502InstructionCode::Rti => Ok(1),
             Mos6502InstructionCode::Rts => Ok(1),
             Mos6502InstructionCode::Sax => match self.addressing_mode {
-                AddressingMode::IndexedIndirect { byte: _ } => Ok(2),
-                AddressingMode::ZeroPage { byte: _ } => Ok(2),
-                AddressingMode::ZeroPageIndexedY { byte: _ } => Ok(2),
-                AddressingMode::Absolute {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(3),
+                AddressingMode::IndexedIndirect { .. } => Ok(2),
+                AddressingMode::ZeroPage { .. } => Ok(2),
+                AddressingMode::ZeroPageIndexedY { .. } => Ok(2),
+                AddressingMode::Absolute { .. } => Ok(3),
                 _ => Err(self.invalid_addressing_mode()),
             },
             Mos6502InstructionCode::Sbc => self.alu_size(),
@@ -599,21 +491,15 @@ impl Instruction for Mos6502Instruction {
             Mos6502InstructionCode::Sre => self.alu_accumulator_size(),
             Mos6502InstructionCode::Sta => self.alu_accumulator_size(),
             Mos6502InstructionCode::Stx => match self.addressing_mode {
-                AddressingMode::ZeroPage { byte: _ } => Ok(2),
-                AddressingMode::ZeroPageIndexedY { byte: _ } => Ok(2),
-                AddressingMode::Absolute {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(3),
+                AddressingMode::ZeroPage { .. } => Ok(2),
+                AddressingMode::ZeroPageIndexedY { .. } => Ok(2),
+                AddressingMode::Absolute { .. } => Ok(3),
                 _ => Err(self.invalid_addressing_mode()),
             },
             Mos6502InstructionCode::Sty => match self.addressing_mode {
-                AddressingMode::ZeroPage { byte: _ } => Ok(2),
-                AddressingMode::ZeroPageIndexedX { byte: _ } => Ok(2),
-                AddressingMode::Absolute {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(3),
+                AddressingMode::ZeroPage { .. } => Ok(2),
+                AddressingMode::ZeroPageIndexedX { .. } => Ok(2),
+                AddressingMode::Absolute { .. } => Ok(3),
                 _ => Err(self.invalid_addressing_mode()),
             },
             Mos6502InstructionCode::Tas => Ok(3),
@@ -641,11 +527,8 @@ impl Instruction for Mos6502Instruction {
             Mos6502InstructionCode::Bcs => Ok(bi_conditional!(2, 3, 5)),
             Mos6502InstructionCode::Beq => Ok(bi_conditional!(2, 3, 5)),
             Mos6502InstructionCode::Bit => match self.addressing_mode {
-                AddressingMode::ZeroPage { byte: _ } => Ok(single!(3)),
-                AddressingMode::Absolute {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(single!(4)),
+                AddressingMode::ZeroPage { .. } => Ok(single!(3)),
+                AddressingMode::Absolute { .. } => Ok(single!(4)),
                 _ => Err(self.invalid_addressing_mode()),
             },
             Mos6502InstructionCode::Bmi => Ok(bi_conditional!(2, 3, 5)),
@@ -660,34 +543,22 @@ impl Instruction for Mos6502Instruction {
             Mos6502InstructionCode::Clv => Ok(single!(2)),
             Mos6502InstructionCode::Cmp => self.alu_cycles(),
             Mos6502InstructionCode::Cpx => match self.addressing_mode {
-                AddressingMode::Immediate { byte: _ } => Ok(single!(2)),
-                AddressingMode::ZeroPage { byte: _ } => Ok(single!(3)),
-                AddressingMode::Absolute {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(single!(4)),
+                AddressingMode::Immediate { .. } => Ok(single!(2)),
+                AddressingMode::ZeroPage { .. } => Ok(single!(3)),
+                AddressingMode::Absolute { .. } => Ok(single!(4)),
                 _ => Err(self.invalid_addressing_mode()),
             },
             Mos6502InstructionCode::Cpy => match self.addressing_mode {
-                AddressingMode::Immediate { byte: _ } => Ok(single!(2)),
-                AddressingMode::ZeroPage { byte: _ } => Ok(single!(3)),
-                AddressingMode::Absolute {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(single!(4)),
+                AddressingMode::Immediate { .. } => Ok(single!(2)),
+                AddressingMode::ZeroPage { .. } => Ok(single!(3)),
+                AddressingMode::Absolute { .. } => Ok(single!(4)),
                 _ => Err(self.invalid_addressing_mode()),
             },
             Mos6502InstructionCode::Dec => match self.addressing_mode {
-                AddressingMode::ZeroPage { byte: _ } => Ok(single!(5)),
-                AddressingMode::ZeroPageIndexedX { byte: _ } => Ok(single!(6)),
-                AddressingMode::Absolute {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(single!(6)),
-                AddressingMode::AbsoluteIndexedX {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(single!(7)),
+                AddressingMode::ZeroPage { .. } => Ok(single!(5)),
+                AddressingMode::ZeroPageIndexedX { .. } => Ok(single!(6)),
+                AddressingMode::Absolute { .. } => Ok(single!(6)),
+                AddressingMode::AbsoluteIndexedX { .. } => Ok(single!(7)),
                 _ => Err(self.invalid_addressing_mode()),
             },
             Mos6502InstructionCode::Dcp => self.unofficial_alu_accumulator_cycles(),
@@ -695,16 +566,10 @@ impl Instruction for Mos6502Instruction {
             Mos6502InstructionCode::Dey => Ok(single!(2)),
             Mos6502InstructionCode::Eor => self.alu_cycles(),
             Mos6502InstructionCode::Inc => match self.addressing_mode {
-                AddressingMode::ZeroPage { byte: _ } => Ok(single!(5)),
-                AddressingMode::ZeroPageIndexedX { byte: _ } => Ok(single!(6)),
-                AddressingMode::Absolute {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(single!(6)),
-                AddressingMode::AbsoluteIndexedX {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(single!(7)),
+                AddressingMode::ZeroPage { .. } => Ok(single!(5)),
+                AddressingMode::ZeroPageIndexedX { .. } => Ok(single!(6)),
+                AddressingMode::Absolute { .. } => Ok(single!(6)),
+                AddressingMode::AbsoluteIndexedX { .. } => Ok(single!(7)),
                 _ => Err(self.invalid_addressing_mode()),
             },
             Mos6502InstructionCode::Inx => Ok(single!(2)),
@@ -712,78 +577,48 @@ impl Instruction for Mos6502Instruction {
             Mos6502InstructionCode::Irq => Ok(single!(7)),
             Mos6502InstructionCode::Isc => self.unofficial_alu_accumulator_cycles(),
             Mos6502InstructionCode::Jmp => match self.addressing_mode {
-                AddressingMode::Indirect {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(single!(5)),
-                AddressingMode::Absolute {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(single!(3)),
+                AddressingMode::Indirect { .. } => Ok(single!(5)),
+                AddressingMode::Absolute { .. } => Ok(single!(3)),
                 _ => Err(self.invalid_addressing_mode()),
             },
             Mos6502InstructionCode::Jsr => Ok(single!(6)),
             Mos6502InstructionCode::Las => Ok(conditional!(4, 5)),
             Mos6502InstructionCode::Lax => match self.addressing_mode {
-                AddressingMode::Immediate { byte: _ } => Ok(single!(2)),
-                AddressingMode::ZeroPage { byte: _ } => Ok(single!(3)),
-                AddressingMode::ZeroPageIndexedY { byte: _ } => Ok(single!(4)),
-                AddressingMode::IndexedIndirect { byte: _ } => Ok(single!(6)),
-                AddressingMode::IndirectIndexed { byte: _ } => Ok(conditional!(5, 6)),
-                AddressingMode::Absolute {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(single!(4)),
-                AddressingMode::AbsoluteIndexedY {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(conditional!(4, 5)),
+                AddressingMode::Immediate { .. } => Ok(single!(2)),
+                AddressingMode::ZeroPage { .. } => Ok(single!(3)),
+                AddressingMode::ZeroPageIndexedY { .. } => Ok(single!(4)),
+                AddressingMode::IndexedIndirect { .. } => Ok(single!(6)),
+                AddressingMode::IndirectIndexed { .. } => Ok(conditional!(5, 6)),
+                AddressingMode::Absolute { .. } => Ok(single!(4)),
+                AddressingMode::AbsoluteIndexedY { .. } => Ok(conditional!(4, 5)),
                 _ => Err(self.invalid_addressing_mode()),
             },
             Mos6502InstructionCode::Lda => self.alu_cycles(),
             Mos6502InstructionCode::Ldx => match self.addressing_mode {
-                AddressingMode::Immediate { byte: _ } => Ok(single!(2)),
-                AddressingMode::ZeroPage { byte: _ } => Ok(single!(3)),
-                AddressingMode::ZeroPageIndexedY { byte: _ } => Ok(single!(4)),
-                AddressingMode::Absolute {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(single!(4)),
-                AddressingMode::AbsoluteIndexedY {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(conditional!(4, 5)),
+                AddressingMode::Immediate { .. } => Ok(single!(2)),
+                AddressingMode::ZeroPage { .. } => Ok(single!(3)),
+                AddressingMode::ZeroPageIndexedY { .. } => Ok(single!(4)),
+                AddressingMode::Absolute { .. } => Ok(single!(4)),
+                AddressingMode::AbsoluteIndexedY { .. } => Ok(conditional!(4, 5)),
                 _ => Err(self.invalid_addressing_mode()),
             },
             Mos6502InstructionCode::Ldy => match self.addressing_mode {
-                AddressingMode::Immediate { byte: _ } => Ok(single!(2)),
-                AddressingMode::ZeroPage { byte: _ } => Ok(single!(3)),
-                AddressingMode::ZeroPageIndexedX { byte: _ } => Ok(single!(4)),
-                AddressingMode::Absolute {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(single!(4)),
-                AddressingMode::AbsoluteIndexedX {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(conditional!(4, 5)),
+                AddressingMode::Immediate { .. } => Ok(single!(2)),
+                AddressingMode::ZeroPage { .. } => Ok(single!(3)),
+                AddressingMode::ZeroPageIndexedX { .. } => Ok(single!(4)),
+                AddressingMode::Absolute { .. } => Ok(single!(4)),
+                AddressingMode::AbsoluteIndexedX { .. } => Ok(conditional!(4, 5)),
                 _ => Err(self.invalid_addressing_mode()),
             },
             Mos6502InstructionCode::Lsr => self.data_movement_cycles(),
             Mos6502InstructionCode::Nmi => Ok(single!(7)),
             Mos6502InstructionCode::Nop => match self.addressing_mode {
-                AddressingMode::Immediate { byte: _ } => Ok(single!(2)),
+                AddressingMode::Immediate { .. } => Ok(single!(2)),
                 AddressingMode::Implicit => Ok(single!(2)),
-                AddressingMode::ZeroPage { byte: _ } => Ok(single!(3)),
-                AddressingMode::ZeroPageIndexedX { byte: _ } => Ok(single!(4)),
-                AddressingMode::Absolute {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(single!(4)),
-                AddressingMode::AbsoluteIndexedX {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(conditional!(4, 5)),
+                AddressingMode::ZeroPage { .. } => Ok(single!(3)),
+                AddressingMode::ZeroPageIndexedX { .. } => Ok(single!(4)),
+                AddressingMode::Absolute { .. } => Ok(single!(4)),
+                AddressingMode::AbsoluteIndexedX { .. } => Ok(conditional!(4, 5)),
                 _ => Err(self.invalid_addressing_mode()),
             },
             Mos6502InstructionCode::Ora => self.alu_cycles(),
@@ -799,13 +634,10 @@ impl Instruction for Mos6502Instruction {
             Mos6502InstructionCode::Rti => Ok(single!(6)),
             Mos6502InstructionCode::Rts => Ok(single!(6)),
             Mos6502InstructionCode::Sax => match self.addressing_mode {
-                AddressingMode::IndexedIndirect { byte: _ } => Ok(single!(6)),
-                AddressingMode::ZeroPage { byte: _ } => Ok(single!(3)),
-                AddressingMode::ZeroPageIndexedY { byte: _ } => Ok(single!(4)),
-                AddressingMode::Absolute {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(single!(4)),
+                AddressingMode::IndexedIndirect { .. } => Ok(single!(6)),
+                AddressingMode::ZeroPage { .. } => Ok(single!(3)),
+                AddressingMode::ZeroPageIndexedY { .. } => Ok(single!(4)),
+                AddressingMode::Absolute { .. } => Ok(single!(4)),
                 _ => Err(self.invalid_addressing_mode()),
             },
             Mos6502InstructionCode::Sbc => self.alu_cycles(),
@@ -818,21 +650,15 @@ impl Instruction for Mos6502Instruction {
             Mos6502InstructionCode::Sre => self.unofficial_alu_accumulator_cycles(),
             Mos6502InstructionCode::Sta => self.alu_accumulator_cycles(),
             Mos6502InstructionCode::Stx => match self.addressing_mode {
-                AddressingMode::ZeroPage { byte: _ } => Ok(single!(3)),
-                AddressingMode::ZeroPageIndexedY { byte: _ } => Ok(single!(4)),
-                AddressingMode::Absolute {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(single!(4)),
+                AddressingMode::ZeroPage { .. } => Ok(single!(3)),
+                AddressingMode::ZeroPageIndexedY { .. } => Ok(single!(4)),
+                AddressingMode::Absolute { .. } => Ok(single!(4)),
                 _ => Err(self.invalid_addressing_mode()),
             },
             Mos6502InstructionCode::Sty => match self.addressing_mode {
-                AddressingMode::ZeroPage { byte: _ } => Ok(single!(3)),
-                AddressingMode::ZeroPageIndexedX { byte: _ } => Ok(single!(4)),
-                AddressingMode::Absolute {
-                    low_byte: _,
-                    high_byte: _,
-                } => Ok(single!(4)),
+                AddressingMode::ZeroPage { .. } => Ok(single!(3)),
+                AddressingMode::ZeroPageIndexedX { .. } => Ok(single!(4)),
+                AddressingMode::Absolute { .. } => Ok(single!(4)),
                 _ => Err(self.invalid_addressing_mode()),
             },
             Mos6502InstructionCode::Tas => Ok(single!(5)),

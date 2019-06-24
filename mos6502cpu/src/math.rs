@@ -147,12 +147,9 @@ impl Mos6502Cpu {
     #[inline]
     fn check_compare_address(&self, addressing_mode: &AddressingMode) -> CpuResult {
         match addressing_mode {
-            AddressingMode::Immediate { byte: _ } => Ok(()),
-            AddressingMode::ZeroPage { byte: _ } => Ok(()),
-            AddressingMode::Absolute {
-                low_byte: _,
-                high_byte: _,
-            } => Ok(()),
+            AddressingMode::Immediate { .. } => Ok(()),
+            AddressingMode::ZeroPage { .. } => Ok(()),
+            AddressingMode::Absolute { .. } => Ok(()),
             _ => Err(CpuError::InvalidAddressingMode),
         }
     }
