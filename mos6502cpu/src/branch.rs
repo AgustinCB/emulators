@@ -184,14 +184,8 @@ impl Mos6502Cpu {
     #[inline]
     fn check_jmp_address(&self, addressing_mode: &AddressingMode) -> CpuResult {
         match addressing_mode {
-            AddressingMode::Indirect {
-                low_byte: _,
-                high_byte: _,
-            } => Ok(()),
-            AddressingMode::Absolute {
-                low_byte: _,
-                high_byte: _,
-            } => Ok(()),
+            AddressingMode::Indirect { .. } => Ok(()),
+            AddressingMode::Absolute { .. } => Ok(()),
             _ => Err(CpuError::InvalidAddressingMode),
         }
     }

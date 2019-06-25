@@ -155,16 +155,10 @@ impl Mos6502Cpu {
     fn check_data_shifting_address(&self, addressing_mode: &AddressingMode) -> CpuResult {
         match addressing_mode {
             AddressingMode::Accumulator => Ok(()),
-            AddressingMode::ZeroPage { byte: _ } => Ok(()),
-            AddressingMode::ZeroPageIndexedX { byte: _ } => Ok(()),
-            AddressingMode::Absolute {
-                low_byte: _,
-                high_byte: _,
-            } => Ok(()),
-            AddressingMode::AbsoluteIndexedX {
-                low_byte: _,
-                high_byte: _,
-            } => Ok(()),
+            AddressingMode::ZeroPage { .. } => Ok(()),
+            AddressingMode::ZeroPageIndexedX { .. } => Ok(()),
+            AddressingMode::Absolute { .. } => Ok(()),
+            AddressingMode::AbsoluteIndexedX { .. } => Ok(()),
             _ => Err(CpuError::InvalidAddressingMode),
         }
     }
@@ -172,16 +166,10 @@ impl Mos6502Cpu {
     #[inline]
     fn check_memory_data_shifting_address(&self, addressing_mode: &AddressingMode) -> CpuResult {
         match addressing_mode {
-            AddressingMode::ZeroPage { byte: _ } => Ok(()),
-            AddressingMode::ZeroPageIndexedX { byte: _ } => Ok(()),
-            AddressingMode::Absolute {
-                low_byte: _,
-                high_byte: _,
-            } => Ok(()),
-            AddressingMode::AbsoluteIndexedX {
-                low_byte: _,
-                high_byte: _,
-            } => Ok(()),
+            AddressingMode::ZeroPage { .. } => Ok(()),
+            AddressingMode::ZeroPageIndexedX { .. } => Ok(()),
+            AddressingMode::Absolute { .. } => Ok(()),
+            AddressingMode::AbsoluteIndexedX { .. } => Ok(()),
             _ => Err(CpuError::InvalidAddressingMode),
         }
     }

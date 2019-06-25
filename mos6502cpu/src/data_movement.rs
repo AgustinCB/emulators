@@ -48,12 +48,9 @@ impl Mos6502Cpu {
 
     pub(crate) fn execute_stx(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         match addressing_mode {
-            AddressingMode::ZeroPage { byte: _ }
-            | AddressingMode::ZeroPageIndexedY { byte: _ }
-            | AddressingMode::Absolute {
-                low_byte: _,
-                high_byte: _,
-            } => {
+            AddressingMode::ZeroPage { .. }
+            | AddressingMode::ZeroPageIndexedY { .. }
+            | AddressingMode::Absolute { .. } => {
                 let address = self.get_address_from_addressing_mode(addressing_mode)?;
                 self.memory.set(address, self.registers.x);
                 Ok(())
@@ -64,12 +61,9 @@ impl Mos6502Cpu {
 
     pub(crate) fn execute_sty(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         match addressing_mode {
-            AddressingMode::ZeroPage { byte: _ }
-            | AddressingMode::ZeroPageIndexedX { byte: _ }
-            | AddressingMode::Absolute {
-                low_byte: _,
-                high_byte: _,
-            } => {
+            AddressingMode::ZeroPage { .. }
+            | AddressingMode::ZeroPageIndexedX { .. }
+            | AddressingMode::Absolute { .. } => {
                 let address = self.get_address_from_addressing_mode(addressing_mode)?;
                 self.memory.set(address, self.registers.y);
                 Ok(())
@@ -161,17 +155,11 @@ impl Mos6502Cpu {
     #[inline]
     fn check_data_load_address_y(&self, addressing_mode: &AddressingMode) -> CpuResult {
         match addressing_mode {
-            AddressingMode::Immediate { byte: _ } => Ok(()),
-            AddressingMode::ZeroPage { byte: _ } => Ok(()),
-            AddressingMode::ZeroPageIndexedY { byte: _ } => Ok(()),
-            AddressingMode::Absolute {
-                low_byte: _,
-                high_byte: _,
-            } => Ok(()),
-            AddressingMode::AbsoluteIndexedY {
-                low_byte: _,
-                high_byte: _,
-            } => Ok(()),
+            AddressingMode::Immediate { .. } => Ok(()),
+            AddressingMode::ZeroPage { .. } => Ok(()),
+            AddressingMode::ZeroPageIndexedY { .. } => Ok(()),
+            AddressingMode::Absolute { .. } => Ok(()),
+            AddressingMode::AbsoluteIndexedY { .. } => Ok(()),
             _ => Err(CpuError::InvalidAddressingMode),
         }
     }
@@ -179,17 +167,11 @@ impl Mos6502Cpu {
     #[inline]
     fn check_data_load_address_x(&self, addressing_mode: &AddressingMode) -> CpuResult {
         match addressing_mode {
-            AddressingMode::Immediate { byte: _ } => Ok(()),
-            AddressingMode::ZeroPage { byte: _ } => Ok(()),
-            AddressingMode::ZeroPageIndexedX { byte: _ } => Ok(()),
-            AddressingMode::Absolute {
-                low_byte: _,
-                high_byte: _,
-            } => Ok(()),
-            AddressingMode::AbsoluteIndexedX {
-                low_byte: _,
-                high_byte: _,
-            } => Ok(()),
+            AddressingMode::Immediate { .. } => Ok(()),
+            AddressingMode::ZeroPage { .. } => Ok(()),
+            AddressingMode::ZeroPageIndexedX { .. } => Ok(()),
+            AddressingMode::Absolute { .. } => Ok(()),
+            AddressingMode::AbsoluteIndexedX { .. } => Ok(()),
             _ => Err(CpuError::InvalidAddressingMode),
         }
     }
@@ -197,22 +179,13 @@ impl Mos6502Cpu {
     #[inline]
     pub(crate) fn check_data_store_address(&self, addressing_mode: &AddressingMode) -> CpuResult {
         match addressing_mode {
-            AddressingMode::ZeroPage { byte: _ } => Ok(()),
-            AddressingMode::ZeroPageIndexedX { byte: _ } => Ok(()),
-            AddressingMode::Absolute {
-                low_byte: _,
-                high_byte: _,
-            } => Ok(()),
-            AddressingMode::AbsoluteIndexedX {
-                low_byte: _,
-                high_byte: _,
-            } => Ok(()),
-            AddressingMode::AbsoluteIndexedY {
-                low_byte: _,
-                high_byte: _,
-            } => Ok(()),
-            AddressingMode::IndexedIndirect { byte: _ } => Ok(()),
-            AddressingMode::IndirectIndexed { byte: _ } => Ok(()),
+            AddressingMode::ZeroPage { .. } => Ok(()),
+            AddressingMode::ZeroPageIndexedX { .. } => Ok(()),
+            AddressingMode::Absolute { .. } => Ok(()),
+            AddressingMode::AbsoluteIndexedX { .. } => Ok(()),
+            AddressingMode::AbsoluteIndexedY { .. } => Ok(()),
+            AddressingMode::IndexedIndirect { .. } => Ok(()),
+            AddressingMode::IndirectIndexed { .. } => Ok(()),
             _ => Err(CpuError::InvalidAddressingMode),
         }
     }
