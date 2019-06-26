@@ -126,7 +126,7 @@ impl<'a> Console<'a> {
             }
 
             if let Some(u) = e.update_args() {
-                self.update(&u)?;
+                self.update(u)?;
             }
 
             if let Some(Button::Keyboard(key)) = e.press_args() {
@@ -140,7 +140,7 @@ impl<'a> Console<'a> {
         Ok(())
     }
 
-    fn update(&mut self, args: &UpdateArgs) -> Result<(), Error> {
+    fn update(&mut self, args: UpdateArgs) -> Result<(), Error> {
         self.timer.update_last_check();
         if self.timer.should_trigger() && self.cpu.interruptions_enabled {
             self.prev_interruption = if self.prev_interruption == 1 {
@@ -161,7 +161,7 @@ impl<'a> Console<'a> {
         }
         let mut cycles_to_run = (args.dt * (HERTZ as f64)) as i64 + self.cycles_left;
         while cycles_to_run > 0 {
-            cycles_to_run -= self.cpu.execute()? as i64;
+            cycles_to_run -= i64::from(self.cpu.execute()?);
         }
         self.cycles_left = cycles_to_run;
         Ok(())

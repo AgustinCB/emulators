@@ -9,7 +9,7 @@ use std::env::args;
 use std::fs::File;
 use std::io::Read;
 
-const USAGE: &'static str = "Usage: space-invaders [game|test] [file] [--no-audio]
+const USAGE: &str = "Usage: space-invaders [game|test] [file] [--no-audio]
 
 If running either test, [file] should be a hex file with Intel 8080 instructions.
 
@@ -31,7 +31,7 @@ fn read_file(file_name: &str) -> std::io::Result<[u8; ROM_MEMORY_LIMIT]> {
     // this may blow up memory if the file is big enough
     // TODO: streams???
     let mut memory = [0; ROM_MEMORY_LIMIT];
-    f.read(&mut memory)?;
+    f.read_exact(&mut memory)?;
     Ok(memory)
 }
 
@@ -40,7 +40,7 @@ fn start_game(folder: &str, has_audio: bool) -> Result<(), Error> {
     let memory = read_file(&rom_location)?;
     let options = ConsoleOptions::new(memory, folder).with_audio(has_audio);
     let mut console = Console::new(options)?;
-    console.start().map_err(|e| Error::from(e))
+    console.start().map_err(Error::from)
 }
 
 fn test(memory: [u8; ROM_MEMORY_LIMIT]) -> Result<(), Error> {
@@ -61,7 +61,7 @@ fn main() {
 
     if args[1] == "game" {
         let has_audio = if args.len() == 4 {
-            args[3] != String::from("--no-audio")
+            args[3].as_str() != "--no-audio"
         } else {
             true
         };

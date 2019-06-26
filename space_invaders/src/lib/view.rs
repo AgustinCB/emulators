@@ -26,8 +26,8 @@ impl View {
     pub fn render(&mut self, args: &RenderArgs, gl: &mut GlGraphics) {
         use self::graphics::*;
         let (x, y) = (
-            (args.width / 2) as f64 - (SCREEN_WIDTH / 2) as f64,
-            (args.height / 2) as f64 - (SCREEN_HEIGHT / 2) as f64,
+            f64::from(args.width / 2) - (SCREEN_WIDTH / 2) as f64,
+            f64::from(args.height / 2) - (SCREEN_HEIGHT / 2) as f64,
         );
         gl.draw(args.viewport(), |c, gl| {
             let transform = c.transform.trans(x, y);
@@ -37,9 +37,9 @@ impl View {
     }
 
     pub fn update_image(&mut self, pixels: &ScreenLayout) {
-        for line in 0..pixels.len() {
-            for column in 0..pixels[line].len() {
-                let pixel = if pixels[line][column] {
+        for (line, row) in pixels.iter().enumerate() {
+            for (column, drawn_pixel) in row.iter().enumerate() {
+                let pixel = if *drawn_pixel {
                     [255; 4]
                 } else {
                     [0, 0, 0, 255]

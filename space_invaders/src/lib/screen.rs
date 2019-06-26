@@ -22,7 +22,7 @@ fn get_bits(byte: u8) -> [bool; 8] {
         i += 1;
     }
     bits[i] = (byte & mask) > 0;
-    return bits;
+    bits
 }
 
 pub(crate) struct GameScreen {
