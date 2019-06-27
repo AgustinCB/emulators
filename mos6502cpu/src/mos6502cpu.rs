@@ -200,7 +200,8 @@ impl Mos6502Cpu {
                 Ok(u16::from(self.registers.y.wrapping_add(*byte)))
             }
             AddressingMode::IndexedIndirect { byte } => {
-                let indirect_address = u16::from((u16::from(*byte) + u16::from(self.registers.x)) as u8);
+                let indirect_address =
+                    u16::from((u16::from(*byte) + u16::from(self.registers.x)) as u8);
                 let (low_byte, high_byte) = (
                     self.memory.get(indirect_address),
                     self.memory.get(indirect_address + 1),
@@ -260,11 +261,11 @@ impl Mos6502Cpu {
             AddressingMode::Accumulator => {
                 self.registers.a = new_value;
                 Ok(())
-            },
+            }
             AddressingMode::ZeroPage { byte } => {
                 self.memory.set(u16::from(*byte), new_value);
                 Ok(())
-            },
+            }
             AddressingMode::ZeroPageIndexedX { byte } => {
                 let address = u16::from(self.registers.x.wrapping_add(*byte));
                 self.memory.set(address, new_value);
@@ -304,7 +305,8 @@ impl Mos6502Cpu {
                 Ok(())
             }
             AddressingMode::IndexedIndirect { byte } => {
-                let indirect_address = u16::from((u16::from(*byte) + u16::from(self.registers.x)) as u8);
+                let indirect_address =
+                    u16::from((u16::from(*byte) + u16::from(self.registers.x)) as u8);
                 let (low_byte, high_byte) = (
                     self.memory.get(indirect_address),
                     self.memory.get(indirect_address + 1),

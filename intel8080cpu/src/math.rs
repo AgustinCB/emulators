@@ -248,7 +248,7 @@ impl<'a> Intel8080Cpu<'a> {
             RegisterType::Sp => {
                 self.save_to_sp(result as u16);
                 Ok(())
-            },
+            }
             _ => Err(CpuError::InvalidRegisterArgument {
                 register: register_type,
             }),

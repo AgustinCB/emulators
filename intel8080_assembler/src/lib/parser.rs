@@ -181,10 +181,7 @@ impl Parser {
                 let right_side = self.parse_sum_operations(line)?;
                 Ok(OperationExpression::Not(Box::new(right_side)))
             }
-            Some(AssemblerToken {
-                line,
-                ..
-            }) => self.parse_sum_operations(line),
+            Some(AssemblerToken { line, .. }) => self.parse_sum_operations(line),
             None => Err(Error::from(AssemblerError::UnexpectedEndOfExpression {
                 line,
             })),
@@ -263,10 +260,7 @@ impl Parser {
                 self.consume(AssemblerTokenType::RightParen, line)?;
                 Ok(OperationExpression::Group(Box::new(op)))
             }
-            Some(AssemblerToken {
-                line,
-                ..
-            }) => {
+            Some(AssemblerToken { line, .. }) => {
                 let word = self.parse_two_word(line)?;
                 Ok(OperationExpression::Operand(word))
             }
@@ -1584,10 +1578,7 @@ impl Parser {
 
     fn consume(&mut self, token: AssemblerTokenType, line: usize) -> Result<(), Error> {
         match self.source.next() {
-            Some(AssemblerToken {
-                ref token_type,
-                ..
-            }) if token_type == &token => Ok(()),
+            Some(AssemblerToken { ref token_type, .. }) if token_type == &token => Ok(()),
             Some(AssemblerToken { token_type, line }) => {
                 Err(Error::from(AssemblerError::ExpectingToken {
                     expected: token,

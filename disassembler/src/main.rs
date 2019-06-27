@@ -30,10 +30,7 @@ Disassemble a binary file for an old cpu. So far, supports only:
 - intel8080";
 type InstructionsResult = Result<Vec<(u16, Box<ToString>)>, Error>;
 
-fn get_instructions_for_cpu(
-    cpu: &str,
-    bytes: [u8; ROM_MEMORY_LIMIT],
-) -> InstructionsResult {
+fn get_instructions_for_cpu(cpu: &str, bytes: [u8; ROM_MEMORY_LIMIT]) -> InstructionsResult {
     match cpu {
         "mos6502" => get_instructions::<Mos6502Instruction>(bytes),
         "intel8080" => get_instructions::<Intel8080Instruction>(bytes),

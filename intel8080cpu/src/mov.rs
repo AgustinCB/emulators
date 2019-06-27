@@ -52,7 +52,7 @@ impl<'a> Intel8080Cpu<'a> {
             RegisterType::Sp => {
                 self.save_to_sp(two_bytes_to_word(high_byte, low_byte));
                 Ok(())
-            },
+            }
             _ => Err(CpuError::InvalidRegisterArgument {
                 register: register_type,
             }),

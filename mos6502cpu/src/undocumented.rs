@@ -7,8 +7,7 @@ use {CpuError, CpuResult, Mos6502Cpu};
 impl Mos6502Cpu {
     pub(crate) fn execute_ahx(&mut self, addressing_mode: &AddressingMode) -> CpuResult {
         match addressing_mode {
-            AddressingMode::IndirectIndexed { .. }
-            | AddressingMode::AbsoluteIndexedY { .. } => {
+            AddressingMode::IndirectIndexed { .. } | AddressingMode::AbsoluteIndexedY { .. } => {
                 let address = self.get_address_from_addressing_mode(addressing_mode)?;
                 let (_, high_byte) = word_to_two_bytes(address);
                 let answer = self.registers.x & self.registers.a & high_byte;
