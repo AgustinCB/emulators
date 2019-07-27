@@ -1,15 +1,12 @@
-extern crate glutin_window;
 extern crate graphics;
 extern crate intel8080cpu;
 extern crate opengl_graphics;
 extern crate piston;
+extern crate piston_window;
 
-use self::glutin_window::GlutinWindow as Window;
 use self::intel8080cpu::*;
-use self::opengl_graphics::{GlGraphics, OpenGL};
-use self::piston::event_loop::*;
-use self::piston::input::*;
-use self::piston::window::WindowSettings;
+use self::opengl_graphics::OpenGL;
+use self::piston_window::*;
 use super::failure::Error;
 use super::io_devices::*;
 use super::screen::{GameScreen, Screen};
@@ -19,7 +16,6 @@ use super::ConsoleError;
 
 const FPS: f64 = 60.0;
 const SCREEN_INTERRUPTIONS_INTERVAL: f64 = (1.0 / FPS * 1000.0) / 2.0;
-const OPEN_GL: OpenGL = OpenGL::V3_2;
 pub(crate) const FRAME_BUFFER_ADDRESS: usize = 0x2400;
 pub(crate) const FRAME_BUFFER_SIZE: usize = 0x1C00;
 
@@ -47,29 +43,28 @@ impl<'a> ConsoleOptions<'a> {
 pub struct Console<'a> {
     cpu: Intel8080Cpu<'a>,
     cycles_left: i64,
-    gl: GlGraphics,
     keypad_controller: KeypadController,
     prev_interruption: u8,
-    screen: Box<Screen>,
+    screen: Box<dyn Screen>,
     timer: Timer,
     view: View,
-    window: Window,
+    window: PistonWindow,
 }
 
 impl<'a> Console<'a> {
-    pub fn new(options: ConsoleOptions) -> Result<Console, Error> {
+    pub fn new(
+        options: ConsoleOptions,
+        view: View,
+        window: PistonWindow,
+    ) -> Result<Console, Error> {
         let timer = Timer::new(SCREEN_INTERRUPTIONS_INTERVAL);
         let keypad_controller = KeypadController::new();
         let cpu = Console::create_cpu(&keypad_controller, options)?;
         let screen = Box::new(GameScreen::new());
-        let window = Console::create_window()?;
-        let gl = GlGraphics::new(OPEN_GL);
-        let view = View::new();
 
         Ok(Console {
             cpu,
             cycles_left: 0,
-            gl,
             keypad_controller,
             prev_interruption: 2,
             screen,
@@ -105,24 +100,28 @@ impl<'a> Console<'a> {
         Ok(cpu)
     }
 
-    fn create_window() -> Result<Window, Error> {
-        WindowSettings::new("Space Invaders", [WINDOW_WIDTH, WINDOW_HEIGHT])
-            .opengl(OPEN_GL)
-            .exit_on_esc(true)
-            .srgb(false)
-            .build()
-            .map_err(|e| Error::from(ConsoleError::CantCreateWindow { msg: e }))
+    pub fn create_window(debug: bool) -> Result<PistonWindow, Error> {
+        let margin = if debug { 200 } else { 0 };
+        WindowSettings::new(
+            "Space Invaders",
+            [WINDOW_WIDTH + margin, WINDOW_HEIGHT + margin],
+        )
+        .graphics_api(OpenGL::V4_5)
+        .exit_on_esc(true)
+        .srgb(false)
+        .build()
+        .map_err(|e| Error::from(ConsoleError::CantCreateWindow { msg: e.to_string() }))
     }
 
     pub fn start(&mut self) -> Result<(), Error> {
         self.timer.reset();
-        let mut events = Events::new(EventSettings::new().ups(1000).max_fps(60));
-        while let Some(e) = events.next(&mut self.window) {
+        Events::new(EventSettings::new().ups(1000).max_fps(60));
+        while let Some(e) = self.window.next() {
             if self.cpu.is_done() {
                 break;
             }
             if let Some(r) = e.render_args() {
-                self.view.render(&r, &mut self.gl);
+                self.view.render(&e, &r, &mut self.window);
             }
 
             if let Some(u) = e.update_args() {

@@ -15,4 +15,4 @@ pub mod console;
 mod io_devices;
 mod screen;
 mod timer;
-mod view;
+pub mod view;
