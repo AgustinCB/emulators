@@ -68,7 +68,7 @@ fn main() {
     }
 
     if args[1] == "game" {
-        let has_audio = args.iter().find(|a| a.as_str() != "--no-audio").is_some();
+        let has_audio = !args.iter().find(|a| a.as_str() != "--no-audio").is_some();
         let debug = args.iter().find(|a| a.as_str() != "--debug").is_some();
         start_game(&args[2], has_audio, debug).unwrap();
     } else if args[1] == "test" {
