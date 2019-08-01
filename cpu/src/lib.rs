@@ -76,7 +76,7 @@ where
         if !self.can_run(&instruction) {
             return Ok(0);
         }
-        println!("0x{:04x} {}", self.get_pc(), instruction.to_string());
+        //println!("0x{:04x} {}", self.get_pc(), instruction.to_string());
         self.increase_pc(instruction.size()?);
         self.execute_instruction(&instruction)?;
         let cycles = self.get_cycles_for_instruction(&instruction)?;
