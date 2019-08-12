@@ -101,7 +101,7 @@ impl<'a> Console<'a> {
     }
 
     pub fn create_window(debug: bool) -> Result<PistonWindow, Error> {
-        let margin = if debug { 200 } else { 0 };
+        let margin = if debug { 600 } else { 0 };
         WindowSettings::new(
             "Space Invaders",
             [WINDOW_WIDTH + margin, WINDOW_HEIGHT + margin],

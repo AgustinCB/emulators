@@ -2,11 +2,13 @@ extern crate emulator_space_invaders;
 extern crate failure;
 extern crate find_folder;
 extern crate intel8080cpu;
+extern crate piston_window;
 
 use emulator_space_invaders::console::{Console, ConsoleOptions};
 use emulator_space_invaders::view::View;
 use failure::Error;
 use intel8080cpu::*;
+use piston_window::{Flip, Texture, TextureSettings};
 use std::env::args;
 use std::fs::File;
 use std::io::Read;
@@ -46,7 +48,15 @@ fn start_game(folder: &str, has_audio: bool, debug: bool) -> Result<(), Error> {
         .unwrap();
     let mut window = Console::create_window(debug)?;
     let glyphs = window.load_font(assets.join("FiraSans-Regular.ttf"))?;
-    let view = View::new(debug, glyphs);
+    let control_button_path = assets.join("menu_button.png");
+    let mut texture_context = window.create_texture_context();
+    let control_button = Texture::from_path(
+        &mut texture_context,
+        control_button_path,
+        Flip::None,
+        &TextureSettings::new(),
+    ).unwrap();
+    let view = View::new(debug, glyphs, control_button, texture_context);
     let mut console = Console::new(options, view, window)?;
     console.start().map_err(Error::from)
 }
