@@ -88,6 +88,7 @@ pub struct View {
     image: RgbaImage,
     left_menu_visible: bool,
     pause_texture: G2dTexture,
+    pause_position: [f64; 2],
     texture: Texture,
     texture_context: G2dTextureContext,
 }
@@ -108,6 +109,7 @@ impl View {
             image,
             left_menu_visible,
             pause_texture: pause_img,
+            pause_position: [0f64; 2],
             texture,
             texture_context,
         }
@@ -115,6 +117,8 @@ impl View {
 
     pub fn render(&mut self, event: &Event, args: &RenderArgs, window: &mut PistonWindow) {
         use self::graphics::*;
+        self.pause_position[0] = args.window_size[0] / 2f64 - (SCREEN_WIDTH / 2) as f64 + SCREEN_WIDTH as f64;
+        self.pause_position[1] = args.window_size[1] / 2f64 - (SCREEN_HEIGHT / 2) as f64 + 50f64;
         let (x, y) = (
             args.window_size[0] / 2f64 - (SCREEN_WIDTH / 2) as f64,
             args.window_size[1] / 2f64 - (SCREEN_HEIGHT / 2) as f64,
@@ -152,5 +156,10 @@ impl View {
     pub fn update_image(&mut self, pixels: &ScreenLayout) {
         let p = &pixels.iter().map(|a| a.as_ref()).collect::<Vec<&[bool]>>();
         update_image(p.as_ref(), &mut self.image, &mut self.texture)
+    }
+
+    pub fn is_in_pause_button(&self, position: [f64; 2]) -> bool {
+        position[0] >= self.pause_position[0] && position[0] < (self.pause_position[0] + PAUSE_BUTTON_WIDTH as f64) &&
+        position[1] >= self.pause_position[1] && position[1] < (self.pause_position[1] + PAUSE_BUTTON_HEIGHT as f64)
     }
 }

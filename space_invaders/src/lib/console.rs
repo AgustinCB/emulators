@@ -7,6 +7,7 @@ extern crate piston_window;
 use self::intel8080cpu::*;
 use self::opengl_graphics::OpenGL;
 use self::piston_window::*;
+use self::piston::input::MouseButton;
 use super::failure::Error;
 use super::io_devices::*;
 use super::screen::{GameScreen, Screen};
@@ -116,24 +117,36 @@ impl<'a> Console<'a> {
     pub fn start(&mut self) -> Result<(), Error> {
         self.timer.reset();
         Events::new(EventSettings::new().ups(1000).max_fps(60));
+        let mut cursor = [0.0, 0.0];
         while let Some(e) = self.window.next() {
             if self.cpu.is_done() {
                 break;
             }
-            if let Some(r) = e.render_args() {
-                self.view.render(&e, &r, &mut self.window);
+            if !self.cpu.is_hard_stopped() {
+                if let Some(r) = e.render_args() {
+                    self.view.render(&e, &r, &mut self.window);
+                }
+
+                if let Some(u) = e.update_args() {
+                    self.update(u)?;
+                }
+
+                if let Some(Button::Keyboard(key)) = e.press_args() {
+                    self.keypad_controller.key_pressed(key);
+                }
+
+                if let Some(Button::Keyboard(key)) = e.release_args() {
+                    self.keypad_controller.key_released(key);
+                }
             }
 
-            if let Some(u) = e.update_args() {
-                self.update(u)?;
-            }
-
-            if let Some(Button::Keyboard(key)) = e.press_args() {
-                self.keypad_controller.key_pressed(key);
-            }
-
-            if let Some(Button::Keyboard(key)) = e.release_args() {
-                self.keypad_controller.key_released(key);
+            e.mouse_cursor(|pos| {
+                cursor = pos;
+            });
+            if let Some(Button::Mouse(MouseButton::Left)) = e.release_args() {
+                if self.view.is_in_pause_button(cursor) {
+                    self.cpu.toggle_hard_stop();
+                }
             }
         }
         Ok(())
