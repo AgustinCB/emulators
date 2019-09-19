@@ -9,7 +9,7 @@ use self::gfx_texture::Texture as GfxTexture;
 use self::im::{ConvertBuffer, ImageBuffer, Rgba, RgbaImage};
 use self::opengl_graphics::{Texture, TextureSettings};
 use self::piston::{Event, RenderArgs};
-use self::piston_window::{G2dTexture, G2dTextureContext, Glyphs, PistonWindow};
+use self::piston_window::*;
 use super::screen::{ScreenLayout, SCREEN_HEIGHT, SCREEN_WIDTH};
 
 pub(crate) const WINDOW_HEIGHT: u32 = SCREEN_HEIGHT as u32;

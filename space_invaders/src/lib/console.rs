@@ -146,6 +146,7 @@ impl<'a> Console<'a> {
             if let Some(Button::Mouse(MouseButton::Left)) = e.release_args() {
                 if self.view.is_in_pause_button(cursor) {
                     self.cpu.toggle_hard_stop();
+                    self.timer.reset_preserving_intervals()
                 }
             }
         }

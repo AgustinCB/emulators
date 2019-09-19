@@ -125,10 +125,11 @@ impl RegisterSet {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum State {
     Running,
     Stopped,
+    HardStop,
 }
 
 pub trait Printer {
@@ -163,6 +164,7 @@ pub struct Intel8080Cpu<'a> {
     pub(crate) flags: Flags,
     pub interruptions_enabled: bool,
     pub(crate) state: State,
+    pub(crate) prev_state: State,
     pub(crate) inputs: Vec<Option<Box<InputDevice>>>,
     pub(crate) outputs: Vec<Option<Box<OutputDevice>>>,
     pub(crate) printer: Option<&'a mut Printer>,
@@ -198,6 +200,7 @@ impl<'a> Intel8080Cpu<'a> {
             flags: Flags::new(),
             interruptions_enabled: true,
             state: State::Running,
+            prev_state: State::Running,
             inputs: Intel8080Cpu::make_inputs_vector(),
             outputs: Intel8080Cpu::make_outputs_vector(),
             cp_m_compatibility: false,
@@ -219,6 +222,25 @@ impl<'a> Intel8080Cpu<'a> {
             v.push(None);
         }
         v
+    }
+
+    pub fn is_hard_stopped(&self) -> bool {
+        match self.state {
+            State::HardStop => true,
+            _ => false,
+        }
+    }
+
+    pub fn toggle_hard_stop(&mut self) {
+        match self.state {
+            State::HardStop => {
+                self.state = self.prev_state;
+            }
+            _ => {
+                self.prev_state = self.state;
+                self.state = State::HardStop;
+            }
+        }
     }
 
     #[inline]

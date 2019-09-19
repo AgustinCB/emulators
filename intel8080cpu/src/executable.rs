@@ -172,6 +172,7 @@ impl<'a> Cpu<u8, Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
     #[inline]
     fn can_run(&self, instruction: &Intel8080Instruction) -> bool {
         match instruction {
+            _ if self.state == State::HardStop => false,
             Intel8080Instruction::Rst { .. } => true,
             _ if self.state == State::Running => true,
             _ => false,
