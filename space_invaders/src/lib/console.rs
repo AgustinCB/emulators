@@ -6,14 +6,15 @@ extern crate piston_window;
 
 use self::intel8080cpu::*;
 use self::opengl_graphics::OpenGL;
-use self::piston_window::*;
 use self::piston::input::MouseButton;
+use self::piston_window::*;
 use super::failure::Error;
 use super::io_devices::*;
 use super::screen::{GameScreen, Screen};
 use super::timer::Timer;
 use super::view::{View, WINDOW_HEIGHT, WINDOW_WIDTH};
 use super::ConsoleError;
+use std::collections::VecDeque;
 
 const FPS: f64 = 60.0;
 const SCREEN_INTERRUPTIONS_INTERVAL: f64 = (1.0 / FPS * 1000.0) / 2.0;
@@ -44,6 +45,7 @@ impl<'a> ConsoleOptions<'a> {
 pub struct Console<'a> {
     cpu: Intel8080Cpu<'a>,
     cycles_left: i64,
+    instructions_history: VecDeque<Intel8080Instruction>,
     keypad_controller: KeypadController,
     prev_interruption: u8,
     screen: Box<dyn Screen>,
@@ -67,6 +69,7 @@ impl<'a> Console<'a> {
             cpu,
             cycles_left: 0,
             keypad_controller,
+            instructions_history: VecDeque::with_capacity(10),
             prev_interruption: 2,
             screen,
             timer,
@@ -124,7 +127,8 @@ impl<'a> Console<'a> {
             }
             if !self.cpu.is_hard_stopped() {
                 if let Some(r) = e.render_args() {
-                    self.view.render(&e, &r, &mut self.window);
+                    self.view
+                        .render(&e, &r, &mut self.window, self.instructions_history.iter());
                 }
 
                 if let Some(u) = e.update_args() {
@@ -174,6 +178,11 @@ impl<'a> Console<'a> {
         }
         let mut cycles_to_run = (args.dt * (HERTZ as f64)) as i64 + self.cycles_left;
         while cycles_to_run > 0 {
+            let instruction = Intel8080Instruction::from(self.cpu.get_next_instruction_bytes());
+            if self.instructions_history.len() >= 10 {
+                self.instructions_history.pop_front();
+            }
+            self.instructions_history.push_back(instruction);
             cycles_to_run -= i64::from(self.cpu.execute()?);
         }
         self.cycles_left = cycles_to_run;
