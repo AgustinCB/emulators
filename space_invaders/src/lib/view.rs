@@ -16,9 +16,301 @@ use super::screen::{ScreenLayout, SCREEN_HEIGHT, SCREEN_WIDTH};
 
 pub(crate) const WINDOW_HEIGHT: u32 = SCREEN_HEIGHT as u32;
 pub(crate) const WINDOW_WIDTH: u32 = SCREEN_WIDTH as u32;
-const PAUSE_BUTTON_HEIGHT: usize = 50usize;
-const PAUSE_BUTTON_WIDTH: usize = 50usize;
-const PAUSE_BUTTON: [[bool; PAUSE_BUTTON_WIDTH]; PAUSE_BUTTON_HEIGHT] = [
+const BUTTON_HEIGHT: usize = 50usize;
+const BUTTON_WIDTH: usize = 50usize;
+const NEXT_BUTTON: [[bool; BUTTON_WIDTH]; BUTTON_HEIGHT] = [
+    [true; 50],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, true,
+        true, true, false, false, false, true, true, true, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        true, true, true, false, false, false, true, true, true, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, true, true, true, false, false, false, true, true, true, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, true, true, true, false, false, false, true, true, true, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, true, true, true, false, false, false, true, true, true, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, true, true, true, false, false, false, true, true, true, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, true, true, true, false, false, false, true, true, true,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, true, true, true, false, false, false, true,
+        true, true, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, true, true, true, false, false, false,
+        true, true, true, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, true, true, true, false, false,
+        false, true, true, true, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, true, true, true, false,
+        false, false, true, true, true, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true, true, true,
+        false, false, false, true, true, true, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, true, true,
+        true, false, false, false, true, true, true, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, true,
+        true, true, false, false, false, true, true, true, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        true, true, true, false, false, false, true, true, true, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, true, true, true, false, false, false, true, true, true, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, true, true, true, false, false, false, true, true, true, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        true, true, true, false, false, false, true, true, true, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, true,
+        true, true, false, false, false, true, true, true, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, true, true,
+        true, false, false, false, true, true, true, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true, true, true,
+        false, false, false, true, true, true, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, true, true, true, false,
+        false, false, true, true, true, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, true, true, true, false, false,
+        false, true, true, true, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, true, true, true, false, false, false,
+        true, true, true, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, true, true, true, false, false, false, true,
+        true, true, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, true, true, true, false, false, false, true, true, true,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, true, true, true, false, false, false, true, true, true, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, true, true, true, false, false, false, true, true, true, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, true, true, true, false, false, false, true, true, true, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, true, true, true, false, false, false, true, true, true, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        true, true, true, false, false, false, true, true, true, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, true,
+        true, true, false, false, false, true, true, true, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true,
+    ],
+    [
+        true, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, true,
+    ],
+    [true; 50],
+];
+const PAUSE_BUTTON: [[bool; BUTTON_WIDTH]; BUTTON_HEIGHT] = [
     [true; 50],
     [
         true, false, false, false, false, false, false, false, false, false, false, false, false,
@@ -329,6 +621,8 @@ pub struct View {
     glyphs: Glyphs,
     image: RgbaImage,
     left_menu_visible: bool,
+    next_texture: G2dTexture,
+    next_position: [f64; 2],
     pause_texture: G2dTexture,
     pause_position: [f64; 2],
     texture: Texture,
@@ -338,9 +632,10 @@ pub struct View {
 impl View {
     pub fn new(debug: bool, glyphs: Glyphs, mut texture_context: G2dTextureContext) -> View {
         let image = ImageBuffer::new(WINDOW_WIDTH, WINDOW_HEIGHT);
-        let mut pause_image =
-            ImageBuffer::new(PAUSE_BUTTON_WIDTH as u32, PAUSE_BUTTON_HEIGHT as u32);
+        let mut next_image = ImageBuffer::new(BUTTON_WIDTH as u32, BUTTON_HEIGHT as u32);
+        let mut pause_image = ImageBuffer::new(BUTTON_WIDTH as u32, BUTTON_HEIGHT as u32);
         let texture = Texture::from_image(&image.convert(), &TextureSettings::new());
+        let mut next_texture = Texture::from_image(&next_image.convert(), &TextureSettings::new());
         let mut pause_texture =
             Texture::from_image(&pause_image.convert(), &TextureSettings::new());
         let left_menu_visible = debug;
@@ -348,14 +643,24 @@ impl View {
             .iter()
             .map(|a| a.as_ref())
             .collect::<Vec<&[bool]>>();
+        let n = &NEXT_BUTTON
+            .iter()
+            .map(|a| a.as_ref())
+            .collect::<Vec<&[bool]>>();
         update_image(p.as_ref(), &mut pause_image, &mut pause_texture);
+        update_image(n.as_ref(), &mut next_image, &mut next_texture);
         let pause_img =
             GfxTexture::from_image(&mut texture_context, &pause_image, &TextureSettings::new())
+                .unwrap();
+        let next_img =
+            GfxTexture::from_image(&mut texture_context, &next_image, &TextureSettings::new())
                 .unwrap();
         View {
             glyphs,
             image,
             left_menu_visible,
+            next_texture: next_img,
+            next_position: [0f64; 2],
             pause_texture: pause_img,
             pause_position: [0f64; 2],
             texture,
@@ -374,6 +679,8 @@ impl View {
         self.pause_position[0] =
             args.window_size[0] / 2f64 - (SCREEN_WIDTH / 2) as f64 + SCREEN_WIDTH as f64;
         self.pause_position[1] = args.window_size[1] / 2f64 - (SCREEN_HEIGHT / 2) as f64;
+        self.next_position[0] = self.pause_position[0] + 5f64;
+        self.next_position[1] = self.pause_position[1];
         let (x, y) = (
             args.window_size[0] / 2f64 - (SCREEN_WIDTH / 2) as f64,
             args.window_size[1] / 2f64 - (SCREEN_HEIGHT / 2) as f64,
@@ -392,6 +699,8 @@ impl View {
                 let (x, y) = (SCREEN_WIDTH as f64, 0f64);
                 let menu_transform = transform.trans(x, y);
                 image(&self.pause_texture, menu_transform, gl);
+                let next_transform = menu_transform.trans(55.0, 0.0);
+                image(&self.next_texture, next_transform, gl);
                 let mut instruction_transform = menu_transform.trans(0.0, 55.0);
                 for instruction in instructions {
                     instruction_transform = instruction_transform.trans(0.0, 20.0);
@@ -418,8 +727,15 @@ impl View {
 
     pub fn is_in_pause_button(&self, position: [f64; 2]) -> bool {
         position[0] >= self.pause_position[0]
-            && position[0] < (self.pause_position[0] + PAUSE_BUTTON_WIDTH as f64)
+            && position[0] < (self.pause_position[0] + BUTTON_WIDTH as f64)
             && position[1] >= self.pause_position[1]
-            && position[1] < (self.pause_position[1] + PAUSE_BUTTON_HEIGHT as f64)
+            && position[1] < (self.pause_position[1] + BUTTON_HEIGHT as f64)
+    }
+
+    pub fn is_in_next_button(&self, position: [f64; 2]) -> bool {
+        position[0] >= self.next_position[0]
+            && position[0] < (self.next_position[0] + BUTTON_WIDTH as f64)
+            && position[1] >= self.next_position[1]
+            && position[1] < (self.next_position[1] + BUTTON_HEIGHT as f64)
     }
 }
