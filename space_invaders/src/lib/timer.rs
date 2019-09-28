@@ -38,6 +38,12 @@ impl Timer {
         should
     }
 
+    pub fn reset_preserving_intervals_with_offset(&mut self, offset: usize) {
+        let new_time = Timer::get_millis();
+        self.last_trigger = new_time - (self.last_check - self.last_trigger) + offset;
+        self.last_check = new_time;
+    }
+
     pub fn reset_preserving_intervals(&mut self) {
         let new_time = Timer::get_millis();
         self.last_trigger = new_time - (self.last_check - self.last_trigger);

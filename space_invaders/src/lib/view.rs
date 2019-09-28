@@ -679,7 +679,7 @@ impl View {
         self.pause_position[0] =
             args.window_size[0] / 2f64 - (SCREEN_WIDTH / 2) as f64 + SCREEN_WIDTH as f64;
         self.pause_position[1] = args.window_size[1] / 2f64 - (SCREEN_HEIGHT / 2) as f64;
-        self.next_position[0] = self.pause_position[0] + 5f64;
+        self.next_position[0] = self.pause_position[0] + 5f64 + BUTTON_WIDTH as f64;
         self.next_position[1] = self.pause_position[1];
         let (x, y) = (
             args.window_size[0] / 2f64 - (SCREEN_WIDTH / 2) as f64,

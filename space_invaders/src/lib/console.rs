@@ -125,12 +125,26 @@ impl<'a> Console<'a> {
             if self.cpu.is_done() {
                 break;
             }
-            if !self.cpu.is_hard_stopped() {
-                if let Some(r) = e.render_args() {
-                    self.view
-                        .render(&e, &r, &mut self.window, self.instructions_history.iter());
-                }
 
+            e.mouse_cursor(|pos| {
+                cursor = pos;
+            });
+            if let Some(Button::Mouse(MouseButton::Left)) = e.release_args() {
+                if self.view.is_in_pause_button(cursor) {
+                    self.cpu.toggle_hard_stop();
+                    self.timer.reset_preserving_intervals()
+                }
+                if self.cpu.is_hard_stopped() && self.view.is_in_next_button(cursor) {
+                    self.cpu.toggle_hard_stop();
+                    let cycles = self.execute_single_instruction()?;
+                    self.cpu.toggle_hard_stop();
+                    let ms_past = ((cycles as f64 / HERTZ as f64) * 1000f64) as usize;
+                    self.timer.reset_preserving_intervals_with_offset(ms_past);
+                }
+            }
+
+
+            if !self.cpu.is_hard_stopped() {
                 if let Some(u) = e.update_args() {
                     self.update(u)?;
                 }
@@ -144,14 +158,9 @@ impl<'a> Console<'a> {
                 }
             }
 
-            e.mouse_cursor(|pos| {
-                cursor = pos;
-            });
-            if let Some(Button::Mouse(MouseButton::Left)) = e.release_args() {
-                if self.view.is_in_pause_button(cursor) {
-                    self.cpu.toggle_hard_stop();
-                    self.timer.reset_preserving_intervals()
-                }
+            if let Some(r) = e.render_args() {
+                self.view
+                    .render(&e, &r, &mut self.window, self.instructions_history.iter());
             }
         }
         Ok(())
@@ -178,14 +187,18 @@ impl<'a> Console<'a> {
         }
         let mut cycles_to_run = (args.dt * (HERTZ as f64)) as i64 + self.cycles_left;
         while cycles_to_run > 0 {
-            let instruction = Intel8080Instruction::from(self.cpu.get_next_instruction_bytes());
-            if self.instructions_history.len() >= 10 {
-                self.instructions_history.pop_front();
-            }
-            self.instructions_history.push_back(instruction);
-            cycles_to_run -= i64::from(self.cpu.execute()?);
+            cycles_to_run -= self.execute_single_instruction()?;
         }
         self.cycles_left = cycles_to_run;
         Ok(())
+    }
+
+    fn execute_single_instruction(&mut self) -> Result<i64, Error> {
+        let instruction = Intel8080Instruction::from(self.cpu.get_next_instruction_bytes());
+        if self.instructions_history.len() >= 10 {
+            self.instructions_history.pop_front();
+        }
+        self.instructions_history.push_back(instruction);
+        Ok(i64::from(self.cpu.execute()?))
     }
 }
