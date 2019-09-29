@@ -674,6 +674,7 @@ impl View {
         args: &RenderArgs,
         window: &mut PistonWindow,
         instructions: I,
+        debug_str: Option<&str>,
     ) {
         use self::graphics::*;
         self.pause_position[0] =
@@ -707,6 +708,18 @@ impl View {
                     text::Text::new_color([0.0, 1.0, 0.0, 1.0], 15)
                         .draw(
                             instruction.to_string().as_str(),
+                            &mut self.glyphs,
+                            &c.draw_state,
+                            instruction_transform,
+                            gl,
+                        )
+                        .unwrap();
+                }
+                for l in debug_str.unwrap().lines() {
+                    instruction_transform = instruction_transform.trans(0.0, 20.0);
+                    text::Text::new_color([0.0, 1.0, 0.0, 1.0], 15)
+                        .draw(
+                            l,
                             &mut self.glyphs,
                             &c.draw_state,
                             instruction_transform,

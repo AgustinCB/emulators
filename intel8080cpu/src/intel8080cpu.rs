@@ -99,6 +99,7 @@ impl Location {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct RegisterSet {
     a: u8,
     b: u8,
@@ -136,6 +137,7 @@ pub trait Printer {
     fn print(&mut self, bytes: &[u8]);
 }
 
+#[derive(Debug)]
 pub(crate) struct Flags {
     pub(crate) sign: bool,
     pub(crate) zero: bool,
@@ -206,6 +208,10 @@ impl<'a> Intel8080Cpu<'a> {
             cp_m_compatibility: false,
             printer: None,
         }
+    }
+
+    pub fn get_debug_string(&self) -> String {
+        format!("PC: {:?}\nRegister Set: {:?}\nFlags {:?}", self.pc, self.registers, self.flags)
     }
 
     fn make_inputs_vector() -> Vec<Option<Box<InputDevice>>> {

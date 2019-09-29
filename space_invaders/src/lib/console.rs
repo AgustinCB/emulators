@@ -160,7 +160,7 @@ impl<'a> Console<'a> {
 
             if let Some(r) = e.render_args() {
                 self.view
-                    .render(&e, &r, &mut self.window, self.instructions_history.iter());
+                    .render(&e, &r, &mut self.window, self.instructions_history.iter(), Some(self.cpu.get_debug_string().as_str()));
             }
         }
         Ok(())
