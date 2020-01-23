@@ -3,11 +3,13 @@ extern crate cpu;
 extern crate failure;
 extern crate intel8080cpu;
 extern crate mos6502cpu;
+extern crate smoked;
 
 use cpu::Instruction;
 use failure::Error;
 use intel8080cpu::Intel8080Instruction;
 use mos6502cpu::Mos6502Instruction;
+use smoked::instruction::{Instruction as SmokedInstruction};
 use std::cmp::min;
 use std::env::args;
 use std::fs::File;
@@ -27,13 +29,15 @@ const USAGE: &str = "Usage: disassembler [cpu] [file]
 Disassemble a binary file for an old cpu. So far, supports only:
 
 - mos6502
-- intel8080";
-type InstructionsResult = Result<Vec<(u16, Box<ToString>)>, Error>;
+- intel8080
+- smoked";
+type InstructionsResult = Result<Vec<(u16, Box<dyn ToString>)>, Error>;
 
 fn get_instructions_for_cpu(cpu: &str, bytes: [u8; ROM_MEMORY_LIMIT]) -> InstructionsResult {
     match cpu {
         "mos6502" => get_instructions::<Mos6502Instruction>(bytes),
         "intel8080" => get_instructions::<Intel8080Instruction>(bytes),
+        "smoked" => get_instructions::<SmokedInstruction>(bytes),
         _ => Err(Error::from(DisassemblerError::InvalidCpu {
             name: String::from(cpu),
         })),
@@ -43,7 +47,7 @@ fn get_instructions_for_cpu(cpu: &str, bytes: [u8; ROM_MEMORY_LIMIT]) -> Instruc
 fn get_instructions<I: 'static + Instruction + ToString + From<Vec<u8>>>(
     bytes: [u8; ROM_MEMORY_LIMIT],
 ) -> InstructionsResult {
-    let mut result: Vec<(u16, Box<ToString>)> = Vec::with_capacity(bytes.len());
+    let mut result: Vec<(u16, Box<dyn ToString>)> = Vec::with_capacity(bytes.len());
     let mut pass = 0;
     let mut pc: usize = 0;
     for index in 0..bytes.len() {

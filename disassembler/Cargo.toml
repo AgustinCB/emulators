@@ -8,3 +8,4 @@ cpu = { path = "../cpu" }
 mos6502cpu = { path = "../mos6502cpu" }
 intel8080cpu = { path = "../intel8080cpu" }
 failure = "0.1.2"
+smoked = { path = "../smoked" }
