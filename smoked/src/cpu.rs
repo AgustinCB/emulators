@@ -10,6 +10,19 @@ const STACK_MAX: usize = 256;
 pub enum Value {
     Integer(i64),
     Float(f32),
+    Bool(bool),
+    Nil,
+}
+
+impl Into<bool> for Value {
+    fn into(self) -> bool {
+        match self {
+            Value::Integer(i) => i != 0,
+            Value::Float(f) => f != 0.0,
+            Value::Bool(b) => b,
+            Value::Nil => false,
+        }
+    }
 }
 
 #[derive(Debug, Fail, PartialEq)]
@@ -18,6 +31,8 @@ pub enum VMError{
     StackOverflow,
     #[fail(display = "Trying to pop from an empty stack")]
     EmptyStack,
+    #[fail(display = "Expected two numbers")]
+    ExpectedNumbers,
     #[fail(display = "Invalid constant index {}", 0)]
     InvalidConstant(usize),
 }
@@ -108,14 +123,31 @@ mod tests {
     }
 }
 
-macro_rules! match_operation {
+macro_rules! comp_operation {
     ($self: ident, $op: tt) => {
         match ($self.pop()?, $self.pop()?) {
-            (Value::Integer(a), Value::Integer(b)) => $self.push(Value::Integer(a $op b))?,
-            (Value::Float(a), Value::Integer(b)) => $self.push(Value::Float(a $op b as f32))?,
-            (Value::Integer(a), Value::Float(b)) => $self.push(Value::Float(a as f32 $op b))?,
-            (Value::Float(a), Value::Float(b)) => $self.push(Value::Float(a $op b))?,
-        };
+            (Value::Integer(a), Value::Integer(b)) => $self.push(Value::Bool(a $op b)),
+            (Value::Float(a), Value::Integer(b)) => $self.push(Value::Bool(a $op b as f32)),
+            (Value::Integer(a), Value::Float(b)) => $self.push(Value::Bool((a as f32) $op b)),
+            (Value::Float(a), Value::Float(b)) => $self.push(Value::Bool(a $op b)),
+            (Value::Bool(a), Value::Bool(b)) => $self.push(Value::Bool(a $op b)),
+            (Value::Bool(a), v) => $self.push(Value::Bool(a $op v.into())),
+            (v, Value::Bool(a)) => $self.push(Value::Bool(a $op v.into())),
+            (Value::Nil, Value::Nil) => $self.push(Value::Bool(false)),
+            _ => $self.push(Value::Bool(false)),
+        }?;
+    }; 
+}
+
+macro_rules! math_operation {
+    ($self: ident, $op: tt) => {
+        match ($self.pop()?, $self.pop()?) {
+            (Value::Integer(a), Value::Integer(b)) => $self.push(Value::Integer(a $op b)),
+            (Value::Float(a), Value::Integer(b)) => $self.push(Value::Float(a $op b as f32)),
+            (Value::Integer(a), Value::Float(b)) => $self.push(Value::Float(a as f32 $op b)),
+            (Value::Float(a), Value::Float(b)) => $self.push(Value::Float(a $op b)),
+            _ => Err(VMError::ExpectedNumbers),
+        }?;
     }; 
 }
 
@@ -131,16 +163,41 @@ impl Cpu<u8, Instruction, VMError> for VM {
                 };
             }
             Instruction::Plus => {
-                match_operation!(self, +);
+                math_operation!(self, +);
             }
             Instruction::Minus => {
-                match_operation!(self, -);
+                math_operation!(self, -);
             }
             Instruction::Mult => {
-                match_operation!(self, *);
+                math_operation!(self, *);
             }
             Instruction::Div => {
-                match_operation!(self, /);
+                math_operation!(self, /);
+            }
+            Instruction::Nil => self.push(Value::Nil)?,
+            Instruction::True => self.push(Value::Bool(true))?,
+            Instruction::False => self.push(Value::Bool(false))?,
+            Instruction::Not => {
+                let b: bool = self.pop()?.into();
+                self.push(Value::Bool(!b))?;
+            }
+            Instruction::Equal => {
+                comp_operation!(self, ==);
+            }
+            Instruction::NotEqual => {
+                comp_operation!(self, !=);
+            }
+            Instruction::Greater => {
+                comp_operation!(self, >);
+            }
+            Instruction::GreaterEqual => {
+                comp_operation!(self, >=);
+            }
+            Instruction::Less => {
+                comp_operation!(self, < );
+            }
+            Instruction::LessEqual => {
+                comp_operation!(self, <=);
             }
         };
         Ok(())
@@ -487,6 +544,316 @@ mod cpu_tests {
         vm.execute_instruction(&Instruction::Div)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Float(2.0));
+        Ok(())
+    }
+
+    #[test]
+    fn test_nil() -> Result<(), Error> {
+        let mut vm = VM {
+            ip: 0,
+            sp: 0,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            memory: Vec::new(),
+        };
+        vm.execute_instruction(&Instruction::Nil)?;
+        assert_eq!(vm.stack[0], Value::Nil);
+        Ok(())
+    }
+
+    #[test]
+    fn test_true() -> Result<(), Error> {
+        let mut vm = VM {
+            ip: 0,
+            sp: 0,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            memory: Vec::new(),
+        };
+        vm.execute_instruction(&Instruction::True)?;
+        assert_eq!(vm.stack[0], Value::Bool(true));
+        Ok(())
+    }
+
+    #[test]
+    fn test_false() -> Result<(), Error> {
+        let mut vm = VM {
+            ip: 0,
+            sp: 0,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            memory: Vec::new(),
+        };
+        vm.execute_instruction(&Instruction::False)?;
+        assert_eq!(vm.stack[0], Value::Bool(false));
+        Ok(())
+    }
+
+    #[test]
+    fn test_not() -> Result<(), Error> {
+        let mut vm = VM {
+            ip: 0,
+            sp: 1,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            memory: Vec::new(),
+        };
+        vm.execute_instruction(&Instruction::Not)?;
+        assert_eq!(vm.sp, 1);
+        assert_eq!(vm.stack[0], Value::Bool(true));
+        vm.execute_instruction(&Instruction::Not)?;
+        assert_eq!(vm.sp, 1);
+        assert_eq!(vm.stack[0], Value::Bool(false));
+        Ok(())
+    }
+
+    #[test]
+    fn test_equals_same() -> Result<(), Error> {
+        let mut vm = VM {
+            ip: 0,
+            sp: 2,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            memory: Vec::new(),
+        };
+        vm.execute_instruction(&Instruction::Equal)?;
+        assert_eq!(vm.sp, 1);
+        assert_eq!(vm.stack[0], Value::Bool(true));
+        Ok(())
+    }
+
+    #[test]
+    fn test_equals_diff() -> Result<(), Error> {
+        let mut vm = VM {
+            ip: 0,
+            sp: 2,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            memory: Vec::new(),
+        };
+        vm.stack[1] = Value::Integer(1);
+        vm.execute_instruction(&Instruction::Equal)?;
+        assert_eq!(vm.sp, 1);
+        assert_eq!(vm.stack[0], Value::Bool(false));
+        Ok(())
+    }
+
+    #[test]
+    fn test_not_equals_same() -> Result<(), Error> {
+        let mut vm = VM {
+            ip: 0,
+            sp: 2,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            memory: Vec::new(),
+        };
+        vm.execute_instruction(&Instruction::NotEqual)?;
+        assert_eq!(vm.sp, 1);
+        assert_eq!(vm.stack[0], Value::Bool(false));
+        Ok(())
+    }
+
+    #[test]
+    fn test_not_equals_diff() -> Result<(), Error> {
+        let mut vm = VM {
+            ip: 0,
+            sp: 2,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            memory: Vec::new(),
+        };
+        vm.stack[1] = Value::Integer(1);
+        vm.execute_instruction(&Instruction::NotEqual)?;
+        assert_eq!(vm.sp, 1);
+        assert_eq!(vm.stack[0], Value::Bool(true));
+        Ok(())
+    }
+
+    #[test]
+    fn test_greater_same() -> Result<(), Error> {
+        let mut vm = VM {
+            ip: 0,
+            sp: 2,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            memory: Vec::new(),
+        };
+        vm.execute_instruction(&Instruction::Greater)?;
+        assert_eq!(vm.sp, 1);
+        assert_eq!(vm.stack[0], Value::Bool(false));
+        Ok(())
+    }
+
+    #[test]
+    fn test_greater_greater() -> Result<(), Error> {
+        let mut vm = VM {
+            ip: 0,
+            sp: 2,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            memory: Vec::new(),
+        };
+        vm.stack[1] = Value::Integer(1);
+        vm.execute_instruction(&Instruction::Greater)?;
+        assert_eq!(vm.sp, 1);
+        assert_eq!(vm.stack[0], Value::Bool(true));
+        Ok(())
+    }
+
+    #[test]
+    fn test_greater_lesser() -> Result<(), Error> {
+        let mut vm = VM {
+            ip: 0,
+            sp: 2,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            memory: Vec::new(),
+        };
+        vm.stack[1] = Value::Integer(-1);
+        vm.execute_instruction(&Instruction::Greater)?;
+        assert_eq!(vm.sp, 1);
+        assert_eq!(vm.stack[0], Value::Bool(false));
+        Ok(())
+    }
+
+    #[test]
+    fn test_greater_equals_same() -> Result<(), Error> {
+        let mut vm = VM {
+            ip: 0,
+            sp: 2,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            memory: Vec::new(),
+        };
+        vm.execute_instruction(&Instruction::GreaterEqual)?;
+        assert_eq!(vm.sp, 1);
+        assert_eq!(vm.stack[0], Value::Bool(true));
+        Ok(())
+    }
+
+    #[test]
+    fn test_greater_equals_greater() -> Result<(), Error> {
+        let mut vm = VM {
+            ip: 0,
+            sp: 2,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            memory: Vec::new(),
+        };
+        vm.stack[1] = Value::Integer(1);
+        vm.execute_instruction(&Instruction::GreaterEqual)?;
+        assert_eq!(vm.sp, 1);
+        assert_eq!(vm.stack[0], Value::Bool(true));
+        Ok(())
+    }
+
+    #[test]
+    fn test_greater_equals_lesser() -> Result<(), Error> {
+        let mut vm = VM {
+            ip: 0,
+            sp: 2,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            memory: Vec::new(),
+        };
+        vm.stack[1] = Value::Integer(-1);
+        vm.execute_instruction(&Instruction::GreaterEqual)?;
+        assert_eq!(vm.sp, 1);
+        assert_eq!(vm.stack[0], Value::Bool(false));
+        Ok(())
+    }
+
+    #[test]
+    fn test_less_same() -> Result<(), Error> {
+        let mut vm = VM {
+            ip: 0,
+            sp: 2,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            memory: Vec::new(),
+        };
+        vm.execute_instruction(&Instruction::Less)?;
+        assert_eq!(vm.sp, 1);
+        assert_eq!(vm.stack[0], Value::Bool(false));
+        Ok(())
+    }
+
+    #[test]
+    fn test_less_greater() -> Result<(), Error> {
+        let mut vm = VM {
+            ip: 0,
+            sp: 2,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            memory: Vec::new(),
+        };
+        vm.stack[1] = Value::Integer(1);
+        vm.execute_instruction(&Instruction::Less)?;
+        assert_eq!(vm.sp, 1);
+        assert_eq!(vm.stack[0], Value::Bool(false));
+        Ok(())
+    }
+
+    #[test]
+    fn test_less_lesser() -> Result<(), Error> {
+        let mut vm = VM {
+            ip: 0,
+            sp: 2,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            memory: Vec::new(),
+        };
+        vm.stack[1] = Value::Integer(-1);
+        vm.execute_instruction(&Instruction::Less)?;
+        assert_eq!(vm.sp, 1);
+        assert_eq!(vm.stack[0], Value::Bool(true));
+        Ok(())
+    }
+
+    #[test]
+    fn test_less_equals_same() -> Result<(), Error> {
+        let mut vm = VM {
+            ip: 0,
+            sp: 2,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            memory: Vec::new(),
+        };
+        vm.execute_instruction(&Instruction::LessEqual)?;
+        assert_eq!(vm.sp, 1);
+        assert_eq!(vm.stack[0], Value::Bool(true));
+        Ok(())
+    }
+
+    #[test]
+    fn test_less_equals_greater() -> Result<(), Error> {
+        let mut vm = VM {
+            ip: 0,
+            sp: 2,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            memory: Vec::new(),
+        };
+        vm.stack[1] = Value::Integer(1);
+        vm.execute_instruction(&Instruction::LessEqual)?;
+        assert_eq!(vm.sp, 1);
+        assert_eq!(vm.stack[0], Value::Bool(false));
+        Ok(())
+    }
+
+    #[test]
+    fn test_less_equals_lesser() -> Result<(), Error> {
+        let mut vm = VM {
+            ip: 0,
+            sp: 2,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            memory: Vec::new(),
+        };
+        vm.stack[1] = Value::Integer(-1);
+        vm.execute_instruction(&Instruction::LessEqual)?;
+        assert_eq!(vm.sp, 1);
+        assert_eq!(vm.stack[0], Value::Bool(true));
         Ok(())
     }
 }
