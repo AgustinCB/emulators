@@ -6,5 +6,6 @@ members = [
     "intel8080cpu",
     "mos6502cpu",
     "nes",
+    "smoked",
     "space_invaders",
 ]
