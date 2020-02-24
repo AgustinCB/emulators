@@ -37,6 +37,8 @@ pub enum VMError{
     EmptyStack,
     #[fail(display = "Expected two numbers")]
     ExpectedNumbers,
+    #[fail(display = "Expected two Strings")]
+    ExpectedStrings,
     #[fail(display = "Invalid constant index {}", 0)]
     InvalidConstant(usize),
 }
@@ -167,6 +169,42 @@ macro_rules! math_operation {
     }; 
 }
 
+impl VM {
+    fn string_equal(&mut self) -> Result<(), Error> {
+        match (self.pop()?, self.pop()?) {
+            (Value::String(s1), Value::String(s2)) => {
+                let result = {
+                    let string1: &String = self.memory.get_t(s1)?;
+                    let string2: &String = self.memory.get_t(s2)?;
+                    string1 == string2
+                };
+                self.push(Value::Bool(result))?;
+                Ok(())
+            },
+            _ => Err(Error::from(VMError::ExpectedStrings)),
+        }
+    }
+
+    fn string_concat(&mut self) -> Result<(), Error> {
+        match (self.pop()?, self.pop()?) {
+            (Value::String(s1), Value::String(s2)) => {
+                let result = {
+                    let string1 = self.memory.get_string(s1, self.allocator.get_allocated_space(s1).unwrap())?;
+                    let string2 = self.memory.get_string(s2, self.allocator.get_allocated_space(s2).unwrap())?;
+                    let mut r = string1.as_bytes().to_vec();
+                    r.extend(string2.as_bytes());
+                    r
+                };
+                let address = self.allocator.malloc(result.len())?;
+                self.memory.copy_u8_vector(&result, address);
+                self.push(Value::String(address))?;
+                Ok(())
+            },
+            _ => Err(Error::from(VMError::ExpectedStrings)),
+        }
+    }
+}
+
 impl Cpu<Instruction, VMError> for VM {
     fn execute_instruction(&mut self, instruction: &Instruction) -> Result<(), Error> {
         debug!("{}", instruction.to_string());
@@ -215,6 +253,8 @@ impl Cpu<Instruction, VMError> for VM {
             Instruction::LessEqual => {
                 comp_operation!(self, <=);
             }
+            Instruction::StringEqual => self.string_equal()?,
+            Instruction::StringConcat => self.string_concat()?,
         };
         Ok(())
     }
@@ -946,6 +986,86 @@ mod cpu_tests {
         vm.execute_instruction(&Instruction::LessEqual)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(true));
+        Ok(())
+    }
+
+    #[test]
+    fn test_string_equals_same() -> Result<(), Error> {
+        let memory = Memory::new(10);
+        let s1 = String::from("42");
+        let s2 = String::from("42");
+        memory.copy_t(&s1, 0);
+        memory.copy_t(&s2, 5);
+        let mut vm = VM {
+            allocator: Allocator::new(10),
+            memory,
+            ip: 0,
+            sp: 2,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            rom: Vec::new(),
+        };
+        vm.stack[0] = Value::String(0);
+        vm.stack[1] = Value::String(5);
+        vm.execute_instruction(&Instruction::StringEqual)?;
+        assert_eq!(vm.sp, 1);
+        assert_eq!(vm.stack[0], Value::Bool(true));
+        Ok(())
+    }
+
+    #[test]
+    fn test_string_equals_diff() -> Result<(), Error> {
+        let memory = Memory::new(10);
+        let s1 = String::from("41");
+        let s2 = String::from("42");
+        memory.copy_t(&s1, 0);
+        memory.copy_t(&s2, 5);
+        let mut vm = VM {
+            allocator: Allocator::new(10),
+            memory,
+            ip: 0,
+            sp: 2,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            rom: Vec::new(),
+        };
+        vm.stack[0] = Value::String(0);
+        vm.stack[1] = Value::String(5);
+        vm.execute_instruction(&Instruction::StringEqual)?;
+        assert_eq!(vm.sp, 1);
+        assert_eq!(vm.stack[0], Value::Bool(false));
+        Ok(())
+    }
+
+    #[test]
+    fn test_string_concat() -> Result<(), Error> {
+        let memory = Memory::new(100);
+        let mut allocator = Allocator::new(100);
+        let s1 = String::from("4");
+        let s2 = String::from("2");
+        let address1 = allocator.malloc(1)?;
+        let address2 = allocator.malloc(1)?;
+        memory.copy_string(&s1, address1);
+        memory.copy_string(&s2, address2);
+        let mut vm = VM {
+            allocator,
+            memory,
+            ip: 0,
+            sp: 2,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            rom: Vec::new(),
+        };
+        vm.stack[0] = Value::String(address2);
+        vm.stack[1] = Value::String(address1);
+        vm.execute_instruction(&Instruction::StringConcat)?;
+        assert_eq!(vm.sp, 1);
+        if let Value::String(address) = vm.stack[0] {
+            let r = vm.memory.get_string(address, 2)?;
+            assert_eq!(r, "42");
+        } else {
+            panic!("String concatenation should push a string");
+        }
         Ok(())
     }
 }

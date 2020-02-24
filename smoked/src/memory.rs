@@ -37,6 +37,11 @@ impl Memory {
         self.copy_u8_vector(p, address)
     }
 
+    pub(crate) fn get_string(&self, address: usize, size: usize) -> Result<&str, MemoryError> {
+        let bytes = self.get_u8_vector(address, size)?;
+        Ok(std::str::from_utf8(bytes).unwrap())
+    }
+
     fn get_u8_vector(&self, address: usize, size: usize) -> Result<&[u8], MemoryError> {
         let memory: &[u8] = unsafe {
             std::slice::from_raw_parts(self.0.borrow()[address..].as_ptr() as *const u8, size)
@@ -44,7 +49,7 @@ impl Memory {
         Ok(memory)
     }
 
-    fn copy_u8_vector(&self, vector: &[u8], address: usize) {
+    pub(crate) fn copy_u8_vector(&self, vector: &[u8], address: usize) {
         let memory: &mut [u8] = unsafe {
             std::slice::from_raw_parts_mut(
                 self.0.borrow_mut()[address..].as_ptr() as *mut u8,
@@ -52,6 +57,14 @@ impl Memory {
             )
         };
         memory.copy_from_slice(vector);
+    }
+}
+
+#[cfg(test)]
+impl Memory {
+    pub(crate) fn copy_string(&self, value: &str, address: usize) {
+        let bs = value.as_bytes();
+        self.copy_u8_vector(bs, address)
     }
 }
 
@@ -93,8 +106,8 @@ mod tests {
     fn it_should_be_able_to_store_a_string() {
         let s = String::from("42");
         let memory = Memory::new(10);
-        memory.copy_t(&s, 0);
-        let result: &String = memory.get_t(0).unwrap();
+        memory.copy_string(&s, 0);
+        let result = memory.get_string(0, s.as_bytes().len()).unwrap();
         assert_eq!(result, &s);
     }
 }

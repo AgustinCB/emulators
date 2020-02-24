@@ -80,6 +80,10 @@ impl Allocator {
         }
     }
 
+    pub(crate) fn get_allocated_space(&self, address: usize) -> Option<usize> {
+        self.allocated_spaces.get(&address).cloned()
+    }
+
     pub(crate) fn malloc_t<T>(&mut self) -> Result<usize, AllocatorError> {
         self.malloc(size_of::<T>())
     }

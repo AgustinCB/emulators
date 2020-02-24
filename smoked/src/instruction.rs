@@ -20,6 +20,8 @@ pub enum Instruction {
     Less,
     LessEqual,
     Noop,
+    StringEqual,
+    StringConcat,
 }
 
 impl CpuInstruction for Instruction {
@@ -86,6 +88,8 @@ impl ToString for Instruction {
             Instruction::LessEqual => "LESS_EQUAL".to_owned(),
             Instruction::Greater => "GREATER".to_owned(),
             Instruction::GreaterEqual => "GREATER_EQUAL".to_owned(),
+            Instruction::StringEqual => "STRING_EQUAL".to_owned(),
+            Instruction::StringConcat => "STRING_CONCAT".to_owned(),
         }
     }
 }
