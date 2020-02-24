@@ -5,7 +5,7 @@ use instruction::Intel8080Instruction;
 use intel8080cpu::{Intel8080Cpu, Location, State, ROM_MEMORY_LIMIT};
 use std::cmp::min;
 
-impl<'a> Cpu<u8, Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
+impl<'a> Cpu<Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
     fn execute_instruction(&mut self, instruction: &Intel8080Instruction) -> Result<(), Error> {
         if !self.can_run(&instruction) {
             return Ok(());
@@ -160,13 +160,9 @@ impl<'a> Cpu<u8, Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
 
     #[inline]
     fn get_next_instruction_bytes(&self) -> Vec<u8> {
-        let mut res = Vec::with_capacity(3);
         let from = self.pc as usize;
         let to = min(from + 3, self.memory.len());
-        for i in from..to {
-            res.push(self.memory[i]);
-        }
-        res
+        self.memory[from..to].to_vec()
     }
 
     #[inline]
@@ -242,11 +238,11 @@ impl<'a> Cpu<u8, Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
 }
 
 impl<'a> WithPorts for Intel8080Cpu<'a> {
-    fn add_input_device(&mut self, id: u8, device: Box<InputDevice>) {
+    fn add_input_device(&mut self, id: u8, device: Box<dyn InputDevice>) {
         self.inputs[id as usize] = Some(device);
     }
 
-    fn add_output_device(&mut self, id: u8, device: Box<OutputDevice>) {
+    fn add_output_device(&mut self, id: u8, device: Box<dyn OutputDevice>) {
         self.outputs[id as usize] = Some(device);
     }
 }

@@ -1,7 +1,6 @@
 use super::cpu::{InputDevice, OutputDevice};
 use super::CpuError;
 use helpers::two_bytes_to_word;
-use std::boxed::Box;
 use std::fmt;
 
 pub const ROM_MEMORY_LIMIT: usize = 8192;
@@ -167,15 +166,15 @@ pub struct Intel8080Cpu<'a> {
     pub interruptions_enabled: bool,
     pub(crate) state: State,
     pub(crate) prev_state: State,
-    pub(crate) inputs: Vec<Option<Box<InputDevice>>>,
-    pub(crate) outputs: Vec<Option<Box<OutputDevice>>>,
-    pub(crate) printer: Option<&'a mut Printer>,
+    pub(crate) inputs: Vec<Option<Box<dyn InputDevice>>>,
+    pub(crate) outputs: Vec<Option<Box<dyn OutputDevice>>>,
+    pub(crate) printer: Option<&'a mut dyn Printer>,
 }
 
 impl<'a> Intel8080Cpu<'a> {
     pub fn new_cp_m_compatible(
         rom_memory: [u8; ROM_MEMORY_LIMIT],
-        screen: &mut Printer,
+        screen: &mut dyn Printer,
     ) -> Intel8080Cpu {
         let mut cpu = Intel8080Cpu::new(rom_memory);
         cpu.cp_m_compatibility = true;
@@ -214,7 +213,7 @@ impl<'a> Intel8080Cpu<'a> {
         format!("PC: {:?}\nRegister Set: {:?}\nFlags {:?}", self.pc, self.registers, self.flags)
     }
 
-    fn make_inputs_vector() -> Vec<Option<Box<InputDevice>>> {
+    fn make_inputs_vector() -> Vec<Option<Box<dyn InputDevice>>> {
         let mut v = Vec::with_capacity(MAX_INPUT_OUTPUT_DEVICES);
         for _ in 0..MAX_INPUT_OUTPUT_DEVICES {
             v.push(None);
@@ -222,7 +221,7 @@ impl<'a> Intel8080Cpu<'a> {
         v
     }
 
-    fn make_outputs_vector() -> Vec<Option<Box<OutputDevice>>> {
+    fn make_outputs_vector() -> Vec<Option<Box<dyn OutputDevice>>> {
         let mut v = Vec::with_capacity(MAX_INPUT_OUTPUT_DEVICES);
         for _ in 0..MAX_INPUT_OUTPUT_DEVICES {
             v.push(None);

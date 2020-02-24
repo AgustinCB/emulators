@@ -151,7 +151,7 @@ macro_rules! math_operation {
     }; 
 }
 
-impl Cpu<u8, Instruction, VMError> for VM {
+impl Cpu<Instruction, VMError> for VM {
     fn execute_instruction(&mut self, instruction: &Instruction) -> Result<(), Error> {
         debug!("{}", instruction.to_string());
         match instruction {

@@ -125,14 +125,14 @@ impl<T: Memory> Memory for Rc<RefCell<T>> {
 }
 
 pub struct Mos6502Cpu {
-    pub(crate) memory: Box<Memory>,
+    pub(crate) memory: Box<dyn Memory>,
     pub(crate) registers: RegisterSet,
     pub(crate) page_crossed: bool,
     pub(crate) decimal_enabled: bool,
 }
 
 impl Mos6502Cpu {
-    pub fn new(memory: Box<Memory>) -> Mos6502Cpu {
+    pub fn new(memory: Box<dyn Memory>) -> Mos6502Cpu {
         Mos6502Cpu {
             decimal_enabled: true,
             memory,
@@ -141,7 +141,7 @@ impl Mos6502Cpu {
         }
     }
 
-    pub fn without_decimal(memory: Box<Memory>) -> Mos6502Cpu {
+    pub fn without_decimal(memory: Box<dyn Memory>) -> Mos6502Cpu {
         Mos6502Cpu {
             decimal_enabled: false,
             memory,
@@ -349,7 +349,7 @@ impl Mos6502Cpu {
     }
 }
 
-impl Cpu<u8, Mos6502Instruction, CpuError> for Mos6502Cpu {
+impl Cpu<Mos6502Instruction, CpuError> for Mos6502Cpu {
     fn get_cycles_for_instruction(
         &mut self,
         instruction: &Mos6502Instruction,

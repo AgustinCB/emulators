@@ -5,4 +5,4 @@ authors = ["AgustinCB <jnieve@gmail.com>"]
 
 [dependencies]
 failure = "0.1.2"
-cpu = { path = "../cpu" }
+cpu = { path = "../cpu", version="0.1.1" }

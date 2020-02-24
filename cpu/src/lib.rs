@@ -1,7 +1,11 @@
 #![macro_use]
+#![no_std]
 
+extern crate alloc;
 extern crate failure;
 
+use alloc::boxed::Box;
+use alloc::vec::Vec;
 use failure::{Error, Fail};
 
 #[macro_export]
@@ -32,13 +36,6 @@ macro_rules! bi_conditional {
     };
 }
 
-pub trait MemoryAddressWidth {}
-
-impl MemoryAddressWidth for u8 {}
-impl MemoryAddressWidth for u16 {}
-impl MemoryAddressWidth for u32 {}
-impl MemoryAddressWidth for u64 {}
-
 pub enum Cycles {
     Single(u8),
     OneCondition {
@@ -65,10 +62,9 @@ pub trait Instruction {
     fn get_cycles(&self) -> Result<Cycles, Error>;
 }
 
-pub trait Cpu<W, I, F>
+pub trait Cpu<I, F>
 where
-    W: MemoryAddressWidth + Clone,
-    I: Instruction + ToString + From<Vec<W>>,
+    I: Instruction + From<Vec<u8>>,
     F: Fail,
 {
     fn execute(&mut self) -> Result<u8, Error> {
@@ -76,7 +72,6 @@ where
         if !self.can_run(&instruction) {
             return Ok(0);
         }
-        //println!("0x{:04x} {}", self.get_pc(), instruction.to_string());
         self.increase_pc(instruction.size()?);
         self.execute_instruction(&instruction)?;
         let cycles = self.get_cycles_for_instruction(&instruction)?;
@@ -100,7 +95,7 @@ where
 
     fn execute_instruction(&mut self, instruction: &I) -> Result<(), Error>;
     fn get_pc(&self) -> u16;
-    fn get_next_instruction_bytes(&self) -> Vec<W>;
+    fn get_next_instruction_bytes(&self) -> Vec<u8>;
     fn can_run(&self, instruction: &I) -> bool;
     fn is_done(&self) -> bool;
     fn increase_pc(&mut self, steps: u8);
@@ -120,6 +115,6 @@ where
 }
 
 pub trait WithPorts {
-    fn add_input_device(&mut self, id: u8, device: Box<InputDevice>);
-    fn add_output_device(&mut self, id: u8, device: Box<OutputDevice>);
+    fn add_input_device(&mut self, id: u8, device: Box<dyn InputDevice>);
+    fn add_output_device(&mut self, id: u8, device: Box<dyn OutputDevice>);
 }
