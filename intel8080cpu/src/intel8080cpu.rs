@@ -1,7 +1,10 @@
+use alloc::boxed::Box;
+use alloc::fmt;
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
 use super::cpu::{InputDevice, OutputDevice};
 use super::CpuError;
 use helpers::two_bytes_to_word;
-use std::fmt;
 
 pub const ROM_MEMORY_LIMIT: usize = 8192;
 pub(crate) const MAX_INPUT_OUTPUT_DEVICES: usize = 0x100;
@@ -130,6 +133,7 @@ pub(crate) enum State {
     Running,
     Stopped,
     HardStop,
+    Halted,
 }
 
 pub trait Printer {
@@ -210,7 +214,7 @@ impl<'a> Intel8080Cpu<'a> {
     }
 
     pub fn get_debug_string(&self) -> String {
-        format!("PC: {:?}\nRegister Set: {:?}\nFlags {:?}", self.pc, self.registers, self.flags)
+        alloc::format!("PC: {:?}\nRegister Set: {:?}\nFlags {:?}", self.pc, self.registers, self.flags)
     }
 
     fn make_inputs_vector() -> Vec<Option<Box<dyn InputDevice>>> {

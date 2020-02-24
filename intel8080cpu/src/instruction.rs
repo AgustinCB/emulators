@@ -1,3 +1,6 @@
+use alloc::format;
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
 use super::cpu::{Cycles, Instruction};
 use super::failure::Error;
 use intel8080cpu::{Address, Location, RegisterType};
@@ -1511,10 +1514,7 @@ impl From<Vec<u8>> for Intel8080Instruction {
             },
             0xfe => Intel8080Instruction::Cpi { byte: bytes[1] },
             0xff => Intel8080Instruction::Rst { byte: 7 },
-            c => {
-                eprintln!("Unrecognized byte {}.", c);
-                Intel8080Instruction::Noop
-            }
+            _ => Intel8080Instruction::Noop,
         }
     }
 }

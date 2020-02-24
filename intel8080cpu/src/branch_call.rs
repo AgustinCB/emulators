@@ -1,7 +1,7 @@
+use alloc::vec::Vec;
 use super::CpuError;
 use helpers::{two_bytes_to_word, word_to_address};
 use intel8080cpu::{Intel8080Cpu, RegisterType, State};
-use std::process::exit;
 
 impl<'a> Intel8080Cpu<'a> {
     pub(crate) fn execute_rst(&mut self, value: u8) {
@@ -18,7 +18,7 @@ impl<'a> Intel8080Cpu<'a> {
         if self.cp_m_compatibility && address == 5 {
             self.handle_cp_m_print()?;
         } else if self.cp_m_compatibility && address == 0 {
-            exit(0);
+            self.state = State::Halted;
         } else {
             self.perform_call(high_byte, low_byte);
         }

@@ -1,6 +1,5 @@
 use helpers::two_bytes_to_word;
-use intel8080cpu::Intel8080Cpu;
-use std::process::exit;
+use intel8080cpu::{Intel8080Cpu, State};
 
 impl<'a> Intel8080Cpu<'a> {
     pub(crate) fn execute_pchl(&mut self) {
@@ -17,7 +16,7 @@ impl<'a> Intel8080Cpu<'a> {
     pub(crate) fn execute_jmp(&mut self, high_byte: u8, low_byte: u8) {
         let address = two_bytes_to_word(high_byte, low_byte);
         if self.cp_m_compatibility && address == 0 {
-            exit(0);
+            self.state = State::Halted;
         } else {
             self.perform_jump(high_byte, low_byte);
         }

@@ -1,3 +1,4 @@
+use alloc::string::ToString;
 use super::CpuError;
 use intel8080cpu::{Intel8080Cpu, RegisterType};
 

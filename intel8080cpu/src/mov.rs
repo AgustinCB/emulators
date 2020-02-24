@@ -1,3 +1,4 @@
+use alloc::string::ToString;
 use super::CpuError;
 use helpers::two_bytes_to_word;
 use intel8080cpu::{Intel8080Cpu, Location, RegisterType};

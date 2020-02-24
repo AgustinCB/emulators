@@ -4,5 +4,5 @@ version = "0.1.0"
 authors = ["AgustinCB <jnieve@gmail.com>"]
 
 [dependencies]
-failure = "0.1.2"
+failure = { version = "0.1.6", features = ["derive"] }
 cpu = { path = "../cpu", version="0.1.1" }

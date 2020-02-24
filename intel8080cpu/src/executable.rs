@@ -1,9 +1,19 @@
+use alloc::boxed::Box;
+use alloc::vec::Vec;
 use super::cpu::{Cpu, InputDevice, OutputDevice, WithPorts};
 use super::failure::Error;
 use super::CpuError;
 use instruction::Intel8080Instruction;
 use intel8080cpu::{Intel8080Cpu, Location, State, ROM_MEMORY_LIMIT};
-use std::cmp::min;
+
+#[inline]
+fn min(f: usize, s: usize) -> usize {
+    if f < s {
+        f
+    } else {
+        s
+    }
+}
 
 impl<'a> Cpu<Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
     fn execute_instruction(&mut self, instruction: &Intel8080Instruction) -> Result<(), Error> {
@@ -176,7 +186,7 @@ impl<'a> Cpu<Intel8080Instruction, CpuError> for Intel8080Cpu<'a> {
     }
 
     fn is_done(&self) -> bool {
-        self.pc >= ROM_MEMORY_LIMIT as u16
+        self.pc >= ROM_MEMORY_LIMIT as u16 || self.state == State::Halted
     }
 
     fn increase_pc(&mut self, steps: u8) {
