@@ -68,6 +68,14 @@ impl VM {
         self.sp -= 1;
         Ok(self.stack[self.sp])
     }
+
+    fn peek(&self) -> Result<Value, VMError> {
+        if self.sp == 0 {
+            return Err(VMError::EmptyStack);
+        }
+        Ok(self.stack[self.sp-1])
+    }
+
     fn push(&mut self, v: Value) -> Result<(), VMError> {
         if self.sp == self.stack.len() {
             return Err(VMError::StackOverflow);
@@ -288,6 +296,16 @@ impl VM {
         Ok(())
     }
 
+    fn get_local(&mut self, local: usize) -> Result<(), Error> {
+        self.push(self.stack[local])?;
+        Ok(())
+    }
+
+    fn set_local(&mut self, local: usize) -> Result<(), Error> {
+        self.stack[local] = self.peek()?;
+        Ok(())
+    }
+
     fn get_size(&self, address: usize) -> Result<usize, Error> {
         self.allocator.get_allocated_space(address).ok_or(Error::from(VMError::UnallocatedAddress(address)))
     }
@@ -368,6 +386,8 @@ impl Cpu<Instruction, VMError> for VM {
             Instruction::Syscall => self.syscall()?,
             Instruction::GetGlobal(g) => self.get_global(*g)?,
             Instruction::SetGlobal(g) => self.set_global(*g)?,
+            Instruction::GetLocal(g) => self.get_local(*g)?,
+            Instruction::SetLocal(g) => self.set_local(*g)?,
         };
         Ok(())
     }
@@ -431,7 +451,7 @@ mod cpu_tests {
     use crate::memory::Memory;
     use failure::Error;
     use std::collections::HashMap;
-    use super::{STACK_MAX, Value, VM, VMError};
+    use super::{STACK_MAX, Value, VM};
 
     #[test]
     fn test_constant() -> Result<(), Error> {
@@ -1304,5 +1324,43 @@ mod cpu_tests {
             globals: HashMap::default(),
         };
         vm.execute_instruction(&Instruction::GetGlobal(0)).unwrap();
+    }
+
+    #[test]
+    fn test_set_local() -> Result<(), Error> {
+        let mut vm = VM {
+            allocator: Allocator::new(0),
+            memory: Memory::new(0),
+            ip: 0,
+            sp: 1,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            rom: Vec::new(),
+            globals: HashMap::default(),
+        };
+        vm.stack[0] = Value::Integer(1);
+        vm.execute_instruction(&Instruction::SetLocal(1))?;
+        assert_eq!(vm.sp, 1);
+        assert_eq!(vm.stack[1], Value::Integer(1));
+        Ok(())
+    }
+
+    #[test]
+    fn test_get_local() -> Result<(), Error> {
+        let mut vm = VM {
+            allocator: Allocator::new(0),
+            memory: Memory::new(0),
+            ip: 0,
+            sp: 1,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            rom: Vec::new(),
+            globals: HashMap::default(),
+        };
+        vm.stack[0] = Value::Integer(1);
+        vm.execute_instruction(&Instruction::GetLocal(0))?;
+        assert_eq!(vm.sp, 2);
+        assert_eq!(vm.stack[1], Value::Integer(1));
+        Ok(())
     }
 }

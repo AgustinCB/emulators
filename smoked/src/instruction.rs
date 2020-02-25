@@ -24,6 +24,8 @@ pub enum Instruction {
     Syscall,
     SetGlobal(usize),
     GetGlobal(usize),
+    SetLocal(usize),
+    GetLocal(usize),
 }
 
 impl CpuInstruction for Instruction {
@@ -94,6 +96,8 @@ impl ToString for Instruction {
             Instruction::Syscall => "SYSCALL".to_owned(),
             Instruction::GetGlobal(g) => format!("GET_GLOBAL {}", g),
             Instruction::SetGlobal(g) => format!("SET_GLOBAL {}", g),
+            Instruction::GetLocal(g) => format!("GET_LOCAL {}", g),
+            Instruction::SetLocal(g) => format!("SET_LOCAL {}", g),
         }
     }
 }
