@@ -37,12 +37,7 @@ impl Memory {
         self.copy_u8_vector(p, address)
     }
 
-    pub(crate) fn get_string(&self, address: usize, size: usize) -> Result<&str, MemoryError> {
-        let bytes = self.get_u8_vector(address, size)?;
-        Ok(std::str::from_utf8(bytes).unwrap())
-    }
-
-    fn get_u8_vector(&self, address: usize, size: usize) -> Result<&[u8], MemoryError> {
+    pub(crate) fn get_u8_vector(&self, address: usize, size: usize) -> Result<&[u8], MemoryError> {
         let memory: &[u8] = unsafe {
             std::slice::from_raw_parts(self.0.borrow()[address..].as_ptr() as *const u8, size)
         };
@@ -57,6 +52,11 @@ impl Memory {
             )
         };
         memory.copy_from_slice(vector);
+    }
+
+    pub(crate) fn get_string(&self, address: usize, size: usize) -> Result<&str, MemoryError> {
+        let bytes = self.get_u8_vector(address, size)?;
+        Ok(std::str::from_utf8(bytes).unwrap())
     }
 }
 

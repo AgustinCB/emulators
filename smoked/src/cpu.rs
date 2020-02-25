@@ -4,7 +4,9 @@ use cpu::Cpu;
 use crate::instruction::Instruction;
 use failure::Error;
 use log::debug;
+use sc::{syscall0, syscall1, syscall2, syscall3, syscall4, syscall5, syscall6};
 use std::cmp::min;
+use std::collections::HashMap;
 
 const STACK_MAX: usize = 256;
 
@@ -41,11 +43,16 @@ pub enum VMError{
     ExpectedStrings,
     #[fail(display = "Invalid constant index {}", 0)]
     InvalidConstant(usize),
+    #[fail(display = "Unallocated address {}", 0)]
+    UnallocatedAddress(usize),
+    #[fail(display = "Global {} doesn't exist", 0)]
+    GlobalDoesntExist(String),
 }
 
 pub struct VM {
     allocator: Allocator,
     memory: Memory,
+    globals: HashMap<usize, Value>,
     ip: u64,
     sp: usize,
     stack: [Value; STACK_MAX],
@@ -76,6 +83,7 @@ mod tests {
     use crate::allocator::Allocator;
     use crate::memory::Memory;
     use super::{STACK_MAX, Value, VM, VMError};
+    use std::collections::HashMap;
 
     #[test]
     fn test_pop() -> Result<(), VMError> {
@@ -87,6 +95,7 @@ mod tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         let v = vm.pop()?;
         assert_eq!(v, Value::Integer(0));
@@ -102,6 +111,7 @@ mod tests {
             sp: 0,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
+            globals: HashMap::default(),
             rom: Vec::new(),
         };
         let v = vm.pop();
@@ -118,6 +128,7 @@ mod tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.push(Value::Integer(1))?;
         assert_eq!(vm.sp, 1);
@@ -128,6 +139,7 @@ mod tests {
     #[test]
     fn test_push_on_stack() {
         let mut vm = VM {
+            globals: HashMap::default(),
             allocator: Allocator::new(0),
             memory: Memory::new(0),
             ip: 0,
@@ -151,6 +163,14 @@ macro_rules! comp_operation {
             (Value::Bool(a), Value::Bool(b)) => $self.push(Value::Bool(a $op b)),
             (Value::Bool(a), v) => $self.push(Value::Bool(a $op v.into())),
             (v, Value::Bool(a)) => $self.push(Value::Bool(a $op v.into())),
+            (Value::String(s1), Value::String(s2)) => {
+                let result = {
+                    let string1: &String = $self.memory.get_t(s1)?;
+                    let string2: &String = $self.memory.get_t(s2)?;
+                    string1 $op string2
+                };
+                $self.push(Value::Bool(result))
+            },
             (Value::Nil, Value::Nil) => $self.push(Value::Bool(false)),
             _ => $self.push(Value::Bool(false)),
         }?;
@@ -170,30 +190,14 @@ macro_rules! math_operation {
 }
 
 impl VM {
-    fn string_equal(&mut self) -> Result<(), Error> {
-        match (self.pop()?, self.pop()?) {
-            (Value::String(s1), Value::String(s2)) => {
-                let result = {
-                    let string1: &String = self.memory.get_t(s1)?;
-                    let string2: &String = self.memory.get_t(s2)?;
-                    string1 == string2
-                };
-                self.push(Value::Bool(result))?;
-                Ok(())
-            },
-            _ => Err(Error::from(VMError::ExpectedStrings)),
-        }
-    }
-
     fn string_concat(&mut self) -> Result<(), Error> {
         match (self.pop()?, self.pop()?) {
             (Value::String(s1), Value::String(s2)) => {
                 let result = {
-                    let string1 = self.memory.get_string(s1, self.allocator.get_allocated_space(s1).unwrap())?;
-                    let string2 = self.memory.get_string(s2, self.allocator.get_allocated_space(s2).unwrap())?;
-                    let mut r = string1.as_bytes().to_vec();
-                    r.extend(string2.as_bytes());
-                    r
+                    let mut string1 = self.memory.get_u8_vector(s1, self.get_size(s1)?)?.to_vec();
+                    let string2 = self.memory.get_u8_vector(s2, self.get_size(s2)?)?;
+                    string1.extend(string2);
+                    string1
                 };
                 let address = self.allocator.malloc(result.len())?;
                 self.memory.copy_u8_vector(&result, address);
@@ -201,6 +205,113 @@ impl VM {
                 Ok(())
             },
             _ => Err(Error::from(VMError::ExpectedStrings)),
+        }
+    }
+
+    fn syscall(&mut self) -> Result<(), Error> {
+        let syscall_value = if let Value::Integer(a) = self.pop()? {
+            a as usize
+        } else {
+            return Err(Error::from(VMError::ExpectedNumbers));
+        };
+        let arguments = if  let Value::Integer(a) = self.pop()? {
+            a as u8
+        } else {
+            return Err(Error::from(VMError::ExpectedNumbers));
+        };
+        let ret = match arguments {
+            0 => unsafe { syscall0(syscall_value) },
+            1 => unsafe { syscall1(syscall_value, self.pop_usize()?) },
+            2 => unsafe {
+                syscall2(
+                    syscall_value,
+                    self.pop_usize()?,
+                    self.pop_usize()?,
+                )
+            },
+            3 => unsafe {
+                syscall3(
+                    syscall_value,
+                    self.pop_usize()?,
+                    self.pop_usize()?,
+                    self.pop_usize()?,
+                )
+            },
+            4 => unsafe {
+                syscall4(
+                    syscall_value,
+                    self.pop_usize()?,
+                    self.pop_usize()?,
+                    self.pop_usize()?,
+                    self.pop_usize()?,
+                )
+            },
+            5 => unsafe {
+                syscall5(
+                    syscall_value,
+                    self.pop_usize()?,
+                    self.pop_usize()?,
+                    self.pop_usize()?,
+                    self.pop_usize()?,
+                    self.pop_usize()?,
+                )
+            },
+            6 => unsafe {
+                syscall6(
+                    syscall_value,
+                    self.pop_usize()?,
+                    self.pop_usize()?,
+                    self.pop_usize()?,
+                    self.pop_usize()?,
+                    self.pop_usize()?,
+                    self.pop_usize()?,
+                )
+            },
+            _ => unreachable!(),
+        };
+        self.push(Value::Integer(ret as _))?;
+        Ok(())
+    }
+
+    fn get_global(&mut self, global: usize) -> Result<(), Error> {
+        let value = *self.globals.get(&global)
+            .ok_or_else(||
+                Error::from(VMError::GlobalDoesntExist(self.get_constant_string(global).unwrap()))
+            )?;
+        self.push(value)?;
+        Ok(())
+    }
+
+    fn set_global(&mut self, global: usize) -> Result<(), Error> {
+        let value = self.pop()?;
+        self.globals.insert(global, value);
+        Ok(())
+    }
+
+    fn get_size(&self, address: usize) -> Result<usize, Error> {
+        self.allocator.get_allocated_space(address).ok_or(Error::from(VMError::UnallocatedAddress(address)))
+    }
+
+    fn pop_usize(&mut self) -> Result<usize, Error> {
+        match self.pop()? {
+            Value::Integer(a) => Ok(a as usize),
+            Value::Float(f) => Ok(f as usize),
+            Value::String(address) => {
+                let size = self.get_size(address)?;
+                let bs = self.memory.get_u8_vector(address, size)?;
+                Ok(bs.as_ptr() as usize)
+            },
+            _ => Err(Error::from(VMError::ExpectedNumbers)),
+        }
+    }
+
+    fn get_constant_string(&self, constant: usize) -> Result<String, Error> {
+        let value = self.constants.get(constant).cloned()
+            .ok_or(Error::from(VMError::InvalidConstant(constant)))?;
+        if let Value::String(address) = value {
+            Ok(self.memory.get_string(address, self.get_size(address)?)?.to_owned())
+        } else {
+            Err(Error::from(VMError::ExpectedStrings))
         }
     }
 }
@@ -253,8 +364,10 @@ impl Cpu<Instruction, VMError> for VM {
             Instruction::LessEqual => {
                 comp_operation!(self, <=);
             }
-            Instruction::StringEqual => self.string_equal()?,
             Instruction::StringConcat => self.string_concat()?,
+            Instruction::Syscall => self.syscall()?,
+            Instruction::GetGlobal(g) => self.get_global(*g)?,
+            Instruction::SetGlobal(g) => self.set_global(*g)?,
         };
         Ok(())
     }
@@ -296,7 +409,7 @@ impl Cpu<Instruction, VMError> for VM {
         _: u8,
         _: u8,
     ) -> Result<u8, Error> {
-        unimplemented!()
+        unreachable!()
     }
 
     fn get_cycles_from_two_conditions(
@@ -306,7 +419,7 @@ impl Cpu<Instruction, VMError> for VM {
         _: u8,
         _: u8,
     ) -> Result<u8, Error> {
-        unimplemented!()
+        unreachable!()
     }
 }
 
@@ -317,7 +430,8 @@ mod cpu_tests {
     use crate::instruction::Instruction;
     use crate::memory::Memory;
     use failure::Error;
-    use super::{STACK_MAX, Value, VM};
+    use std::collections::HashMap;
+    use super::{STACK_MAX, Value, VM, VMError};
 
     #[test]
     fn test_constant() -> Result<(), Error> {
@@ -329,6 +443,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: vec![Value::Integer(1)],
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.execute_instruction(&Instruction::Constant(0))?;
         assert_eq!(vm.stack[0], Value::Integer(1));
@@ -345,6 +460,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.stack[0] = Value::Integer(1);
         vm.stack[1] = Value::Integer(2);
@@ -364,6 +480,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.stack[0] = Value::Float(1.0);
         vm.stack[1] = Value::Float(2.0);
@@ -383,6 +500,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.stack[0] = Value::Float(1.0);
         vm.stack[1] = Value::Integer(2);
@@ -402,6 +520,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.stack[0] = Value::Float(1.0);
         vm.stack[1] = Value::Integer(2);
@@ -421,6 +540,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.stack[0] = Value::Integer(1);
         vm.stack[1] = Value::Integer(2);
@@ -440,6 +560,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.stack[0] = Value::Float(1.0);
         vm.stack[1] = Value::Float(2.0);
@@ -459,6 +580,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.stack[0] = Value::Float(1.0);
         vm.stack[1] = Value::Integer(2);
@@ -478,6 +600,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.stack[0] = Value::Float(1.0);
         vm.stack[1] = Value::Integer(2);
@@ -497,6 +620,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.stack[0] = Value::Integer(1);
         vm.stack[1] = Value::Integer(2);
@@ -516,6 +640,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.stack[0] = Value::Float(1.0);
         vm.stack[1] = Value::Float(2.0);
@@ -535,6 +660,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.stack[0] = Value::Float(1.0);
         vm.stack[1] = Value::Integer(2);
@@ -554,6 +680,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.stack[0] = Value::Float(1.0);
         vm.stack[1] = Value::Integer(2);
@@ -573,6 +700,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.stack[0] = Value::Integer(1);
         vm.stack[1] = Value::Integer(2);
@@ -592,6 +720,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.stack[0] = Value::Float(1.0);
         vm.stack[1] = Value::Float(2.0);
@@ -611,6 +740,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.stack[0] = Value::Float(1.0);
         vm.stack[1] = Value::Integer(2);
@@ -630,6 +760,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.stack[0] = Value::Float(1.0);
         vm.stack[1] = Value::Integer(2);
@@ -649,6 +780,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.execute_instruction(&Instruction::Nil)?;
         assert_eq!(vm.stack[0], Value::Nil);
@@ -665,6 +797,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.execute_instruction(&Instruction::True)?;
         assert_eq!(vm.stack[0], Value::Bool(true));
@@ -681,6 +814,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.execute_instruction(&Instruction::False)?;
         assert_eq!(vm.stack[0], Value::Bool(false));
@@ -697,6 +831,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.execute_instruction(&Instruction::Not)?;
         assert_eq!(vm.sp, 1);
@@ -717,6 +852,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.execute_instruction(&Instruction::Equal)?;
         assert_eq!(vm.sp, 1);
@@ -734,6 +870,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.stack[1] = Value::Integer(1);
         vm.execute_instruction(&Instruction::Equal)?;
@@ -752,6 +889,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.execute_instruction(&Instruction::NotEqual)?;
         assert_eq!(vm.sp, 1);
@@ -769,6 +907,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.stack[1] = Value::Integer(1);
         vm.execute_instruction(&Instruction::NotEqual)?;
@@ -787,6 +926,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.execute_instruction(&Instruction::Greater)?;
         assert_eq!(vm.sp, 1);
@@ -804,6 +944,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.stack[1] = Value::Integer(1);
         vm.execute_instruction(&Instruction::Greater)?;
@@ -822,6 +963,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.stack[1] = Value::Integer(-1);
         vm.execute_instruction(&Instruction::Greater)?;
@@ -840,6 +982,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.execute_instruction(&Instruction::GreaterEqual)?;
         assert_eq!(vm.sp, 1);
@@ -857,6 +1000,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.stack[1] = Value::Integer(1);
         vm.execute_instruction(&Instruction::GreaterEqual)?;
@@ -875,6 +1019,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.stack[1] = Value::Integer(-1);
         vm.execute_instruction(&Instruction::GreaterEqual)?;
@@ -893,6 +1038,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.execute_instruction(&Instruction::Less)?;
         assert_eq!(vm.sp, 1);
@@ -910,6 +1056,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.stack[1] = Value::Integer(1);
         vm.execute_instruction(&Instruction::Less)?;
@@ -928,6 +1075,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.stack[1] = Value::Integer(-1);
         vm.execute_instruction(&Instruction::Less)?;
@@ -946,6 +1094,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.execute_instruction(&Instruction::LessEqual)?;
         assert_eq!(vm.sp, 1);
@@ -963,6 +1112,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.stack[1] = Value::Integer(1);
         vm.execute_instruction(&Instruction::LessEqual)?;
@@ -981,6 +1131,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.stack[1] = Value::Integer(-1);
         vm.execute_instruction(&Instruction::LessEqual)?;
@@ -1004,10 +1155,11 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.stack[0] = Value::String(0);
         vm.stack[1] = Value::String(5);
-        vm.execute_instruction(&Instruction::StringEqual)?;
+        vm.execute_instruction(&Instruction::Equal)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(true));
         Ok(())
@@ -1028,10 +1180,11 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.stack[0] = Value::String(0);
         vm.stack[1] = Value::String(5);
-        vm.execute_instruction(&Instruction::StringEqual)?;
+        vm.execute_instruction(&Instruction::Equal)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(false));
         Ok(())
@@ -1055,6 +1208,7 @@ mod cpu_tests {
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
+            globals: HashMap::default(),
         };
         vm.stack[0] = Value::String(address2);
         vm.stack[1] = Value::String(address1);
@@ -1067,5 +1221,88 @@ mod cpu_tests {
             panic!("String concatenation should push a string");
         }
         Ok(())
+    }
+
+    #[test]
+    fn test_syscall() -> Result<(), Error> {
+        let mut vm = VM {
+            allocator: Allocator::new(0),
+            memory: Memory::new(0),
+            ip: 0,
+            sp: 2,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            rom: Vec::new(),
+            globals: HashMap::default(),
+        };
+        vm.stack[1] = Value::Integer(sc::nr::GETPID as _);
+        vm.stack[0] = Value::Integer(0);
+        vm.execute_instruction(&Instruction::Syscall)?;
+        assert_eq!(vm.sp, 1);
+        if let Value::Integer(n) = vm.stack[0] {
+            assert!(n > 0);
+        } else {
+            panic!("Syscall should return an integer");
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn test_set_global() -> Result<(), Error> {
+        let mut vm = VM {
+            allocator: Allocator::new(0),
+            memory: Memory::new(0),
+            ip: 0,
+            sp: 1,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            rom: Vec::new(),
+            globals: HashMap::default(),
+        };
+        vm.stack[0] = Value::Integer(0);
+        vm.execute_instruction(&Instruction::SetGlobal(0))?;
+        assert_eq!(vm.sp, 0);
+        assert_eq!(vm.globals[&0], Value::Integer(0));
+        Ok(())
+    }
+
+    #[test]
+    fn test_get_global() -> Result<(), Error> {
+        let mut vm = VM {
+            allocator: Allocator::new(0),
+            memory: Memory::new(0),
+            ip: 0,
+            sp: 0,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            rom: Vec::new(),
+            globals: HashMap::default(),
+        };
+        vm.globals.insert(0, Value::Integer(0));
+        vm.execute_instruction(&Instruction::GetGlobal(0))?;
+        assert_eq!(vm.sp, 1);
+        assert_eq!(vm.stack[0], Value::Integer(0));
+        Ok(())
+    }
+
+    #[test]
+    #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: GlobalDoesntExist(\"4\")")]
+    fn test_get_global_not_existing() {
+        let memory = Memory::new(100);
+        let mut allocator = Allocator::new(100);
+        let s1 = String::from("4");
+        let address1 = allocator.malloc(1).unwrap();
+        memory.copy_string(&s1, address1);
+        let mut vm = VM {
+            allocator,
+            memory,
+            ip: 0,
+            sp: 0,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: vec![Value::String(address1)],
+            rom: Vec::new(),
+            globals: HashMap::default(),
+        };
+        vm.execute_instruction(&Instruction::GetGlobal(0)).unwrap();
     }
 }

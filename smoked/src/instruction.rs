@@ -20,8 +20,10 @@ pub enum Instruction {
     Less,
     LessEqual,
     Noop,
-    StringEqual,
     StringConcat,
+    Syscall,
+    SetGlobal(usize),
+    GetGlobal(usize),
 }
 
 impl CpuInstruction for Instruction {
@@ -88,8 +90,10 @@ impl ToString for Instruction {
             Instruction::LessEqual => "LESS_EQUAL".to_owned(),
             Instruction::Greater => "GREATER".to_owned(),
             Instruction::GreaterEqual => "GREATER_EQUAL".to_owned(),
-            Instruction::StringEqual => "STRING_EQUAL".to_owned(),
             Instruction::StringConcat => "STRING_CONCAT".to_owned(),
+            Instruction::Syscall => "SYSCALL".to_owned(),
+            Instruction::GetGlobal(g) => format!("GET_GLOBAL {}", g),
+            Instruction::SetGlobal(g) => format!("SET_GLOBAL {}", g),
         }
     }
 }

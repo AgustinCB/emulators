@@ -10,3 +10,4 @@ edition = "2018"
 cpu = { path = "../cpu" }
 failure = "~0.1.2"
 log = "~0.4.8"
+sc = "0.2.2"
