@@ -13,7 +13,7 @@ pub enum MemoryError {
 pub struct Memory(RefCell<Vec<u64>>);
 
 impl Memory {
-    pub(crate) fn new(capacity: usize) -> Memory {
+    pub fn new(capacity: usize) -> Memory {
         let memory = RefCell::new(Vec::with_capacity(capacity));
         {
             let mut raw_memory = memory.borrow_mut();
@@ -31,7 +31,7 @@ impl Memory {
         Ok(res)
     }
 
-    pub(crate) fn copy_t<T>(&self, value: &T, address: usize) {
+    pub fn copy_t<T>(&self, value: &T, address: usize) {
         let v: *const T = value;
         let p: &[u8] = unsafe { std::slice::from_raw_parts(v as *const u8, size_of::<T>()) };
         self.copy_u8_vector(p, address)

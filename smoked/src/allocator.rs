@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::mem::size_of;
 
 #[derive(Debug, Fail)]
-pub(crate) enum AllocatorError {
+pub enum AllocatorError {
     #[fail(display = "Not enough memory to allocate {}", intended)]
     NotEnoughMemory { intended: usize },
     #[fail(display = "Address {} not allocated", address)]
@@ -73,22 +73,22 @@ pub struct Allocator {
 }
 
 impl Allocator {
-    pub(crate) fn new(capacity: usize) -> Allocator {
+    pub fn new(capacity: usize) -> Allocator {
         Allocator {
             allocated_spaces: HashMap::new(),
             free_chunks: FreeChunks::new(capacity),
         }
     }
 
-    pub(crate) fn get_allocated_space(&self, address: usize) -> Option<usize> {
+    pub fn get_allocated_space(&self, address: usize) -> Option<usize> {
         self.allocated_spaces.get(&address).cloned()
     }
 
-    pub(crate) fn malloc_t<T>(&mut self) -> Result<usize, AllocatorError> {
+    pub fn malloc_t<T>(&mut self) -> Result<usize, AllocatorError> {
         self.malloc(size_of::<T>())
     }
 
-    pub(crate) fn malloc(&mut self, size: usize) -> Result<usize, AllocatorError> {
+    pub fn malloc(&mut self, size: usize) -> Result<usize, AllocatorError> {
         let free_memory = self.free_chunks.available_memory();
         if size > free_memory {
             Err(AllocatorError::NotEnoughMemory {
@@ -112,7 +112,7 @@ impl Allocator {
         }
     }
 
-    pub(crate) fn free(&mut self, address: usize) -> Result<(), AllocatorError> {
+    pub fn free(&mut self, address: usize) -> Result<(), AllocatorError> {
         match self.allocated_spaces.get(&address).cloned() {
             Some(space) => {
                 self.add_free_space(address, address + space)?;

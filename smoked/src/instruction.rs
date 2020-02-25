@@ -26,6 +26,9 @@ pub enum Instruction {
     GetGlobal(usize),
     SetLocal(usize),
     GetLocal(usize),
+    JmpIfFalse(usize),
+    Jmp(usize),
+    Loop(usize),
 }
 
 impl CpuInstruction for Instruction {
@@ -63,6 +66,29 @@ impl From<Vec<u8>> for Instruction {
             13 => Instruction::GreaterEqual,
             14 => Instruction::Less,
             15 => Instruction::LessEqual,
+            16 => Instruction::StringConcat,
+            17 => Instruction::Syscall,
+            18 => Instruction::GetGlobal(usize::from_be_bytes(
+                [bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7], bytes[8]]
+            )),
+            19 => Instruction::SetGlobal(usize::from_be_bytes(
+                [bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7], bytes[8]]
+            )),
+            20 => Instruction::GetLocal(usize::from_be_bytes(
+                [bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7], bytes[8]]
+            )),
+            21 => Instruction::SetLocal(usize::from_be_bytes(
+                [bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7], bytes[8]]
+            )),
+            22 => Instruction::JmpIfFalse(usize::from_be_bytes(
+                [bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7], bytes[8]]
+            )),
+            23 => Instruction::Jmp(usize::from_be_bytes(
+                [bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7], bytes[8]]
+            )),
+            24 => Instruction::Loop(usize::from_be_bytes(
+                [bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7], bytes[8]]
+            )),
             255 => Instruction::Noop,
             _ => {
                 warn!("Invalid instruction");
@@ -98,6 +124,9 @@ impl ToString for Instruction {
             Instruction::SetGlobal(g) => format!("SET_GLOBAL {}", g),
             Instruction::GetLocal(g) => format!("GET_LOCAL {}", g),
             Instruction::SetLocal(g) => format!("SET_LOCAL {}", g),
+            Instruction::JmpIfFalse(offset) => format!("JMP_IF_FALSE {}", offset),
+            Instruction::Jmp(offset) => format!("JMP {}", offset),
+            Instruction::Loop(offset) => format!("LOOP {}", offset),
         }
     }
 }

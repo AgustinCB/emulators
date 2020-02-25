@@ -306,6 +306,14 @@ impl VM {
         Ok(())
     }
 
+    fn jmp_if_false(&mut self, offset: usize) -> Result<(), Error> {
+        let jmp_cond: bool = self.pop()?.into();
+        if !jmp_cond {
+            self.ip += offset as u64;
+        }
+        Ok(())
+    }
+
     fn get_size(&self, address: usize) -> Result<usize, Error> {
         self.allocator.get_allocated_space(address).ok_or(Error::from(VMError::UnallocatedAddress(address)))
     }
@@ -388,6 +396,13 @@ impl Cpu<Instruction, VMError> for VM {
             Instruction::SetGlobal(g) => self.set_global(*g)?,
             Instruction::GetLocal(g) => self.get_local(*g)?,
             Instruction::SetLocal(g) => self.set_local(*g)?,
+            Instruction::JmpIfFalse(o) => self.jmp_if_false(*o)?,
+            Instruction::Jmp(o) => {
+                self.ip += *o as u64;
+            },
+            Instruction::Loop(o) => {
+                self.ip -= *o as u64;
+            },
         };
         Ok(())
     }
@@ -1361,6 +1376,80 @@ mod cpu_tests {
         vm.execute_instruction(&Instruction::GetLocal(0))?;
         assert_eq!(vm.sp, 2);
         assert_eq!(vm.stack[1], Value::Integer(1));
+        Ok(())
+    }
+
+    #[test]
+    fn test_jmp_if_false_jmping() -> Result<(), Error> {
+        let mut vm = VM {
+            allocator: Allocator::new(0),
+            memory: Memory::new(0),
+            ip: 0,
+            sp: 1,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            rom: Vec::new(),
+            globals: HashMap::default(),
+        };
+        vm.stack[0] = Value::Integer(0);
+        vm.execute_instruction(&Instruction::JmpIfFalse(3))?;
+        assert_eq!(vm.sp, 0);
+        assert_eq!(vm.ip, 3);
+        Ok(())
+    }
+
+    #[test]
+    fn test_jmp_if_false_not_jmping() -> Result<(), Error> {
+        let mut vm = VM {
+            allocator: Allocator::new(0),
+            memory: Memory::new(0),
+            ip: 0,
+            sp: 1,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            rom: Vec::new(),
+            globals: HashMap::default(),
+        };
+        vm.stack[0] = Value::Integer(1);
+        vm.execute_instruction(&Instruction::JmpIfFalse(3))?;
+        assert_eq!(vm.sp, 0);
+        assert_eq!(vm.ip, 0);
+        Ok(())
+    }
+
+    #[test]
+    fn test_jmp() -> Result<(), Error> {
+        let mut vm = VM {
+            allocator: Allocator::new(0),
+            memory: Memory::new(0),
+            ip: 0,
+            sp: 0,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            rom: Vec::new(),
+            globals: HashMap::default(),
+        };
+        vm.execute_instruction(&Instruction::Jmp(3))?;
+        assert_eq!(vm.sp, 0);
+        assert_eq!(vm.ip, 3);
+        Ok(())
+    }
+
+    #[test]
+    fn test_loop() -> Result<(), Error> {
+        let mut vm = VM {
+            allocator: Allocator::new(0),
+            memory: Memory::new(0),
+            ip: 4,
+            sp: 0,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            rom: Vec::new(),
+            globals: HashMap::default(),
+        };
+        vm.execute_instruction(&Instruction::Loop(3))?;
+        assert_eq!(vm.sp, 0);
+        assert_eq!(vm.ip, 1);
         Ok(())
     }
 }
