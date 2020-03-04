@@ -29,6 +29,7 @@ pub enum Instruction {
     JmpIfFalse(usize),
     Jmp(usize),
     Loop(usize),
+    Call,
 }
 
 impl CpuInstruction for Instruction {
@@ -89,6 +90,7 @@ impl From<Vec<u8>> for Instruction {
             24 => Instruction::Loop(usize::from_be_bytes(
                 [bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7], bytes[8]]
             )),
+            25 => Instruction::Call,
             255 => Instruction::Noop,
             _ => {
                 warn!("Invalid instruction");
@@ -127,6 +129,7 @@ impl ToString for Instruction {
             Instruction::JmpIfFalse(offset) => format!("JMP_IF_FALSE {}", offset),
             Instruction::Jmp(offset) => format!("JMP {}", offset),
             Instruction::Loop(offset) => format!("LOOP {}", offset),
+            Instruction::Call => "CALL".to_owned(),
         }
     }
 }

@@ -16,6 +16,10 @@ pub enum Value {
     Float(f32),
     Bool(bool),
     String(usize),
+    Function {
+        ip: usize,
+        arity: usize,
+    },
     Nil,
 }
 
@@ -26,6 +30,7 @@ impl Into<bool> for Value {
             Value::Float(f) => f != 0.0,
             Value::Bool(b) => b,
             Value::String(_) => true,
+            Value::Function { .. } => true,
             Value::Nil => false,
         }
     }
@@ -41,6 +46,10 @@ pub enum VMError{
     ExpectedNumbers,
     #[fail(display = "Expected two Strings")]
     ExpectedStrings,
+    #[fail(display = "Expected a function")]
+    ExpectedFunction,
+    #[fail(display = "Not enough arguments for function call")]
+    NotEnoughArgumentsForFunction,
     #[fail(display = "Invalid constant index {}", 0)]
     InvalidConstant(usize),
     #[fail(display = "Unallocated address {}", 0)]
@@ -345,6 +354,19 @@ impl VM {
         Ok(())
     }
 
+    fn call(&mut self) -> Result<(), Error> {
+        if let Value::Function { ip, arity } = self.pop()? {
+            if self.sp < arity {
+                return Err(Error::from(VMError::NotEnoughArgumentsForFunction));
+            }
+            let new_frame = Frame { ip, stack_offset: self.sp - arity };
+            self.frames.push(new_frame);
+            Ok(())
+        } else {
+            Err(Error::from(VMError::ExpectedFunction))
+        }
+    }
+
     fn get_size(&self, address: usize) -> Result<usize, Error> {
         self.allocator.get_allocated_space(address).ok_or(Error::from(VMError::UnallocatedAddress(address)))
     }
@@ -437,6 +459,7 @@ impl Cpu<Instruction, VMError> for VM {
             Instruction::Loop(o) => {
                 self.frames.last_mut().unwrap().ip -= *o;
             },
+            Instruction::Call => self.call()?,
         };
         Ok(())
     }
@@ -1485,5 +1508,64 @@ mod cpu_tests {
         assert_eq!(vm.sp, 0);
         assert_eq!(vm.ip(), 1);
         Ok(())
+    }
+
+    #[test]
+    fn test_call() -> Result<(), Error> {
+        let mut vm = VM {
+            allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
+            memory: Memory::new(0),
+            sp: 2,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            rom: Vec::new(),
+            globals: HashMap::default(),
+        };
+        vm.stack[1] = Value::Function {
+            ip: 20,
+            arity: 1,
+        };
+        vm.execute_instruction(&Instruction::Call)?;
+        assert_eq!(vm.frames.last().unwrap().stack_offset, 0);
+        assert_eq!(vm.frames.len(), 2);
+        assert_eq!(vm.ip(), 20);
+        Ok(())
+    }
+
+    #[test]
+    #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: ExpectedFunction")]
+    fn test_call_on_non_function() {
+        let mut vm = VM {
+            allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
+            memory: Memory::new(0),
+            sp: 2,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            rom: Vec::new(),
+            globals: HashMap::default(),
+        };
+        vm.execute_instruction(&Instruction::Call).unwrap();
+    }
+
+    #[test]
+    #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: NotEnoughArgumentsForFunction")]
+    fn test_call_without_enough_arguments() {
+        let mut vm = VM {
+            allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
+            memory: Memory::new(0),
+            sp: 2,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            rom: Vec::new(),
+            globals: HashMap::default(),
+        };
+        vm.stack[1] = Value::Function {
+            ip: 20,
+            arity: 2,
+        };
+        vm.execute_instruction(&Instruction::Call).unwrap();
     }
 }
