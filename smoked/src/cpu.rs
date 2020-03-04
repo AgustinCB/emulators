@@ -49,11 +49,16 @@ pub enum VMError{
     GlobalDoesntExist(String),
 }
 
+struct Frame {
+    stack_offset: usize,
+    ip: usize,
+}
+
 pub struct VM {
     allocator: Allocator,
     memory: Memory,
+    frames: Vec<Frame>,
     globals: HashMap<usize, Value>,
-    ip: u64,
     sp: usize,
     stack: [Value; STACK_MAX],
     constants: Vec<Value>,
@@ -62,7 +67,8 @@ pub struct VM {
 
 impl VM {
     fn pop(&mut self) -> Result<Value, VMError> {
-        if self.sp == 0 {
+        let sp = self.sp - self.frames.last().unwrap().stack_offset;
+        if sp == 0 {
             return Err(VMError::EmptyStack);
         }
         self.sp -= 1;
@@ -70,10 +76,11 @@ impl VM {
     }
 
     fn peek(&self) -> Result<Value, VMError> {
-        if self.sp == 0 {
+        let sp = self.sp - self.frames.last().unwrap().stack_offset;
+        if sp == 0 {
             return Err(VMError::EmptyStack);
         }
-        Ok(self.stack[self.sp-1])
+        Ok(self.stack[self.sp - 1])
     }
 
     fn push(&mut self, v: Value) -> Result<(), VMError> {
@@ -90,15 +97,15 @@ impl VM {
 mod tests {
     use crate::allocator::Allocator;
     use crate::memory::Memory;
-    use super::{STACK_MAX, Value, VM, VMError};
+    use super::{STACK_MAX, Frame, Value, VM, VMError};
     use std::collections::HashMap;
 
     #[test]
     fn test_pop() -> Result<(), VMError> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 1,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -115,8 +122,24 @@ mod tests {
         let mut vm = VM {
             allocator: Allocator::new(0),
             memory: Memory::new(0),
-            ip: 0,
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             sp: 0,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            globals: HashMap::default(),
+            rom: Vec::new(),
+        };
+        let v = vm.pop();
+        assert_eq!(v, Err(VMError::EmptyStack));
+    }
+
+    #[test]
+    fn test_pop_on_empty_stack_frame() {
+        let mut vm = VM {
+            allocator: Allocator::new(0),
+            memory: Memory::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 1 }],
+            sp: 1,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             globals: HashMap::default(),
@@ -130,8 +153,8 @@ mod tests {
     fn test_push() -> Result<(), VMError> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 0,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -149,8 +172,8 @@ mod tests {
         let mut vm = VM {
             globals: HashMap::default(),
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: STACK_MAX,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -198,6 +221,14 @@ macro_rules! math_operation {
 }
 
 impl VM {
+    fn ip(&self) -> usize {
+        self.frames.last().unwrap().ip
+    }
+
+    fn add_to_ip(&mut self, steps: usize) {
+        self.frames.last_mut().unwrap().ip += steps;
+    }
+
     fn string_concat(&mut self) -> Result<(), Error> {
         match (self.pop()?, self.pop()?) {
             (Value::String(s1), Value::String(s2)) => {
@@ -309,7 +340,7 @@ impl VM {
     fn jmp_if_false(&mut self, offset: usize) -> Result<(), Error> {
         let jmp_cond: bool = self.pop()?.into();
         if !jmp_cond {
-            self.ip += offset as u64;
+            self.add_to_ip(offset);
         }
         Ok(())
     }
@@ -346,7 +377,10 @@ impl Cpu<Instruction, VMError> for VM {
     fn execute_instruction(&mut self, instruction: &Instruction) -> Result<(), Error> {
         debug!("{}", instruction.to_string());
         match instruction {
-            Instruction::Noop | Instruction::Return => {},
+            Instruction::Noop => {},
+            Instruction::Return => {
+                self.frames.pop();
+            },
             Instruction::Constant(index) => {
                 match self.constants.get(*index).cloned() {
                     Some(c) => self.push(c)?,
@@ -398,10 +432,10 @@ impl Cpu<Instruction, VMError> for VM {
             Instruction::SetLocal(g) => self.set_local(*g)?,
             Instruction::JmpIfFalse(o) => self.jmp_if_false(*o)?,
             Instruction::Jmp(o) => {
-                self.ip += *o as u64;
+                self.add_to_ip(*o);
             },
             Instruction::Loop(o) => {
-                self.ip -= *o as u64;
+                self.frames.last_mut().unwrap().ip -= *o;
             },
         };
         Ok(())
@@ -409,13 +443,13 @@ impl Cpu<Instruction, VMError> for VM {
 
     #[inline]
     fn get_pc(&self) -> u16 {
-        self.ip as _
+        self.ip() as _
     }
 
     #[inline]
     fn get_next_instruction_bytes(&self) -> Vec<u8> {
         let mut res = Vec::with_capacity(3);
-        let from = self.ip as usize;
+        let from = self.ip();
         let to = min(from + 9, self.rom.len());
         for i in from..to {
             res.push(self.rom[i]);
@@ -430,12 +464,12 @@ impl Cpu<Instruction, VMError> for VM {
 
     #[inline]
     fn is_done(&self) -> bool {
-        self.ip >= self.rom.len() as _
+        !self.frames.is_empty() || self.ip() >= self.rom.len() as _
     }
 
     #[inline]
     fn increase_pc(&mut self, steps: u8) {
-        self.ip += u64::from(steps);
+        self.add_to_ip(steps as _);
     }
 
     fn get_cycles_from_one_condition(
@@ -466,14 +500,14 @@ mod cpu_tests {
     use crate::memory::Memory;
     use failure::Error;
     use std::collections::HashMap;
-    use super::{STACK_MAX, Value, VM};
+    use super::{STACK_MAX, Frame, Value, VM};
 
     #[test]
     fn test_constant() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 0,
             stack: [Value::Integer(0); STACK_MAX],
             constants: vec![Value::Integer(1)],
@@ -489,8 +523,8 @@ mod cpu_tests {
     fn test_add_integer() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -509,8 +543,8 @@ mod cpu_tests {
     fn test_add_float() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -529,8 +563,8 @@ mod cpu_tests {
     fn test_add_float_integer() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -549,8 +583,8 @@ mod cpu_tests {
     fn test_add_integer_float() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -569,8 +603,8 @@ mod cpu_tests {
     fn test_sub_integer() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -589,8 +623,8 @@ mod cpu_tests {
     fn test_sub_float() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -609,8 +643,8 @@ mod cpu_tests {
     fn test_sub_float_integer() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -629,8 +663,8 @@ mod cpu_tests {
     fn test_sub_integer_float() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -649,8 +683,8 @@ mod cpu_tests {
     fn test_mult_integer() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -669,8 +703,8 @@ mod cpu_tests {
     fn test_mult_float() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -689,8 +723,8 @@ mod cpu_tests {
     fn test_mult_float_integer() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -709,8 +743,8 @@ mod cpu_tests {
     fn test_mult_integer_float() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -729,8 +763,8 @@ mod cpu_tests {
     fn test_div_integer() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -749,8 +783,8 @@ mod cpu_tests {
     fn test_div_float() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -769,8 +803,8 @@ mod cpu_tests {
     fn test_div_float_integer() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -789,8 +823,8 @@ mod cpu_tests {
     fn test_div_integer_float() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -809,8 +843,8 @@ mod cpu_tests {
     fn test_nil() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 0,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -826,8 +860,8 @@ mod cpu_tests {
     fn test_true() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 0,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -843,8 +877,8 @@ mod cpu_tests {
     fn test_false() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 0,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -860,8 +894,8 @@ mod cpu_tests {
     fn test_not() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 1,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -881,8 +915,8 @@ mod cpu_tests {
     fn test_equals_same() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -899,8 +933,8 @@ mod cpu_tests {
     fn test_equals_diff() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -918,8 +952,8 @@ mod cpu_tests {
     fn test_not_equals_same() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -936,8 +970,8 @@ mod cpu_tests {
     fn test_not_equals_diff() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -955,8 +989,8 @@ mod cpu_tests {
     fn test_greater_same() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -973,8 +1007,8 @@ mod cpu_tests {
     fn test_greater_greater() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -992,8 +1026,8 @@ mod cpu_tests {
     fn test_greater_lesser() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -1011,8 +1045,8 @@ mod cpu_tests {
     fn test_greater_equals_same() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -1029,8 +1063,8 @@ mod cpu_tests {
     fn test_greater_equals_greater() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -1048,8 +1082,8 @@ mod cpu_tests {
     fn test_greater_equals_lesser() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -1067,8 +1101,8 @@ mod cpu_tests {
     fn test_less_same() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -1085,8 +1119,8 @@ mod cpu_tests {
     fn test_less_greater() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -1104,8 +1138,8 @@ mod cpu_tests {
     fn test_less_lesser() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -1123,8 +1157,8 @@ mod cpu_tests {
     fn test_less_equals_same() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -1141,8 +1175,8 @@ mod cpu_tests {
     fn test_less_equals_greater() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -1160,8 +1194,8 @@ mod cpu_tests {
     fn test_less_equals_lesser() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -1184,8 +1218,8 @@ mod cpu_tests {
         memory.copy_t(&s2, 5);
         let mut vm = VM {
             allocator: Allocator::new(10),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory,
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -1209,8 +1243,8 @@ mod cpu_tests {
         memory.copy_t(&s2, 5);
         let mut vm = VM {
             allocator: Allocator::new(10),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory,
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -1237,8 +1271,8 @@ mod cpu_tests {
         memory.copy_string(&s2, address2);
         let mut vm = VM {
             allocator,
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory,
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -1262,8 +1296,8 @@ mod cpu_tests {
     fn test_syscall() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 2,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -1286,8 +1320,8 @@ mod cpu_tests {
     fn test_set_global() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 1,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -1305,8 +1339,8 @@ mod cpu_tests {
     fn test_get_global() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 0,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -1331,7 +1365,7 @@ mod cpu_tests {
         let mut vm = VM {
             allocator,
             memory,
-            ip: 0,
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             sp: 0,
             stack: [Value::Integer(0); STACK_MAX],
             constants: vec![Value::String(address1)],
@@ -1345,8 +1379,8 @@ mod cpu_tests {
     fn test_set_local() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 1,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -1364,8 +1398,8 @@ mod cpu_tests {
     fn test_get_local() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 1,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -1383,8 +1417,8 @@ mod cpu_tests {
     fn test_jmp_if_false_jmping() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 1,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -1394,7 +1428,7 @@ mod cpu_tests {
         vm.stack[0] = Value::Integer(0);
         vm.execute_instruction(&Instruction::JmpIfFalse(3))?;
         assert_eq!(vm.sp, 0);
-        assert_eq!(vm.ip, 3);
+        assert_eq!(vm.ip(), 3);
         Ok(())
     }
 
@@ -1402,8 +1436,8 @@ mod cpu_tests {
     fn test_jmp_if_false_not_jmping() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 1,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -1413,7 +1447,7 @@ mod cpu_tests {
         vm.stack[0] = Value::Integer(1);
         vm.execute_instruction(&Instruction::JmpIfFalse(3))?;
         assert_eq!(vm.sp, 0);
-        assert_eq!(vm.ip, 0);
+        assert_eq!(vm.ip(), 0);
         Ok(())
     }
 
@@ -1421,8 +1455,8 @@ mod cpu_tests {
     fn test_jmp() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 0,
             sp: 0,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -1431,7 +1465,7 @@ mod cpu_tests {
         };
         vm.execute_instruction(&Instruction::Jmp(3))?;
         assert_eq!(vm.sp, 0);
-        assert_eq!(vm.ip, 3);
+        assert_eq!(vm.ip(), 3);
         Ok(())
     }
 
@@ -1439,8 +1473,8 @@ mod cpu_tests {
     fn test_loop() -> Result<(), Error> {
         let mut vm = VM {
             allocator: Allocator::new(0),
+            frames: vec![Frame { ip: 4, stack_offset: 0 }],
             memory: Memory::new(0),
-            ip: 4,
             sp: 0,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
@@ -1449,7 +1483,7 @@ mod cpu_tests {
         };
         vm.execute_instruction(&Instruction::Loop(3))?;
         assert_eq!(vm.sp, 0);
-        assert_eq!(vm.ip, 1);
+        assert_eq!(vm.ip(), 1);
         Ok(())
     }
 }
