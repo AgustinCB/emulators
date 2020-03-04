@@ -337,12 +337,12 @@ impl VM {
     }
 
     fn get_local(&mut self, local: usize) -> Result<(), Error> {
-        self.push(self.stack[local])?;
+        self.push(self.stack[local - self.frames.last().unwrap().stack_offset])?;
         Ok(())
     }
 
     fn set_local(&mut self, local: usize) -> Result<(), Error> {
-        self.stack[local] = self.peek()?;
+        self.stack[local - self.frames.last().unwrap().stack_offset] = self.peek()?;
         Ok(())
     }
 
