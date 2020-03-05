@@ -1,5 +1,9 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::iter::FromIterator;
 use std::mem::size_of;
+
+const FIRST_GC_PASS: usize = 1024 * 1024;
+const NEXT_GC_RATIO: usize = 2;
 
 #[derive(Debug, Fail)]
 pub enum AllocatorError {
@@ -70,13 +74,17 @@ impl FreeChunks {
 pub struct Allocator {
     free_chunks: FreeChunks,
     allocated_spaces: HashMap<usize, usize>,
+    allocated_space: usize,
+    next_gc_pass: usize,
 }
 
 impl Allocator {
     pub fn new(capacity: usize) -> Allocator {
         Allocator {
+            allocated_space: 0,
             allocated_spaces: HashMap::new(),
             free_chunks: FreeChunks::new(capacity),
+            next_gc_pass: FIRST_GC_PASS,
         }
     }
 
@@ -84,11 +92,15 @@ impl Allocator {
         self.allocated_spaces.get(&address).cloned()
     }
 
-    pub fn malloc_t<T>(&mut self) -> Result<usize, AllocatorError> {
-        self.malloc(size_of::<T>())
+    pub fn malloc_t<T, R: Iterator<Item=usize>>(&mut self, used_addresses: R) -> Result<usize, AllocatorError> {
+        self.malloc(size_of::<T>(), used_addresses)
     }
 
-    pub fn malloc(&mut self, size: usize) -> Result<usize, AllocatorError> {
+    pub fn malloc<R: Iterator<Item=usize>>(&mut self, size: usize, used_addresses: R) -> Result<usize, AllocatorError> {
+        if self.allocated_space > self.next_gc_pass {
+            self.next_gc_pass += NEXT_GC_RATIO;
+            self.collect_garbage(used_addresses)?;
+        }
         let free_memory = self.free_chunks.available_memory();
         if size > free_memory {
             Err(AllocatorError::NotEnoughMemory {
@@ -106,6 +118,7 @@ impl Allocator {
                         self.free_chunks.insert((from + size, to))?;
                     }
                     self.allocated_spaces.insert(from, size);
+                    self.allocated_space += size;
                     Ok(from)
                 }
             }
@@ -117,6 +130,7 @@ impl Allocator {
             Some(space) => {
                 self.add_free_space(address, address + space)?;
                 self.allocated_spaces.remove(&address);
+                self.allocated_space -= space;
                 Ok(())
             }
             None => Err(AllocatorError::AddressNotAllocated { address }),
@@ -134,6 +148,17 @@ impl Allocator {
             None => self.free_chunks.insert((from, to)),
         }
     }
+
+    fn collect_garbage<R: Iterator<Item=usize>>(&mut self, used_addresses: R) -> Result<(), AllocatorError> {
+        let in_use_set: HashSet<usize> = HashSet::from_iter(used_addresses);
+        let reserved_set = HashSet::from_iter(self.allocated_spaces.keys().cloned());
+        reserved_set.difference(&in_use_set)
+            .map(|address| {
+                self.free(*address)
+            })
+            .collect::<Result<Vec<()>, AllocatorError>>()?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -146,7 +171,7 @@ mod tests {
     )]
     fn it_should_error_if_trying_to_allocate_more_space_than_memory_capacity() {
         let mut allocator = Allocator::new(2);
-        allocator.malloc(3).unwrap();
+        allocator.malloc(3, std::iter::empty()).unwrap();
     }
 
     #[test]
@@ -155,23 +180,23 @@ mod tests {
     )]
     fn it_should_error_if_trying_to_allocate_more_space_than_available() {
         let mut allocator = Allocator::new(2);
-        allocator.malloc(2).unwrap();
-        allocator.malloc(1).unwrap();
+        allocator.malloc(2, std::iter::empty()).unwrap();
+        allocator.malloc(1, std::iter::empty()).unwrap();
     }
 
     #[test]
     fn it_should_return_the_first_address_available() {
         let mut allocator = Allocator::new(2);
-        assert_eq!(allocator.malloc(1).unwrap(), 0);
-        assert_eq!(allocator.malloc(1).unwrap(), 1);
+        assert_eq!(allocator.malloc(1, std::iter::empty()).unwrap(), 0);
+        assert_eq!(allocator.malloc(1, std::iter::empty()).unwrap(), 1);
     }
 
     #[test]
     fn it_should_correctly_free_memory() {
         let mut allocator = Allocator::new(2);
-        let address = allocator.malloc(2).unwrap();
+        let address = allocator.malloc(2, std::iter::empty()).unwrap();
         allocator.free(address).unwrap();
-        assert_eq!(allocator.malloc(2).unwrap(), 0);
+        assert_eq!(allocator.malloc(2, std::iter::empty()).unwrap(), 0);
     }
 
     #[test]
@@ -180,29 +205,52 @@ mod tests {
     )]
     fn it_should_fail_when_freeing_unallocated_space() {
         let mut allocator = Allocator::new(2);
-        allocator.malloc(2).unwrap();
+        allocator.malloc(2, std::iter::empty()).unwrap();
         allocator.free(1).unwrap();
     }
 
     #[test]
     fn it_should_defragment_memory() {
         let mut allocator = Allocator::new(5);
-        let address1 = allocator.malloc(2).unwrap();
-        let address2 = allocator.malloc(2).unwrap();
+        let address1 = allocator.malloc(2, std::iter::empty()).unwrap();
+        let address2 = allocator.malloc(2, std::iter::empty()).unwrap();
         allocator.free(address1).unwrap();
         allocator.free(address2).unwrap();
-        allocator.malloc(4).unwrap();
-        allocator.malloc(1).unwrap();
+        allocator.malloc(4, std::iter::empty()).unwrap();
+        allocator.malloc(1, std::iter::empty()).unwrap();
     }
 
     #[test]
     fn it_should_allocate_from_the_smallest_chunk_possible() {
         let mut allocator = Allocator::new(5);
-        let address1 = allocator.malloc(2).unwrap();
-        let address2 = allocator.malloc(2).unwrap();
+        let address1 = allocator.malloc(2, std::iter::empty()).unwrap();
+        let address2 = allocator.malloc(2, std::iter::empty()).unwrap();
         allocator.free(address1).unwrap();
         allocator.free(address2).unwrap();
-        allocator.malloc(1).unwrap();
-        allocator.malloc(4).unwrap();
+        allocator.malloc(1, std::iter::empty()).unwrap();
+        allocator.malloc(4, std::iter::empty()).unwrap();
+    }
+
+    #[test]
+    fn it_should_run_garbage_collection() {
+        let mut allocator = Allocator::new(2);
+        allocator.malloc(1, std::iter::empty()).unwrap();
+        allocator.malloc(1, std::iter::empty()).unwrap();
+        allocator.next_gc_pass = 0;
+        assert_eq!(allocator.malloc(1, std::iter::empty()).unwrap(), 0);
+        assert_eq!(allocator.allocated_space, 1);
+    }
+
+    #[test]
+    #[should_panic(
+        expected = "called `Result::unwrap()` on an `Err` value: NotEnoughMemory { intended: 1 }"
+    )]
+    fn it_should_not_run_garbage_collection() {
+        let mut allocator = Allocator::new(2);
+        let mut used_addresses = vec![];
+        used_addresses.push(allocator.malloc(1, std::iter::empty()).unwrap());
+        used_addresses.push(allocator.malloc(1, std::iter::empty()).unwrap());
+        allocator.next_gc_pass = 0;
+        allocator.malloc(1, used_addresses.into_iter()).unwrap();
     }
 }

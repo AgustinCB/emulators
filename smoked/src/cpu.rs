@@ -5,6 +5,7 @@ use crate::instruction::Instruction;
 use failure::Error;
 use log::debug;
 use sc::{syscall0, syscall1, syscall2, syscall3, syscall4, syscall5, syscall6};
+use std::cell::RefCell;
 use std::cmp::min;
 use std::collections::HashMap;
 
@@ -64,7 +65,7 @@ struct Frame {
 }
 
 pub struct VM {
-    allocator: Allocator,
+    allocator: RefCell<Allocator>,
     memory: Memory,
     frames: Vec<Frame>,
     globals: HashMap<usize, Value>,
@@ -106,13 +107,14 @@ impl VM {
 mod tests {
     use crate::allocator::Allocator;
     use crate::memory::Memory;
-    use super::{STACK_MAX, Frame, Value, VM, VMError};
+    use std::cell::RefCell;
     use std::collections::HashMap;
+    use super::{STACK_MAX, Frame, Value, VM, VMError};
 
     #[test]
     fn test_pop() -> Result<(), VMError> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 1,
@@ -129,7 +131,7 @@ mod tests {
     #[test]
     fn test_pop_on_empty_stack() {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             memory: Memory::new(0),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             sp: 0,
@@ -145,7 +147,7 @@ mod tests {
     #[test]
     fn test_pop_on_empty_stack_frame() {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             memory: Memory::new(0),
             frames: vec![Frame { ip: 0, stack_offset: 1 }],
             sp: 1,
@@ -161,7 +163,7 @@ mod tests {
     #[test]
     fn test_push() -> Result<(), VMError> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 0,
@@ -180,7 +182,7 @@ mod tests {
     fn test_push_on_stack() {
         let mut vm = VM {
             globals: HashMap::default(),
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: STACK_MAX,
@@ -247,7 +249,7 @@ impl VM {
                     string1.extend(string2);
                     string1
                 };
-                let address = self.allocator.malloc(result.len())?;
+                let address = self.allocator.borrow_mut().malloc(result.len(), self.get_roots())?;
                 self.memory.copy_u8_vector(&result, address);
                 self.push(Value::String(address))?;
                 Ok(())
@@ -368,7 +370,7 @@ impl VM {
     }
 
     fn get_size(&self, address: usize) -> Result<usize, Error> {
-        self.allocator.get_allocated_space(address).ok_or(Error::from(VMError::UnallocatedAddress(address)))
+        self.allocator.borrow().get_allocated_space(address).ok_or(Error::from(VMError::UnallocatedAddress(address)))
     }
 
     fn pop_usize(&mut self) -> Result<usize, Error> {
@@ -392,6 +394,20 @@ impl VM {
         } else {
             Err(Error::from(VMError::ExpectedStrings))
         }
+    }
+
+    fn get_roots<'a>(&'a self) -> impl Iterator<Item=usize> + 'a {
+        self.stack.iter()
+            .chain(self.constants.iter())
+            .chain(self.globals.values())
+            .filter_map(|v| {
+                if let Value::String(address) = v {
+                    Some(address)
+                } else {
+                    None
+                }
+            })
+            .cloned()
     }
 }
 
@@ -522,13 +538,14 @@ mod cpu_tests {
     use crate::instruction::Instruction;
     use crate::memory::Memory;
     use failure::Error;
+    use std::cell::RefCell;
     use std::collections::HashMap;
     use super::{STACK_MAX, Frame, Value, VM};
 
     #[test]
     fn test_constant() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 0,
@@ -545,7 +562,7 @@ mod cpu_tests {
     #[test]
     fn test_add_integer() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -565,7 +582,7 @@ mod cpu_tests {
     #[test]
     fn test_add_float() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -585,7 +602,7 @@ mod cpu_tests {
     #[test]
     fn test_add_float_integer() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -605,7 +622,7 @@ mod cpu_tests {
     #[test]
     fn test_add_integer_float() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -625,7 +642,7 @@ mod cpu_tests {
     #[test]
     fn test_sub_integer() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -645,7 +662,7 @@ mod cpu_tests {
     #[test]
     fn test_sub_float() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -665,7 +682,7 @@ mod cpu_tests {
     #[test]
     fn test_sub_float_integer() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -685,7 +702,7 @@ mod cpu_tests {
     #[test]
     fn test_sub_integer_float() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -705,7 +722,7 @@ mod cpu_tests {
     #[test]
     fn test_mult_integer() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -725,7 +742,7 @@ mod cpu_tests {
     #[test]
     fn test_mult_float() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -745,7 +762,7 @@ mod cpu_tests {
     #[test]
     fn test_mult_float_integer() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -765,7 +782,7 @@ mod cpu_tests {
     #[test]
     fn test_mult_integer_float() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -785,7 +802,7 @@ mod cpu_tests {
     #[test]
     fn test_div_integer() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -805,7 +822,7 @@ mod cpu_tests {
     #[test]
     fn test_div_float() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -825,7 +842,7 @@ mod cpu_tests {
     #[test]
     fn test_div_float_integer() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -845,7 +862,7 @@ mod cpu_tests {
     #[test]
     fn test_div_integer_float() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -865,7 +882,7 @@ mod cpu_tests {
     #[test]
     fn test_nil() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 0,
@@ -882,7 +899,7 @@ mod cpu_tests {
     #[test]
     fn test_true() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 0,
@@ -899,7 +916,7 @@ mod cpu_tests {
     #[test]
     fn test_false() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 0,
@@ -916,7 +933,7 @@ mod cpu_tests {
     #[test]
     fn test_not() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 1,
@@ -937,7 +954,7 @@ mod cpu_tests {
     #[test]
     fn test_equals_same() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -955,7 +972,7 @@ mod cpu_tests {
     #[test]
     fn test_equals_diff() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -974,7 +991,7 @@ mod cpu_tests {
     #[test]
     fn test_not_equals_same() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -992,7 +1009,7 @@ mod cpu_tests {
     #[test]
     fn test_not_equals_diff() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -1011,7 +1028,7 @@ mod cpu_tests {
     #[test]
     fn test_greater_same() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -1029,7 +1046,7 @@ mod cpu_tests {
     #[test]
     fn test_greater_greater() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -1048,7 +1065,7 @@ mod cpu_tests {
     #[test]
     fn test_greater_lesser() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -1067,7 +1084,7 @@ mod cpu_tests {
     #[test]
     fn test_greater_equals_same() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -1085,7 +1102,7 @@ mod cpu_tests {
     #[test]
     fn test_greater_equals_greater() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -1104,7 +1121,7 @@ mod cpu_tests {
     #[test]
     fn test_greater_equals_lesser() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -1123,7 +1140,7 @@ mod cpu_tests {
     #[test]
     fn test_less_same() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -1141,7 +1158,7 @@ mod cpu_tests {
     #[test]
     fn test_less_greater() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -1160,7 +1177,7 @@ mod cpu_tests {
     #[test]
     fn test_less_lesser() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -1179,7 +1196,7 @@ mod cpu_tests {
     #[test]
     fn test_less_equals_same() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -1197,7 +1214,7 @@ mod cpu_tests {
     #[test]
     fn test_less_equals_greater() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -1216,7 +1233,7 @@ mod cpu_tests {
     #[test]
     fn test_less_equals_lesser() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -1240,7 +1257,7 @@ mod cpu_tests {
         memory.copy_t(&s1, 0);
         memory.copy_t(&s2, 5);
         let mut vm = VM {
-            allocator: Allocator::new(10),
+            allocator: RefCell::new(Allocator::new(10)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory,
             sp: 2,
@@ -1265,7 +1282,7 @@ mod cpu_tests {
         memory.copy_t(&s1, 0);
         memory.copy_t(&s2, 5);
         let mut vm = VM {
-            allocator: Allocator::new(10),
+            allocator: RefCell::new(Allocator::new(10)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory,
             sp: 2,
@@ -1288,12 +1305,12 @@ mod cpu_tests {
         let mut allocator = Allocator::new(100);
         let s1 = String::from("4");
         let s2 = String::from("2");
-        let address1 = allocator.malloc(1)?;
-        let address2 = allocator.malloc(1)?;
+        let address1 = allocator.malloc(1, std::iter::empty())?;
+        let address2 = allocator.malloc(1, std::iter::empty())?;
         memory.copy_string(&s1, address1);
         memory.copy_string(&s2, address2);
         let mut vm = VM {
-            allocator,
+            allocator: RefCell::new(allocator),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory,
             sp: 2,
@@ -1318,7 +1335,7 @@ mod cpu_tests {
     #[test]
     fn test_syscall() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -1342,7 +1359,7 @@ mod cpu_tests {
     #[test]
     fn test_set_global() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 1,
@@ -1361,7 +1378,7 @@ mod cpu_tests {
     #[test]
     fn test_get_global() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 0,
@@ -1383,10 +1400,10 @@ mod cpu_tests {
         let memory = Memory::new(100);
         let mut allocator = Allocator::new(100);
         let s1 = String::from("4");
-        let address1 = allocator.malloc(1).unwrap();
+        let address1 = allocator.malloc(1, std::iter::empty()).unwrap();
         memory.copy_string(&s1, address1);
         let mut vm = VM {
-            allocator,
+            allocator: RefCell::new(allocator),
             memory,
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             sp: 0,
@@ -1401,7 +1418,7 @@ mod cpu_tests {
     #[test]
     fn test_set_local() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 1,
@@ -1420,7 +1437,7 @@ mod cpu_tests {
     #[test]
     fn test_get_local() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 1,
@@ -1439,7 +1456,7 @@ mod cpu_tests {
     #[test]
     fn test_jmp_if_false_jmping() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 1,
@@ -1458,7 +1475,7 @@ mod cpu_tests {
     #[test]
     fn test_jmp_if_false_not_jmping() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 1,
@@ -1477,7 +1494,7 @@ mod cpu_tests {
     #[test]
     fn test_jmp() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 0,
@@ -1495,7 +1512,7 @@ mod cpu_tests {
     #[test]
     fn test_loop() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 4, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 0,
@@ -1513,7 +1530,7 @@ mod cpu_tests {
     #[test]
     fn test_call() -> Result<(), Error> {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -1537,7 +1554,7 @@ mod cpu_tests {
     #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: ExpectedFunction")]
     fn test_call_on_non_function() {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
@@ -1553,7 +1570,7 @@ mod cpu_tests {
     #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: NotEnoughArgumentsForFunction")]
     fn test_call_without_enough_arguments() {
         let mut vm = VM {
-            allocator: Allocator::new(0),
+            allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
             sp: 2,
