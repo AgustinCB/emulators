@@ -30,6 +30,9 @@ pub enum Instruction {
     Jmp(usize),
     Loop(usize),
     Call,
+    ArrayAlloc,
+    ArrayGet,
+    ArraySet,
 }
 
 impl CpuInstruction for Instruction {
@@ -91,6 +94,9 @@ impl From<Vec<u8>> for Instruction {
                 [bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7], bytes[8]]
             )),
             25 => Instruction::Call,
+            26 => Instruction::ArrayAlloc,
+            27 => Instruction::ArrayGet,
+            28 => Instruction::ArraySet,
             255 => Instruction::Noop,
             _ => {
                 warn!("Invalid instruction");
@@ -130,6 +136,9 @@ impl ToString for Instruction {
             Instruction::Jmp(offset) => format!("JMP {}", offset),
             Instruction::Loop(offset) => format!("LOOP {}", offset),
             Instruction::Call => "CALL".to_owned(),
+            Instruction::ArrayAlloc => "ARRAY_ALLOC".to_owned(),
+            Instruction::ArrayGet => "ARRAY_GET".to_owned(),
+            Instruction::ArraySet => "ARRAY_SET".to_owned(),
         }
     }
 }

@@ -11,6 +11,7 @@ use std::collections::HashMap;
 
 const STACK_MAX: usize = 256;
 
+#[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Value {
     Integer(i64),
@@ -20,6 +21,10 @@ pub enum Value {
     Function {
         ip: usize,
         arity: usize,
+    },
+    Array {
+        capacity: usize,
+        address: usize,
     },
     Nil,
 }
@@ -31,6 +36,7 @@ impl Into<bool> for Value {
             Value::Float(f) => f != 0.0,
             Value::Bool(b) => b,
             Value::String(_) => true,
+            Value::Array { .. } => true,
             Value::Function { .. } => true,
             Value::Nil => false,
         }
@@ -49,6 +55,10 @@ pub enum VMError{
     ExpectedStrings,
     #[fail(display = "Expected a function")]
     ExpectedFunction,
+    #[fail(display = "Expected an array")]
+    ExpectedArray,
+    #[fail(display = "Index out of range")]
+    IndexOutOfRange,
     #[fail(display = "Not enough arguments for function call")]
     NotEnoughArgumentsForFunction,
     #[fail(display = "Invalid constant index {}", 0)]
@@ -369,6 +379,44 @@ impl VM {
         }
     }
 
+    fn array_alloc(&mut self) -> Result<(), Error> {
+        if let Value::Integer(capacity) = self.pop()? {
+            let address = self.allocator.borrow_mut().malloc(std::mem::size_of::<Value>() * capacity as usize, self.get_roots())?;
+            self.push(Value::Array { capacity: capacity as usize, address })?;
+            Ok(())
+        } else {
+            Err(Error::from(VMError::ExpectedNumbers))
+        }
+    }
+
+    fn array_get(&mut self) -> Result<(), Error> {
+        match (self.pop()?, self.pop()?) {
+            (Value::Array { capacity, .. }, Value::Integer(index)) if capacity <= index as usize =>
+                Err(Error::from(VMError::IndexOutOfRange)),
+            (Value::Array { address, .. }, Value::Integer(index)) => {
+                let v = self.memory.get_t::<Value>(address + index as usize * std::mem::size_of::<Value>())?.clone();
+                self.push(v)?;
+                Ok(())
+            },
+            (Value::Array { .. }, _) => Err(Error::from(VMError::ExpectedNumbers)),
+            (_, _) => Err(Error::from(VMError::ExpectedArray)),
+        }
+    }
+
+    fn array_set(&mut self) -> Result<(), Error> {
+        match (self.pop()?, self.pop()?) {
+            (Value::Array { capacity, .. }, Value::Integer(index)) if capacity <= index as usize =>
+                Err(Error::from(VMError::IndexOutOfRange)),
+            (Value::Array { address, .. }, Value::Integer(index)) => {
+                let v = self.peek()?;
+                self.memory.copy_t::<Value>(&v, address + index as usize * std::mem::size_of::<Value>());
+                Ok(())
+            },
+            (Value::Array { .. }, _) => Err(Error::from(VMError::ExpectedNumbers)),
+            (_, _) => Err(Error::from(VMError::ExpectedArray)),
+        }
+    }
+
     fn get_size(&self, address: usize) -> Result<usize, Error> {
         self.allocator.borrow().get_allocated_space(address).ok_or(Error::from(VMError::UnallocatedAddress(address)))
     }
@@ -400,14 +448,29 @@ impl VM {
         self.stack.iter()
             .chain(self.constants.iter())
             .chain(self.globals.values())
-            .filter_map(|v| {
-                if let Value::String(address) = v {
-                    Some(address)
-                } else {
-                    None
+            .filter_map(move |v| {
+                match v {
+                    Value::String(address) => Some(vec![*address]),
+                    Value::Array { address, capacity } =>
+                        Some(self.get_addresses_from_array(*address, *capacity)),
+                    _ => None,
                 }
             })
-            .cloned()
+            .flatten()
+    }
+
+    fn get_addresses_from_array(&self, address: usize, capacity: usize) -> Vec<usize> {
+        let mut result = vec![address];
+        for _ in 0..capacity {
+            let v = self.memory.get_t::<Value>(address + capacity * std::mem::size_of::<Value>()).unwrap();
+            match v {
+                Value::Array { address, capacity } =>
+                    result.extend(self.get_addresses_from_array(*address, *capacity)),
+                Value::String(a) => result.push(*a),
+                _ => {},
+            }
+        }
+        result
     }
 }
 
@@ -476,6 +539,9 @@ impl Cpu<Instruction, VMError> for VM {
                 self.frames.last_mut().unwrap().ip -= *o;
             },
             Instruction::Call => self.call()?,
+            Instruction::ArrayAlloc => self.array_alloc()?,
+            Instruction::ArrayGet => self.array_get()?,
+            Instruction::ArraySet => self.array_set()?,
         };
         Ok(())
     }
@@ -1584,5 +1650,121 @@ mod cpu_tests {
             arity: 2,
         };
         vm.execute_instruction(&Instruction::Call).unwrap();
+    }
+
+    #[test]
+    fn test_array_alloc() {
+        let mut vm = VM {
+            allocator: RefCell::new(Allocator::new(100)),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
+            memory: Memory::new(100),
+            sp: 1,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            rom: Vec::new(),
+            globals: HashMap::default(),
+        };
+        vm.stack[0] = Value::Integer(1);
+        vm.execute_instruction(&Instruction::ArrayAlloc).unwrap();
+        if let Value::Array { capacity, address } = vm.stack[0] {
+            assert_eq!(vm.allocator.borrow().get_allocated_space(address).unwrap(), capacity * std::mem::size_of::<Value>() as usize);
+        } else {
+            panic!("Expected array as output of ArrayAlloc {:?}", vm.stack[0]);
+        }
+    }
+
+    #[test]
+    fn test_array_get() {
+        let memory = Memory::new(100);
+        let mut allocator = Allocator::new(100);
+        let value = Value::Integer(42);
+        let address = allocator.malloc(std::mem::size_of::<Value>(), std::iter::empty()).unwrap();
+        memory.copy_t(&value, address);
+        let mut vm = VM {
+            allocator: RefCell::new(allocator),
+            memory,
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
+            sp: 2,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: vec![],
+            rom: Vec::new(),
+            globals: HashMap::default(),
+        };
+        vm.stack[0] = Value::Integer(0);
+        vm.stack[1] = Value::Array { address, capacity: 1};
+        vm.execute_instruction(&Instruction::ArrayGet).unwrap();
+        assert_eq!(vm.sp, 1);
+        assert_eq!(vm.stack[0], Value::Integer(42));
+    }
+
+    #[test]
+    #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: IndexOutOfRange")]
+    fn test_array_get_out_of_range() {
+        let memory = Memory::new(100);
+        let mut allocator = Allocator::new(100);
+        let value = Value::Integer(42);
+        let address = allocator.malloc(std::mem::size_of::<Value>(), std::iter::empty()).unwrap();
+        memory.copy_t(&value, address);
+        let mut vm = VM {
+            allocator: RefCell::new(allocator),
+            memory,
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
+            sp: 2,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: vec![],
+            rom: Vec::new(),
+            globals: HashMap::default(),
+        };
+        vm.stack[0] = Value::Integer(1);
+        vm.stack[1] = Value::Array { address, capacity: 1};
+        vm.execute_instruction(&Instruction::ArrayGet).unwrap();
+    }
+
+    #[test]
+    fn test_array_set() {
+        let memory = Memory::new(100);
+        let mut allocator = Allocator::new(100);
+        let value = Value::Integer(42);
+        let address = allocator.malloc(std::mem::size_of::<Value>(), std::iter::empty()).unwrap();
+        memory.copy_t(&value, address);
+        let mut vm = VM {
+            allocator: RefCell::new(allocator),
+            memory,
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
+            sp: 3,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: vec![],
+            rom: Vec::new(),
+            globals: HashMap::default(),
+        };
+        vm.stack[1] = Value::Integer(0);
+        vm.stack[2] = Value::Array { address, capacity: 1};
+        vm.execute_instruction(&Instruction::ArraySet).unwrap();
+        assert_eq!(vm.sp, 1);
+        assert_eq!(vm.memory.get_t::<Value>(address).unwrap().clone(), Value::Integer(0));
+        assert_eq!(vm.stack[0], Value::Integer(0));
+    }
+
+    #[test]
+    #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: IndexOutOfRange")]
+    fn test_array_set_out_of_range() {
+        let memory = Memory::new(100);
+        let mut allocator = Allocator::new(100);
+        let value = Value::Integer(42);
+        let address = allocator.malloc(std::mem::size_of::<Value>(), std::iter::empty()).unwrap();
+        memory.copy_t(&value, address);
+        let mut vm = VM {
+            allocator: RefCell::new(allocator),
+            memory,
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
+            sp: 3,
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: vec![],
+            rom: Vec::new(),
+            globals: HashMap::default(),
+        };
+        vm.stack[1] = Value::Integer(1);
+        vm.stack[2] = Value::Array { address, capacity: 1};
+        vm.execute_instruction(&Instruction::ArraySet).unwrap();
     }
 }
