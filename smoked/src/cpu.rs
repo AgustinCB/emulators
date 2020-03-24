@@ -14,6 +14,7 @@ const STACK_MAX: usize = 256;
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Value {
+    Nil,
     Integer(i64),
     Float(f32),
     Bool(bool),
@@ -26,8 +27,14 @@ pub enum Value {
         capacity: usize,
         address: usize,
     },
-    Nil,
+    Object {
+        address: usize,
+    }
 }
+
+const U64_SIZE: usize = std::mem::size_of::<u64>();
+const VALUE_SIZE: usize = std::mem::size_of::<Value>();
+const USIZE_SIZE: usize = std::mem::size_of::<usize>();
 
 impl Into<bool> for Value {
     fn into(self) -> bool {
@@ -39,6 +46,7 @@ impl Into<bool> for Value {
             Value::Array { .. } => true,
             Value::Function { .. } => true,
             Value::Nil => false,
+            Value::Object { .. } => true,
         }
     }
 }
@@ -67,6 +75,8 @@ pub enum VMError{
     UnallocatedAddress(usize),
     #[fail(display = "Global {} doesn't exist", 0)]
     GlobalDoesntExist(String),
+    #[fail(display = "Property {} not in object", 0)]
+    PropertyDoesntExist(String),
 }
 
 struct Frame {
@@ -114,25 +124,54 @@ impl VM {
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::allocator::Allocator;
-    use crate::memory::Memory;
-    use std::cell::RefCell;
-    use std::collections::HashMap;
-    use super::{STACK_MAX, Frame, Value, VM, VMError};
-
-    #[test]
-    fn test_pop() -> Result<(), VMError> {
-        let mut vm = VM {
+impl VM {
+    fn test_vm(sp: usize) -> VM {
+        VM {
             allocator: RefCell::new(Allocator::new(0)),
             frames: vec![Frame { ip: 0, stack_offset: 0 }],
             memory: Memory::new(0),
-            sp: 1,
             stack: [Value::Integer(0); STACK_MAX],
             constants: Vec::new(),
             rom: Vec::new(),
             globals: HashMap::default(),
-        };
+            sp,
+        }
+    }
+
+    fn test_vm_with_mem(sp: usize, mem: usize) -> VM {
+        VM {
+            allocator: RefCell::new(Allocator::new(mem)),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
+            memory: Memory::new(mem),
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            rom: Vec::new(),
+            globals: HashMap::default(),
+            sp,
+        }
+    }
+
+    fn test_vm_with_memory_and_allocator(sp: usize, memory: Memory, allocator: Allocator) -> VM {
+        VM {
+            allocator: RefCell::new(allocator),
+            frames: vec![Frame { ip: 0, stack_offset: 0 }],
+            stack: [Value::Integer(0); STACK_MAX],
+            constants: Vec::new(),
+            rom: Vec::new(),
+            globals: HashMap::default(),
+            memory,
+            sp,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{STACK_MAX, Value, VM, VMError};
+
+    #[test]
+    fn test_pop() -> Result<(), VMError> {
+        let mut vm = VM::test_vm(1);
         let v = vm.pop()?;
         assert_eq!(v, Value::Integer(0));
         Ok(())
@@ -140,48 +179,22 @@ mod tests {
 
     #[test]
     fn test_pop_on_empty_stack() {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            memory: Memory::new(0),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            sp: 0,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            globals: HashMap::default(),
-            rom: Vec::new(),
-        };
+        let mut vm = VM::test_vm(0);
         let v = vm.pop();
         assert_eq!(v, Err(VMError::EmptyStack));
     }
 
     #[test]
     fn test_pop_on_empty_stack_frame() {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            memory: Memory::new(0),
-            frames: vec![Frame { ip: 0, stack_offset: 1 }],
-            sp: 1,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            globals: HashMap::default(),
-            rom: Vec::new(),
-        };
+        let mut vm = VM::test_vm(1);
+        vm.frames[0].stack_offset = 1;
         let v = vm.pop();
         assert_eq!(v, Err(VMError::EmptyStack));
     }
 
     #[test]
     fn test_push() -> Result<(), VMError> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 0,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(0);
         vm.push(Value::Integer(1))?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Integer(1));
@@ -190,16 +203,7 @@ mod tests {
 
     #[test]
     fn test_push_on_stack() {
-        let mut vm = VM {
-            globals: HashMap::default(),
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: STACK_MAX,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-        };
+        let mut vm = VM::test_vm(STACK_MAX);
         let v = vm.push(Value::Integer(1));
         assert_eq!(v, Err(VMError::StackOverflow));
     }
@@ -217,8 +221,8 @@ macro_rules! comp_operation {
             (v, Value::Bool(a)) => $self.push(Value::Bool(a $op v.into())),
             (Value::String(s1), Value::String(s2)) => {
                 let result = {
-                    let string1: &String = $self.memory.get_t(s1)?;
-                    let string2: &String = $self.memory.get_t(s2)?;
+                    let string1 = $self.memory.get_string(s1, $self.get_size(s1)?)?;
+                    let string2 = $self.memory.get_string(s2, $self.get_size(s2)?)?;
                     string1 $op string2
                 };
                 $self.push(Value::Bool(result))
@@ -381,7 +385,7 @@ impl VM {
 
     fn array_alloc(&mut self) -> Result<(), Error> {
         if let Value::Integer(capacity) = self.pop()? {
-            let address = self.allocator.borrow_mut().malloc(std::mem::size_of::<Value>() * capacity as usize, self.get_roots())?;
+            let address = self.allocator.borrow_mut().malloc(VALUE_SIZE * capacity as usize, self.get_roots())?;
             self.push(Value::Array { capacity: capacity as usize, address })?;
             Ok(())
         } else {
@@ -394,7 +398,7 @@ impl VM {
             (Value::Array { capacity, .. }, Value::Integer(index)) if capacity <= index as usize =>
                 Err(Error::from(VMError::IndexOutOfRange)),
             (Value::Array { address, .. }, Value::Integer(index)) => {
-                let v = self.memory.get_t::<Value>(address + index as usize * std::mem::size_of::<Value>())?.clone();
+                let v = self.memory.get_t::<Value>(address + index as usize * VALUE_SIZE)?.clone();
                 self.push(v)?;
                 Ok(())
             },
@@ -409,12 +413,97 @@ impl VM {
                 Err(Error::from(VMError::IndexOutOfRange)),
             (Value::Array { address, .. }, Value::Integer(index)) => {
                 let v = self.peek()?;
-                self.memory.copy_t::<Value>(&v, address + index as usize * std::mem::size_of::<Value>());
+                self.memory.copy_t::<Value>(&v, address + index as usize * VALUE_SIZE);
                 Ok(())
             },
             (Value::Array { .. }, _) => Err(Error::from(VMError::ExpectedNumbers)),
             (_, _) => Err(Error::from(VMError::ExpectedArray)),
         }
+    }
+
+    fn object_alloc(&mut self) -> Result<(), Error> {
+        if let Value::Integer(capacity) = self.pop()? {
+            let size = (VALUE_SIZE + USIZE_SIZE) * capacity as usize + USIZE_SIZE;
+            let address = self.allocator.borrow_mut().malloc(size, self.get_roots())?;
+            self.push(Value::Object { address })?;
+            self.memory.copy_t(&0usize, address);
+            Ok(())
+        } else {
+            Err(Error::from(VMError::ExpectedNumbers))
+        }
+    }
+
+    fn object_get(&mut self) -> Result<(), Error> {
+        if let (Value::Object { address: obj_address, }, Value::String(address)) = (self.pop()?, self.pop()?) {
+            let size = self.allocator.borrow().get_allocated_space(address).unwrap();
+            let property = self.memory.get_string(address, size)?;
+            let object_length: usize = *self.memory.get_t(obj_address)?;
+            let pair_bytes = self.memory
+                .get_u8_vector(obj_address + USIZE_SIZE, object_length * (VALUE_SIZE + USIZE_SIZE) * U64_SIZE).unwrap();
+            let bytes = unsafe {
+                std::slice::from_raw_parts(pair_bytes.as_ptr() as *const (usize, Value), object_length)
+            };
+            let i = self.property_lookup(bytes, property)
+                .map_err(|_| VMError::PropertyDoesntExist(property.to_owned()))?;
+            self.push(bytes[i].1)?;
+            Ok(())
+        } else {
+            Err(Error::from(VMError::ExpectedStrings))
+        }
+    }
+
+    fn object_set(&mut self) -> Result<(), Error> {
+        if let (Value::Object { address: mut obj_address, }, Value::String(address)) = (self.pop()?, self.pop()?) {
+            let value = self.pop()?;
+            let capacity = (self.get_size(obj_address)? - USIZE_SIZE) / (VALUE_SIZE + USIZE_SIZE);
+            let object_length: usize = *self.memory.get_t(obj_address)?;
+            let size = self.allocator.borrow().get_allocated_space(address).unwrap();
+            let property = self.memory.get_string(address, size)?;
+            let pair_bytes = self.memory
+                .get_u8_vector(obj_address + USIZE_SIZE, object_length * (VALUE_SIZE + USIZE_SIZE) * U64_SIZE).unwrap();
+            let bytes = unsafe {
+                std::slice::from_raw_parts(pair_bytes.as_ptr() as *const (usize, Value), object_length)
+            };
+            let index = match self.property_lookup(bytes, property) {
+                Ok(index) => {
+                    index
+                },
+                Err(index) => {
+                    if capacity <= object_length {
+                        self.allocator.borrow_mut().free(obj_address)?;
+                        obj_address = self.allocator.borrow_mut().malloc(
+                            USIZE_SIZE + capacity * 2 * (VALUE_SIZE + USIZE_SIZE),
+                            self.get_roots(),
+                        )?;
+                        self.memory.copy_t(&(object_length + 1), obj_address);
+                        self.memory.copy_u8_vector(pair_bytes, obj_address + USIZE_SIZE);
+                    }
+                    for i in (index..bytes.len()).rev() {
+                        self.memory.copy_t(
+                            &bytes[i],
+                            obj_address + USIZE_SIZE + (i+1) * (VALUE_SIZE + USIZE_SIZE)
+                        );
+                    }
+                    self.memory.copy_t(&(object_length + 1), obj_address);
+                    self.memory.copy_t(&address, obj_address + USIZE_SIZE + index * (VALUE_SIZE + USIZE_SIZE));
+                    index
+                }
+            };
+            self.memory.copy_t(&value, obj_address + USIZE_SIZE * 2 + index * (VALUE_SIZE + USIZE_SIZE));
+            self.push(value)?;
+            self.push(Value::Object { address: obj_address })?;
+            Ok(())
+        } else {
+            Err(Error::from(VMError::ExpectedStrings))
+        }
+    }
+
+    fn property_lookup(&self, bytes: &[(usize, Value)], property: &str) -> Result<usize, usize> {
+        bytes.binary_search_by(|(curr_address, _)| {
+            let found_length = self.allocator.borrow().get_allocated_space(*curr_address).unwrap();
+            let found_property = self.memory.get_string(*curr_address, found_length).unwrap();
+            property.cmp(found_property)
+        })
     }
 
     fn get_size(&self, address: usize) -> Result<usize, Error> {
@@ -459,18 +548,39 @@ impl VM {
             .flatten()
     }
 
+    fn get_addresses_from_object(&self, address: usize) -> Vec<usize> {
+        let length: usize = *self.memory.get_t(address).unwrap();
+        let mut result = vec![address];
+        let pair_bytes = self.memory
+            .get_u8_vector(address + USIZE_SIZE, length * (VALUE_SIZE + USIZE_SIZE)).unwrap();
+        let bytes = unsafe {
+            std::slice::from_raw_parts(pair_bytes.as_ptr() as *const (usize, Value), length)
+        };
+        for (string, value) in bytes {
+            result.push(*string);
+            self.add_used_addresses_from_value(&mut result, value);
+        }
+        result
+    }
+
     fn get_addresses_from_array(&self, address: usize, capacity: usize) -> Vec<usize> {
         let mut result = vec![address];
         for _ in 0..capacity {
             let v = self.memory.get_t::<Value>(address + capacity * std::mem::size_of::<Value>()).unwrap();
-            match v {
-                Value::Array { address, capacity } =>
-                    result.extend(self.get_addresses_from_array(*address, *capacity)),
-                Value::String(a) => result.push(*a),
-                _ => {},
-            }
+            self.add_used_addresses_from_value(&mut result, v);
         }
         result
+    }
+
+    fn add_used_addresses_from_value(&self, result: &mut Vec<usize>, v: &Value) {
+        match v {
+            Value::Array { address, capacity } =>
+                result.extend(self.get_addresses_from_array(*address, *capacity)),
+            Value::String(a) => result.push(*a),
+            Value::Object { address } =>
+                result.extend(self.get_addresses_from_object(*address)),
+            _ => {},
+        }
     }
 }
 
@@ -542,6 +652,9 @@ impl Cpu<Instruction, VMError> for VM {
             Instruction::ArrayAlloc => self.array_alloc()?,
             Instruction::ArrayGet => self.array_get()?,
             Instruction::ArraySet => self.array_set()?,
+            Instruction::ObjectAlloc => self.object_alloc()?,
+            Instruction::ObjectGet => self.object_get()?,
+            Instruction::ObjectSet => self.object_set()?,
         };
         Ok(())
     }
@@ -604,22 +717,13 @@ mod cpu_tests {
     use crate::instruction::Instruction;
     use crate::memory::Memory;
     use failure::Error;
-    use std::cell::RefCell;
-    use std::collections::HashMap;
-    use super::{STACK_MAX, Frame, Value, VM};
+    use super::{Value, VM};
+    use crate::cpu::{VALUE_SIZE, USIZE_SIZE};
 
     #[test]
     fn test_constant() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 0,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: vec![Value::Integer(1)],
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(0);
+        vm.constants.push(Value::Integer(1));
         vm.execute_instruction(&Instruction::Constant(0))?;
         assert_eq!(vm.stack[0], Value::Integer(1));
         Ok(())
@@ -627,16 +731,7 @@ mod cpu_tests {
 
     #[test]
     fn test_add_integer() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.stack[0] = Value::Integer(1);
         vm.stack[1] = Value::Integer(2);
         vm.execute_instruction(&Instruction::Plus)?;
@@ -647,16 +742,7 @@ mod cpu_tests {
 
     #[test]
     fn test_add_float() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.stack[0] = Value::Float(1.0);
         vm.stack[1] = Value::Float(2.0);
         vm.execute_instruction(&Instruction::Plus)?;
@@ -667,16 +753,7 @@ mod cpu_tests {
 
     #[test]
     fn test_add_float_integer() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.stack[0] = Value::Float(1.0);
         vm.stack[1] = Value::Integer(2);
         vm.execute_instruction(&Instruction::Plus)?;
@@ -687,16 +764,7 @@ mod cpu_tests {
 
     #[test]
     fn test_add_integer_float() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.stack[0] = Value::Float(1.0);
         vm.stack[1] = Value::Integer(2);
         vm.execute_instruction(&Instruction::Plus)?;
@@ -707,16 +775,7 @@ mod cpu_tests {
 
     #[test]
     fn test_sub_integer() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.stack[0] = Value::Integer(1);
         vm.stack[1] = Value::Integer(2);
         vm.execute_instruction(&Instruction::Minus)?;
@@ -727,16 +786,7 @@ mod cpu_tests {
 
     #[test]
     fn test_sub_float() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.stack[0] = Value::Float(1.0);
         vm.stack[1] = Value::Float(2.0);
         vm.execute_instruction(&Instruction::Minus)?;
@@ -747,16 +797,7 @@ mod cpu_tests {
 
     #[test]
     fn test_sub_float_integer() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.stack[0] = Value::Float(1.0);
         vm.stack[1] = Value::Integer(2);
         vm.execute_instruction(&Instruction::Minus)?;
@@ -767,16 +808,7 @@ mod cpu_tests {
 
     #[test]
     fn test_sub_integer_float() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.stack[0] = Value::Float(1.0);
         vm.stack[1] = Value::Integer(2);
         vm.execute_instruction(&Instruction::Minus)?;
@@ -787,16 +819,7 @@ mod cpu_tests {
 
     #[test]
     fn test_mult_integer() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.stack[0] = Value::Integer(1);
         vm.stack[1] = Value::Integer(2);
         vm.execute_instruction(&Instruction::Mult)?;
@@ -807,16 +830,7 @@ mod cpu_tests {
 
     #[test]
     fn test_mult_float() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.stack[0] = Value::Float(1.0);
         vm.stack[1] = Value::Float(2.0);
         vm.execute_instruction(&Instruction::Mult)?;
@@ -827,16 +841,7 @@ mod cpu_tests {
 
     #[test]
     fn test_mult_float_integer() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.stack[0] = Value::Float(1.0);
         vm.stack[1] = Value::Integer(2);
         vm.execute_instruction(&Instruction::Mult)?;
@@ -847,16 +852,7 @@ mod cpu_tests {
 
     #[test]
     fn test_mult_integer_float() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.stack[0] = Value::Float(1.0);
         vm.stack[1] = Value::Integer(2);
         vm.execute_instruction(&Instruction::Mult)?;
@@ -867,16 +863,7 @@ mod cpu_tests {
 
     #[test]
     fn test_div_integer() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.stack[0] = Value::Integer(1);
         vm.stack[1] = Value::Integer(2);
         vm.execute_instruction(&Instruction::Div)?;
@@ -887,16 +874,7 @@ mod cpu_tests {
 
     #[test]
     fn test_div_float() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.stack[0] = Value::Float(1.0);
         vm.stack[1] = Value::Float(2.0);
         vm.execute_instruction(&Instruction::Div)?;
@@ -907,16 +885,7 @@ mod cpu_tests {
 
     #[test]
     fn test_div_float_integer() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.stack[0] = Value::Float(1.0);
         vm.stack[1] = Value::Integer(2);
         vm.execute_instruction(&Instruction::Div)?;
@@ -927,16 +896,7 @@ mod cpu_tests {
 
     #[test]
     fn test_div_integer_float() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.stack[0] = Value::Float(1.0);
         vm.stack[1] = Value::Integer(2);
         vm.execute_instruction(&Instruction::Div)?;
@@ -947,16 +907,7 @@ mod cpu_tests {
 
     #[test]
     fn test_nil() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 0,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(0);
         vm.execute_instruction(&Instruction::Nil)?;
         assert_eq!(vm.stack[0], Value::Nil);
         Ok(())
@@ -964,16 +915,7 @@ mod cpu_tests {
 
     #[test]
     fn test_true() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 0,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(0);
         vm.execute_instruction(&Instruction::True)?;
         assert_eq!(vm.stack[0], Value::Bool(true));
         Ok(())
@@ -981,16 +923,7 @@ mod cpu_tests {
 
     #[test]
     fn test_false() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 0,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(0);
         vm.execute_instruction(&Instruction::False)?;
         assert_eq!(vm.stack[0], Value::Bool(false));
         Ok(())
@@ -998,16 +931,7 @@ mod cpu_tests {
 
     #[test]
     fn test_not() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 1,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(1);
         vm.execute_instruction(&Instruction::Not)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(true));
@@ -1019,16 +943,7 @@ mod cpu_tests {
 
     #[test]
     fn test_equals_same() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.execute_instruction(&Instruction::Equal)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(true));
@@ -1037,16 +952,7 @@ mod cpu_tests {
 
     #[test]
     fn test_equals_diff() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.stack[1] = Value::Integer(1);
         vm.execute_instruction(&Instruction::Equal)?;
         assert_eq!(vm.sp, 1);
@@ -1056,16 +962,7 @@ mod cpu_tests {
 
     #[test]
     fn test_not_equals_same() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.execute_instruction(&Instruction::NotEqual)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(false));
@@ -1074,16 +971,7 @@ mod cpu_tests {
 
     #[test]
     fn test_not_equals_diff() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.stack[1] = Value::Integer(1);
         vm.execute_instruction(&Instruction::NotEqual)?;
         assert_eq!(vm.sp, 1);
@@ -1093,16 +981,7 @@ mod cpu_tests {
 
     #[test]
     fn test_greater_same() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.execute_instruction(&Instruction::Greater)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(false));
@@ -1111,16 +990,7 @@ mod cpu_tests {
 
     #[test]
     fn test_greater_greater() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.stack[1] = Value::Integer(1);
         vm.execute_instruction(&Instruction::Greater)?;
         assert_eq!(vm.sp, 1);
@@ -1130,16 +1000,7 @@ mod cpu_tests {
 
     #[test]
     fn test_greater_lesser() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.stack[1] = Value::Integer(-1);
         vm.execute_instruction(&Instruction::Greater)?;
         assert_eq!(vm.sp, 1);
@@ -1149,16 +1010,7 @@ mod cpu_tests {
 
     #[test]
     fn test_greater_equals_same() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.execute_instruction(&Instruction::GreaterEqual)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(true));
@@ -1167,16 +1019,7 @@ mod cpu_tests {
 
     #[test]
     fn test_greater_equals_greater() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.stack[1] = Value::Integer(1);
         vm.execute_instruction(&Instruction::GreaterEqual)?;
         assert_eq!(vm.sp, 1);
@@ -1186,16 +1029,7 @@ mod cpu_tests {
 
     #[test]
     fn test_greater_equals_lesser() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.stack[1] = Value::Integer(-1);
         vm.execute_instruction(&Instruction::GreaterEqual)?;
         assert_eq!(vm.sp, 1);
@@ -1205,16 +1039,7 @@ mod cpu_tests {
 
     #[test]
     fn test_less_same() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.execute_instruction(&Instruction::Less)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(false));
@@ -1223,16 +1048,7 @@ mod cpu_tests {
 
     #[test]
     fn test_less_greater() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.stack[1] = Value::Integer(1);
         vm.execute_instruction(&Instruction::Less)?;
         assert_eq!(vm.sp, 1);
@@ -1242,16 +1058,7 @@ mod cpu_tests {
 
     #[test]
     fn test_less_lesser() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.stack[1] = Value::Integer(-1);
         vm.execute_instruction(&Instruction::Less)?;
         assert_eq!(vm.sp, 1);
@@ -1261,16 +1068,7 @@ mod cpu_tests {
 
     #[test]
     fn test_less_equals_same() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.execute_instruction(&Instruction::LessEqual)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(true));
@@ -1279,16 +1077,7 @@ mod cpu_tests {
 
     #[test]
     fn test_less_equals_greater() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.stack[1] = Value::Integer(1);
         vm.execute_instruction(&Instruction::LessEqual)?;
         assert_eq!(vm.sp, 1);
@@ -1298,16 +1087,7 @@ mod cpu_tests {
 
     #[test]
     fn test_less_equals_lesser() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.stack[1] = Value::Integer(-1);
         vm.execute_instruction(&Instruction::LessEqual)?;
         assert_eq!(vm.sp, 1);
@@ -1318,22 +1098,14 @@ mod cpu_tests {
     #[test]
     fn test_string_equals_same() -> Result<(), Error> {
         let memory = Memory::new(10);
-        let s1 = String::from("42");
-        let s2 = String::from("42");
-        memory.copy_t(&s1, 0);
-        memory.copy_t(&s2, 5);
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(10)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory,
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
-        vm.stack[0] = Value::String(0);
-        vm.stack[1] = Value::String(5);
+        let mut allocator = Allocator::new(10);
+        let address1 = allocator.malloc(2, std::iter::empty())?;
+        let address2 = allocator.malloc(2, std::iter::empty())?;
+        memory.copy_string("42", address1);
+        memory.copy_string("42", address2);
+        let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
+        vm.stack[0] = Value::String(address1);
+        vm.stack[1] = Value::String(address2);
         vm.execute_instruction(&Instruction::Equal)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(true));
@@ -1343,22 +1115,14 @@ mod cpu_tests {
     #[test]
     fn test_string_equals_diff() -> Result<(), Error> {
         let memory = Memory::new(10);
-        let s1 = String::from("41");
-        let s2 = String::from("42");
-        memory.copy_t(&s1, 0);
-        memory.copy_t(&s2, 5);
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(10)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory,
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
-        vm.stack[0] = Value::String(0);
-        vm.stack[1] = Value::String(5);
+        let mut allocator = Allocator::new(10);
+        let address1 = allocator.malloc(2, std::iter::empty())?;
+        let address2 = allocator.malloc(2, std::iter::empty())?;
+        memory.copy_string("41", address1);
+        memory.copy_string("42", address2);
+        let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
+        vm.stack[0] = Value::String(address1);
+        vm.stack[1] = Value::String(address2);
         vm.execute_instruction(&Instruction::Equal)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(false));
@@ -1375,16 +1139,7 @@ mod cpu_tests {
         let address2 = allocator.malloc(1, std::iter::empty())?;
         memory.copy_string(&s1, address1);
         memory.copy_string(&s2, address2);
-        let mut vm = VM {
-            allocator: RefCell::new(allocator),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory,
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
         vm.stack[0] = Value::String(address2);
         vm.stack[1] = Value::String(address1);
         vm.execute_instruction(&Instruction::StringConcat)?;
@@ -1400,16 +1155,7 @@ mod cpu_tests {
 
     #[test]
     fn test_syscall() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.stack[1] = Value::Integer(sc::nr::GETPID as _);
         vm.stack[0] = Value::Integer(0);
         vm.execute_instruction(&Instruction::Syscall)?;
@@ -1424,16 +1170,7 @@ mod cpu_tests {
 
     #[test]
     fn test_set_global() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 1,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(1);
         vm.stack[0] = Value::Integer(0);
         vm.execute_instruction(&Instruction::SetGlobal(0))?;
         assert_eq!(vm.sp, 0);
@@ -1443,16 +1180,7 @@ mod cpu_tests {
 
     #[test]
     fn test_get_global() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 0,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(0);
         vm.globals.insert(0, Value::Integer(0));
         vm.execute_instruction(&Instruction::GetGlobal(0))?;
         assert_eq!(vm.sp, 1);
@@ -1468,31 +1196,14 @@ mod cpu_tests {
         let s1 = String::from("4");
         let address1 = allocator.malloc(1, std::iter::empty()).unwrap();
         memory.copy_string(&s1, address1);
-        let mut vm = VM {
-            allocator: RefCell::new(allocator),
-            memory,
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            sp: 0,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: vec![Value::String(address1)],
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
+        vm.constants = vec![Value::String(address1)];
         vm.execute_instruction(&Instruction::GetGlobal(0)).unwrap();
     }
 
     #[test]
     fn test_set_local() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 1,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(1);
         vm.stack[0] = Value::Integer(1);
         vm.execute_instruction(&Instruction::SetLocal(1))?;
         assert_eq!(vm.sp, 1);
@@ -1502,16 +1213,7 @@ mod cpu_tests {
 
     #[test]
     fn test_get_local() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 1,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(1);
         vm.stack[0] = Value::Integer(1);
         vm.execute_instruction(&Instruction::GetLocal(0))?;
         assert_eq!(vm.sp, 2);
@@ -1521,16 +1223,7 @@ mod cpu_tests {
 
     #[test]
     fn test_jmp_if_false_jmping() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 1,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(1);
         vm.stack[0] = Value::Integer(0);
         vm.execute_instruction(&Instruction::JmpIfFalse(3))?;
         assert_eq!(vm.sp, 0);
@@ -1540,16 +1233,7 @@ mod cpu_tests {
 
     #[test]
     fn test_jmp_if_false_not_jmping() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 1,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(1);
         vm.stack[0] = Value::Integer(1);
         vm.execute_instruction(&Instruction::JmpIfFalse(3))?;
         assert_eq!(vm.sp, 0);
@@ -1559,16 +1243,7 @@ mod cpu_tests {
 
     #[test]
     fn test_jmp() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 0,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(0);
         vm.execute_instruction(&Instruction::Jmp(3))?;
         assert_eq!(vm.sp, 0);
         assert_eq!(vm.ip(), 3);
@@ -1577,16 +1252,8 @@ mod cpu_tests {
 
     #[test]
     fn test_loop() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 4, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 0,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(0);
+        vm.frames[0].ip = 4;
         vm.execute_instruction(&Instruction::Loop(3))?;
         assert_eq!(vm.sp, 0);
         assert_eq!(vm.ip(), 1);
@@ -1595,16 +1262,7 @@ mod cpu_tests {
 
     #[test]
     fn test_call() -> Result<(), Error> {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.stack[1] = Value::Function {
             ip: 20,
             arity: 1,
@@ -1619,32 +1277,14 @@ mod cpu_tests {
     #[test]
     #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: ExpectedFunction")]
     fn test_call_on_non_function() {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.execute_instruction(&Instruction::Call).unwrap();
     }
 
     #[test]
     #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: NotEnoughArgumentsForFunction")]
     fn test_call_without_enough_arguments() {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(0)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(0),
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm(2);
         vm.stack[1] = Value::Function {
             ip: 20,
             arity: 2,
@@ -1654,20 +1294,11 @@ mod cpu_tests {
 
     #[test]
     fn test_array_alloc() {
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(100)),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            memory: Memory::new(100),
-            sp: 1,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: Vec::new(),
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm_with_mem(1, 100);
         vm.stack[0] = Value::Integer(1);
         vm.execute_instruction(&Instruction::ArrayAlloc).unwrap();
         if let Value::Array { capacity, address } = vm.stack[0] {
-            assert_eq!(vm.allocator.borrow().get_allocated_space(address).unwrap(), capacity * std::mem::size_of::<Value>() as usize);
+            assert_eq!(vm.allocator.borrow().get_allocated_space(address).unwrap(), capacity * VALUE_SIZE);
         } else {
             panic!("Expected array as output of ArrayAlloc {:?}", vm.stack[0]);
         }
@@ -1680,16 +1311,7 @@ mod cpu_tests {
         let value = Value::Integer(42);
         let address = allocator.malloc(std::mem::size_of::<Value>(), std::iter::empty()).unwrap();
         memory.copy_t(&value, address);
-        let mut vm = VM {
-            allocator: RefCell::new(allocator),
-            memory,
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: vec![],
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
         vm.stack[0] = Value::Integer(0);
         vm.stack[1] = Value::Array { address, capacity: 1};
         vm.execute_instruction(&Instruction::ArrayGet).unwrap();
@@ -1705,16 +1327,7 @@ mod cpu_tests {
         let value = Value::Integer(42);
         let address = allocator.malloc(std::mem::size_of::<Value>(), std::iter::empty()).unwrap();
         memory.copy_t(&value, address);
-        let mut vm = VM {
-            allocator: RefCell::new(allocator),
-            memory,
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            sp: 2,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: vec![],
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
         vm.stack[0] = Value::Integer(1);
         vm.stack[1] = Value::Array { address, capacity: 1};
         vm.execute_instruction(&Instruction::ArrayGet).unwrap();
@@ -1727,16 +1340,7 @@ mod cpu_tests {
         let value = Value::Integer(42);
         let address = allocator.malloc(std::mem::size_of::<Value>(), std::iter::empty()).unwrap();
         memory.copy_t(&value, address);
-        let mut vm = VM {
-            allocator: RefCell::new(allocator),
-            memory,
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            sp: 3,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: vec![],
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm_with_memory_and_allocator(3, memory, allocator);
         vm.stack[1] = Value::Integer(0);
         vm.stack[2] = Value::Array { address, capacity: 1};
         vm.execute_instruction(&Instruction::ArraySet).unwrap();
@@ -1753,18 +1357,149 @@ mod cpu_tests {
         let value = Value::Integer(42);
         let address = allocator.malloc(std::mem::size_of::<Value>(), std::iter::empty()).unwrap();
         memory.copy_t(&value, address);
-        let mut vm = VM {
-            allocator: RefCell::new(allocator),
-            memory,
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
-            sp: 3,
-            stack: [Value::Integer(0); STACK_MAX],
-            constants: vec![],
-            rom: Vec::new(),
-            globals: HashMap::default(),
-        };
+        let mut vm = VM::test_vm_with_memory_and_allocator(3, memory, allocator);
         vm.stack[1] = Value::Integer(1);
         vm.stack[2] = Value::Array { address, capacity: 1};
         vm.execute_instruction(&Instruction::ArraySet).unwrap();
+    }
+
+    #[test]
+    fn test_object_alloc() {
+        let mut vm = VM::test_vm_with_mem(1, 100);
+        vm.stack[0] = Value::Integer(1);
+        vm.execute_instruction(&Instruction::ObjectAlloc).unwrap();
+        if let Value::Object { address } = vm.stack[0] {
+            assert_eq!(
+                0usize,
+                *vm.memory.get_t(address).unwrap(),
+            );
+            assert_eq!(
+                vm.allocator.borrow().get_allocated_space(address).unwrap(),
+                VALUE_SIZE + USIZE_SIZE * 2,
+            );
+        } else {
+            panic!("Expected array as output of ArrayAlloc {:?}", vm.stack[0]);
+        }
+    }
+
+    #[test]
+    fn test_object_get() {
+        let memory = Memory::new(100);
+        let mut allocator = Allocator::new(100);
+        let address = allocator.malloc(5, std::iter::empty()).unwrap();
+        memory.copy_string("VALUE", address);
+        let obj_address = allocator.malloc(VALUE_SIZE + USIZE_SIZE * 2, std::iter::empty()).unwrap();
+        memory.copy_t(&1usize, obj_address);
+        memory.copy_t(&address, obj_address + USIZE_SIZE);
+        memory.copy_t(&Value::Integer(42), obj_address + USIZE_SIZE * 2);
+        let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
+        vm.stack[0] = Value::String(address);
+        vm.stack[1] = Value::Object { address: obj_address };
+        vm.execute_instruction(&Instruction::ObjectGet).unwrap();
+        assert_eq!(vm.sp, 1);
+        assert_eq!(vm.stack[0], Value::Integer(42));
+    }
+
+    #[test]
+    #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: PropertyDoesntExist(\"VALUE1\")")]
+    fn test_object_get_wrong_key() {
+        let memory = Memory::new(100);
+        let mut allocator = Allocator::new(100);
+        let address = allocator.malloc(5, std::iter::empty()).unwrap();
+        memory.copy_string("VALUE", address);
+        let wrong_address = allocator.malloc(6, std::iter::empty()).unwrap();
+        memory.copy_string("VALUE1", wrong_address);
+        let obj_address = allocator.malloc(VALUE_SIZE + USIZE_SIZE * 2, std::iter::empty()).unwrap();
+        memory.copy_t(&1usize, obj_address);
+        memory.copy_t(&address, obj_address + USIZE_SIZE);
+        memory.copy_t(&Value::Integer(42), obj_address + USIZE_SIZE * 2);
+        let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
+        vm.stack[0] = Value::String(wrong_address);
+        vm.stack[1] = Value::Object { address: obj_address };
+        vm.execute_instruction(&Instruction::ObjectGet).unwrap();
+    }
+
+    #[test]
+    fn test_object_set() {
+        let memory = Memory::new(100);
+        let mut allocator = Allocator::new(100);
+        let address = allocator.malloc(5, std::iter::empty()).unwrap();
+        memory.copy_string("VALUE", address);
+        let obj_address = allocator.malloc(VALUE_SIZE + USIZE_SIZE * 2, std::iter::empty()).unwrap();
+        memory.copy_t(&0usize, obj_address);
+        let mut vm = VM::test_vm_with_memory_and_allocator(3, memory, allocator);
+        vm.stack[0] = Value::Integer(42);
+        vm.stack[1] = Value::String(address);
+        vm.stack[2] = Value::Object { address: obj_address };
+        vm.execute_instruction(&Instruction::ObjectSet).unwrap();
+        let length_got = *vm.memory.get_t::<usize>(obj_address).unwrap();
+        let address_got = *vm.memory.get_t::<usize>(obj_address + USIZE_SIZE).unwrap();
+        let value_got = vm.memory.get_t::<Value>(obj_address + USIZE_SIZE * 2).unwrap();
+        assert_eq!(length_got, 1);
+        assert_eq!(address_got, address);
+        assert_eq!(value_got, &Value::Integer(42));
+        assert_eq!(vm.sp, 2);
+        assert_eq!(vm.stack[0], Value::Integer(42));
+        assert_eq!(vm.stack[1], Value::Object { address: obj_address });
+    }
+
+    #[test]
+    fn test_object_set_on_existing() {
+        let memory = Memory::new(100);
+        let mut allocator = Allocator::new(100);
+        let address = allocator.malloc(5, std::iter::empty()).unwrap();
+        memory.copy_string("VALUE", address);
+        let obj_address = allocator.malloc(VALUE_SIZE + USIZE_SIZE * 2, std::iter::empty()).unwrap();
+        memory.copy_t(&1usize, obj_address);
+        memory.copy_t(&address, obj_address + USIZE_SIZE);
+        memory.copy_t(&Value::Integer(41), obj_address + USIZE_SIZE * 2);
+        let mut vm = VM::test_vm_with_memory_and_allocator(3, memory, allocator);
+        vm.stack[0] = Value::Integer(42);
+        vm.stack[1] = Value::String(address);
+        vm.stack[2] = Value::Object { address: obj_address };
+        vm.execute_instruction(&Instruction::ObjectSet).unwrap();
+        let length_got = *vm.memory.get_t::<usize>(obj_address).unwrap();
+        let address_got = *vm.memory.get_t::<usize>(obj_address + USIZE_SIZE).unwrap();
+        let value_got = vm.memory.get_t::<Value>(obj_address + USIZE_SIZE * 2).unwrap();
+        assert_eq!(length_got, 1);
+        assert_eq!(address_got, address);
+        assert_eq!(value_got, &Value::Integer(42));
+        assert_eq!(vm.sp, 2);
+        assert_eq!(vm.stack[0], Value::Integer(42));
+        assert_eq!(vm.stack[1], Value::Object { address: obj_address });
+    }
+
+    #[test]
+    fn test_object_set_on_non_existing_without_space() {
+        let memory = Memory::new(100);
+        let mut allocator = Allocator::new(100);
+        let address = allocator.malloc(5, std::iter::empty()).unwrap();
+        memory.copy_string("VALUE", address);
+        let address2 = allocator.malloc(6, std::iter::empty()).unwrap();
+        memory.copy_string("VALUE1", address2);
+        let obj_address = allocator.malloc(VALUE_SIZE + USIZE_SIZE * 2, std::iter::empty()).unwrap();
+        memory.copy_t(&1usize, obj_address);
+        memory.copy_t(&address, obj_address + USIZE_SIZE);
+        memory.copy_t(&Value::Integer(41), obj_address + USIZE_SIZE * 2);
+        let mut vm = VM::test_vm_with_memory_and_allocator(3, memory, allocator);
+        vm.stack[0] = Value::Integer(42);
+        vm.stack[1] = Value::String(address2);
+        vm.stack[2] = Value::Object { address: obj_address };
+        vm.execute_instruction(&Instruction::ObjectSet).unwrap();
+        assert_eq!(vm.sp, 2);
+        assert_eq!(vm.stack[0], Value::Integer(42));
+        if let Value::Object { address: obj_address } = &vm.stack[1] {
+            let obj_address = *obj_address;
+            let length_got = *vm.memory.get_t::<usize>(obj_address).unwrap();
+            let address_got = *vm.memory.get_t::<usize>(obj_address + USIZE_SIZE).unwrap();
+            let value_got = vm.memory.get_t::<Value>(obj_address + USIZE_SIZE * 2).unwrap();
+            let address_got2 = *vm.memory.get_t::<usize>(obj_address + USIZE_SIZE * 2 + VALUE_SIZE).unwrap();
+            let value_got2 = vm.memory.get_t::<Value>(obj_address + USIZE_SIZE * 3 + VALUE_SIZE).unwrap();
+            assert_eq!(length_got, 2);
+            assert_eq!(address_got, address2);
+            assert_eq!(address_got2, address);
+            assert_eq!(value_got, &Value::Integer(42));
+            assert_eq!(value_got2, &Value::Integer(41));
+        }
     }
 }

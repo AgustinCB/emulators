@@ -33,6 +33,9 @@ pub enum Instruction {
     ArrayAlloc,
     ArrayGet,
     ArraySet,
+    ObjectAlloc,
+    ObjectGet,
+    ObjectSet,
 }
 
 impl CpuInstruction for Instruction {
@@ -97,6 +100,9 @@ impl From<Vec<u8>> for Instruction {
             26 => Instruction::ArrayAlloc,
             27 => Instruction::ArrayGet,
             28 => Instruction::ArraySet,
+            29 => Instruction::ObjectAlloc,
+            30 => Instruction::ObjectGet,
+            31 => Instruction::ObjectSet,
             255 => Instruction::Noop,
             _ => {
                 warn!("Invalid instruction");
@@ -139,6 +145,9 @@ impl ToString for Instruction {
             Instruction::ArrayAlloc => "ARRAY_ALLOC".to_owned(),
             Instruction::ArrayGet => "ARRAY_GET".to_owned(),
             Instruction::ArraySet => "ARRAY_SET".to_owned(),
+            Instruction::ObjectAlloc => "OBJECT_ALLOC".to_owned(),
+            Instruction::ObjectGet => "OBJECT_GET".to_owned(),
+            Instruction::ObjectSet => "OBJECT_SET".to_owned(),
         }
     }
 }

@@ -61,20 +61,13 @@ impl FreeChunks {
             .find(|(_, (from, to))| (*to - *from) >= size)
             .map(|(i, (f, t))| (self.free_chunks.len() - i - 1, (f, t)))
     }
-
-    fn available_memory(&self) -> usize {
-        self.free_chunks
-            .iter()
-            .cloned()
-            .map(|(from, to)| to - from)
-            .sum()
-    }
 }
 
 pub struct Allocator {
     free_chunks: FreeChunks,
     allocated_spaces: HashMap<usize, usize>,
     allocated_space: usize,
+    capacity: usize,
     next_gc_pass: usize,
 }
 
@@ -85,6 +78,7 @@ impl Allocator {
             allocated_spaces: HashMap::new(),
             free_chunks: FreeChunks::new(capacity),
             next_gc_pass: FIRST_GC_PASS,
+            capacity,
         }
     }
 
@@ -101,7 +95,7 @@ impl Allocator {
             self.next_gc_pass += NEXT_GC_RATIO;
             self.collect_garbage(used_addresses)?;
         }
-        let free_memory = self.free_chunks.available_memory();
+        let free_memory = self.capacity - self.allocated_space;
         if size > free_memory {
             Err(AllocatorError::NotEnoughMemory {
                 intended: size,

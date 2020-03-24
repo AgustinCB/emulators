@@ -10,7 +10,7 @@ pub enum MemoryError {
 }
 
 #[derive(Clone)]
-pub struct Memory(RefCell<Vec<u64>>);
+pub struct Memory(RefCell<Vec<u8>>);
 
 impl Memory {
     pub fn new(capacity: usize) -> Memory {
@@ -39,7 +39,7 @@ impl Memory {
 
     pub(crate) fn get_u8_vector(&self, address: usize, size: usize) -> Result<&[u8], MemoryError> {
         let memory: &[u8] = unsafe {
-            std::slice::from_raw_parts(self.0.borrow()[address..].as_ptr() as *const u8, size)
+            std::slice::from_raw_parts(self.0.borrow()[address..].as_ptr(), size)
         };
         Ok(memory)
     }
@@ -47,7 +47,7 @@ impl Memory {
     pub(crate) fn copy_u8_vector(&self, vector: &[u8], address: usize) {
         let memory: &mut [u8] = unsafe {
             std::slice::from_raw_parts_mut(
-                self.0.borrow_mut()[address..].as_ptr() as *mut u8,
+                self.0.borrow_mut()[address..].as_mut_ptr(),
                 vector.len(),
             )
         };
@@ -75,11 +75,11 @@ mod tests {
     #[test]
     fn it_should_copy_a_u8_aray() {
         let data = &[1u8, 1, 1, 1, 1, 1, 1, 1];
-        let memory = Memory::new(3);
+        let memory = Memory::new(12);
         memory.copy_u8_vector(data, 1);
         assert_eq!(memory.0.borrow()[0], 0);
-        assert_eq!(memory.0.borrow()[1], 72340172838076673);
-        assert_eq!(memory.0.borrow()[2], 0);
+        assert_eq!(&memory.0.borrow()[1..9], &[1u8, 1, 1, 1, 1, 1, 1, 1]);
+        assert_eq!(memory.0.borrow()[10], 0);
     }
 
     #[test]
