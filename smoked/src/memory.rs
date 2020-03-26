@@ -66,6 +66,9 @@ impl Memory {
         let bs = value.as_bytes();
         self.copy_u8_vector(bs, address)
     }
+    pub(crate) fn get_capacity(&self) -> usize {
+        self.0.borrow().len()
+    }
 }
 
 #[cfg(test)]

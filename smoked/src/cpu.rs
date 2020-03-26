@@ -9,7 +9,7 @@ use std::cell::RefCell;
 use std::cmp::min;
 use std::collections::HashMap;
 
-const STACK_MAX: usize = 256;
+pub(crate) const STACK_MAX: usize = 256;
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -79,20 +79,20 @@ pub enum VMError{
     PropertyDoesntExist(String),
 }
 
-struct Frame {
+pub(crate) struct Frame {
     stack_offset: usize,
     ip: usize,
 }
 
 pub struct VM {
-    allocator: RefCell<Allocator>,
-    memory: Memory,
-    frames: Vec<Frame>,
-    globals: HashMap<usize, Value>,
-    sp: usize,
-    stack: [Value; STACK_MAX],
-    constants: Vec<Value>,
-    rom: Vec<u8>,
+    pub(crate) allocator: RefCell<Allocator>,
+    pub(crate) memory: Memory,
+    pub(crate) frames: Vec<Frame>,
+    pub(crate) globals: HashMap<usize, Value>,
+    pub(crate) sp: usize,
+    pub(crate) stack: [Value; STACK_MAX],
+    pub(crate) constants: Vec<Value>,
+    pub(crate) rom: Vec<u8>,
 }
 
 impl VM {
@@ -375,8 +375,7 @@ impl VM {
             if self.sp < arity {
                 return Err(Error::from(VMError::NotEnoughArgumentsForFunction));
             }
-            let new_frame = Frame { ip, stack_offset: self.sp - arity };
-            self.frames.push(new_frame);
+            self.new_frame(ip, arity);
             Ok(())
         } else {
             Err(Error::from(VMError::ExpectedFunction))
@@ -581,6 +580,11 @@ impl VM {
                 result.extend(self.get_addresses_from_object(*address)),
             _ => {},
         }
+    }
+
+    pub(crate) fn new_frame(&mut self, ip: usize, arity: usize) {
+        let new_frame = Frame { ip, stack_offset: self.sp - arity };
+        self.frames.push(new_frame);
     }
 }
 
