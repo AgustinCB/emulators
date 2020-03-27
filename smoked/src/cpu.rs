@@ -121,6 +121,10 @@ impl VM {
         self.sp += 1;
         Ok(())
     }
+
+    pub fn stack(&self) -> &[Value] {
+        &self.stack[..self.sp]
+    }
 }
 
 #[cfg(test)]
