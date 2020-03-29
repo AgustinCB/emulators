@@ -127,7 +127,7 @@ impl ToString for Instruction {
             Instruction::False => "FALSE".to_owned(),
             Instruction::Not => "NOT".to_owned(),
             Instruction::Equal => "EQUAL".to_owned(),
-            Instruction::NotEqual => "NOTEQUAL".to_owned(),
+            Instruction::NotEqual => "NOT_EQUAL".to_owned(),
             Instruction::Less => "LESS".to_owned(),
             Instruction::LessEqual => "LESS_EQUAL".to_owned(),
             Instruction::Greater => "GREATER".to_owned(),

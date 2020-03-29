@@ -9,6 +9,10 @@ edition = "2018"
 [[bin]]
 name = "smoked"
 
+[[bin]]
+name = "smoke-assembler"
+path = "src/bin/smoke_assembler.rs"
+
 [dependencies]
 cpu = { path = "../cpu" }
 failure = "~0.1.2"

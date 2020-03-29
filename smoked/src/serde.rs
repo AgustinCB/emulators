@@ -73,7 +73,6 @@ fn extract_constants(bytes: &[u8], size: usize) -> Vec<Value> {
 impl From<&[u8]> for VM {
     fn from(bytes: &[u8]) -> Self {
         let constant_length = extract_usize(&bytes[0..USIZE_SIZE]);
-        println!("CONSTANTS {:?}", constant_length);
         let memory_length = extract_usize(&bytes[USIZE_SIZE..USIZE_SIZE*2]);
         let constants = extract_constants(
             &bytes[USIZE_SIZE*2..USIZE_SIZE*2 + constant_length], constant_length
