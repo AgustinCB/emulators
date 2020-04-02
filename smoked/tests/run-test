@@ -1,0 +1,20 @@
+#!/bin/bash
+
+set -euo pipefail
+
+ROOT=$(dirname "$(readlink -f "$0")")
+TEST=${1:?First argument should be a test file}
+ASSEMBLER="$ROOT/../../target/debug/smoke-assembler"
+VM="$ROOT/../../target/debug/smoked"
+FOLDER=$(mktemp -d)
+
+trap "rm -fr $FOLDER; exit" EXIT
+
+echo "Running test $TEST"
+
+set +e
+cat "$TEST" | $ASSEMBLER | $VM -s 1>"$FOLDER/out" 2>"$FOLDER/err"
+set -e
+
+diff "$FOLDER/out" "$TEST.out"
+diff "$FOLDER/err" "$TEST.err"

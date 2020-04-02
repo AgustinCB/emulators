@@ -6,6 +6,7 @@ use cpu::Cpu;
 
 const USAGE: &str = "Usage: smoked [-s] [input file]";
 
+#[derive(Debug)]
 struct Config {
     input_file: Option<String>,
     show_stack: bool,
@@ -16,6 +17,7 @@ fn parse_config<I: Iterator<Item=String>>(mut strings: I) -> Config {
         input_file: None,
         show_stack: false,
     };
+    strings.next();
     while let Some(next) = strings.next() {
         match next.as_str() {
             "-s" | "--show-stack" => {
@@ -32,9 +34,9 @@ fn parse_config<I: Iterator<Item=String>>(mut strings: I) -> Config {
 
 fn main () {
     let conf = parse_config(args());
-    let mut input_file = File::create(
-        conf.input_file.unwrap_or("/dev/stdout".to_owned())
-    ).unwrap();
+    let mut input_file: Box<dyn Read> = conf.input_file
+        .map::<Box<dyn Read>, _>(|f| Box::new(File::create(f).unwrap()))
+        .unwrap_or_else(|| Box::new(std::io::stdin()));
     let mut bytes = vec![];
     input_file.read_to_end(&mut bytes).unwrap();
     let mut vm = VM::from(bytes.as_ref());

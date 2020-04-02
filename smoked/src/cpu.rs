@@ -33,8 +33,8 @@ pub enum Value {
 }
 
 const U64_SIZE: usize = std::mem::size_of::<u64>();
-const VALUE_SIZE: usize = std::mem::size_of::<Value>();
-const USIZE_SIZE: usize = std::mem::size_of::<usize>();
+pub const VALUE_SIZE: usize = std::mem::size_of::<Value>();
+pub const USIZE_SIZE: usize = std::mem::size_of::<usize>();
 
 impl Into<bool> for Value {
     fn into(self) -> bool {
@@ -674,7 +674,7 @@ impl Cpu<Instruction, VMError> for VM {
 
     #[inline]
     fn get_next_instruction_bytes(&self) -> Vec<u8> {
-        let mut res = Vec::with_capacity(3);
+        let mut res = Vec::with_capacity(9);
         let from = self.ip();
         let to = min(from + 9, self.rom.len());
         for i in from..to {
@@ -690,7 +690,7 @@ impl Cpu<Instruction, VMError> for VM {
 
     #[inline]
     fn is_done(&self) -> bool {
-        !self.frames.is_empty() || self.ip() >= self.rom.len() as _
+        self.frames.is_empty() || self.ip() >= self.rom.len() as _
     }
 
     #[inline]

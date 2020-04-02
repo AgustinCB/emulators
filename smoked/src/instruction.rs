@@ -2,6 +2,7 @@ use cpu::{Cycles, Instruction as CpuInstruction};
 use failure::Error;
 use log::warn;
 
+#[derive(Debug)]
 pub enum Instruction {
     Return,
     Constant(usize),
@@ -41,7 +42,9 @@ pub enum Instruction {
 impl CpuInstruction for Instruction {
     fn size(&self) -> Result<u8, Error> {
         Ok(match self {
-            Instruction::Constant(_) => 2,
+            Instruction::Constant(_) | Instruction::SetGlobal(_) | Instruction::GetGlobal(_) |
+            Instruction::SetLocal(_) | Instruction::GetLocal(_) | Instruction::JmpIfFalse(_) |
+            Instruction::Jmp(_) | Instruction::Loop(_) => (1 + std::mem::size_of::<usize>()) as u8,
             _ => 1,
         })
     }
@@ -56,7 +59,7 @@ impl From<Vec<u8>> for Instruction {
     fn from(bytes: Vec<u8>) -> Instruction {
         match bytes[0] {
             0 => Instruction::Return,
-            1 => Instruction::Constant(usize::from_be_bytes(
+            1 => Instruction::Constant(usize::from_le_bytes(
                 [bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7], bytes[8]]
             )),
             2 => Instruction::Plus,
@@ -75,25 +78,25 @@ impl From<Vec<u8>> for Instruction {
             15 => Instruction::LessEqual,
             16 => Instruction::StringConcat,
             17 => Instruction::Syscall,
-            18 => Instruction::GetGlobal(usize::from_be_bytes(
+            18 => Instruction::GetGlobal(usize::from_le_bytes(
                 [bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7], bytes[8]]
             )),
-            19 => Instruction::SetGlobal(usize::from_be_bytes(
+            19 => Instruction::SetGlobal(usize::from_le_bytes(
                 [bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7], bytes[8]]
             )),
-            20 => Instruction::GetLocal(usize::from_be_bytes(
+            20 => Instruction::GetLocal(usize::from_le_bytes(
                 [bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7], bytes[8]]
             )),
-            21 => Instruction::SetLocal(usize::from_be_bytes(
+            21 => Instruction::SetLocal(usize::from_le_bytes(
                 [bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7], bytes[8]]
             )),
-            22 => Instruction::JmpIfFalse(usize::from_be_bytes(
+            22 => Instruction::JmpIfFalse(usize::from_le_bytes(
                 [bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7], bytes[8]]
             )),
-            23 => Instruction::Jmp(usize::from_be_bytes(
+            23 => Instruction::Jmp(usize::from_le_bytes(
                 [bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7], bytes[8]]
             )),
-            24 => Instruction::Loop(usize::from_be_bytes(
+            24 => Instruction::Loop(usize::from_le_bytes(
                 [bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7], bytes[8]]
             )),
             25 => Instruction::Call,

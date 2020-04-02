@@ -8,15 +8,16 @@ const USIZE_SIZE: usize = std::mem::size_of::<usize>();
 const F32_SIZE: usize = std::mem::size_of::<f32>();
 
 fn extract_usize(bytes: &[u8]) -> usize {
-    println!("{:?}", bytes);
     *unsafe {
         (bytes.as_ptr() as *const usize).as_ref()
     }.unwrap()
 }
 
-fn extract_constants(bytes: &[u8], size: usize) -> Vec<Value> {
+fn extract_constants(bytes: &[u8], size: usize) -> (Vec<usize>, Vec<Value>) {
     let mut constants = vec![];
     let mut index = 0;
+    let mut sizes = vec![];
+    let mut last_address = 0;
     while index < size {
         index += 1;
         match bytes[index-1] {
@@ -41,9 +42,11 @@ fn extract_constants(bytes: &[u8], size: usize) -> Vec<Value> {
                 constants.push(Value::Bool(bool))
             },
             4 => {
-                let address = extract_usize(&bytes[index..index+USIZE_SIZE]);
+                let length = extract_usize(&bytes[index..index+USIZE_SIZE]);
                 index += USIZE_SIZE;
-                constants.push(Value::String(address));
+                constants.push(Value::String(last_address));
+                sizes.push(length);
+                last_address += length;
             },
             5 => {
                 let ip = extract_usize(&bytes[index..index+USIZE_SIZE]);
@@ -54,27 +57,31 @@ fn extract_constants(bytes: &[u8], size: usize) -> Vec<Value> {
             },
             6 => {
                 let capacity = extract_usize(&bytes[index..index+USIZE_SIZE]);
-                index += USIZE_SIZE;
-                let address = extract_usize(&bytes[index..index+USIZE_SIZE]);
+                let address = last_address;
                 index += USIZE_SIZE;
                 constants.push(Value::Array { capacity, address });
+                sizes.push(capacity);
+                last_address += capacity;
             },
             7 => {
-                let address = extract_usize(&bytes[index..index+USIZE_SIZE]);
+                let capacity = extract_usize(&bytes[index..index+USIZE_SIZE]);
+                let address = last_address;
                 index += USIZE_SIZE;
                 constants.push(Value::Object { address });
+                sizes.push(capacity);
+                last_address += capacity;
             },
             _ => panic!("Invalid value type")
         }
     }
-    constants
+    (sizes, constants)
 }
 
 impl From<&[u8]> for VM {
     fn from(bytes: &[u8]) -> Self {
         let constant_length = extract_usize(&bytes[0..USIZE_SIZE]);
         let memory_length = extract_usize(&bytes[USIZE_SIZE..USIZE_SIZE*2]);
-        let constants = extract_constants(
+        let (addresses, constants) = extract_constants(
             &bytes[USIZE_SIZE*2..USIZE_SIZE*2 + constant_length], constant_length
         );
         let memory = Memory::new(memory_length);
@@ -84,7 +91,9 @@ impl From<&[u8]> for VM {
         );
         let rom = bytes[USIZE_SIZE * 2 + constant_length + memory_length..].to_vec();
         let mut vm = VM {
-            allocator: RefCell::new(Allocator::new(memory_length)),
+            allocator: RefCell::new(
+                Allocator::new_with_addresses(memory_length, &addresses).unwrap()
+            ),
             frames: vec![],
             globals: Default::default(),
             sp: 0,
@@ -105,17 +114,17 @@ mod tests {
     #[test]
     fn it_should_deserialize_into_a_vm() {
         let bytes = [
-            69u8, 0, 0, 0, 0, 0, 0, 0, // Constant length
-            4, 0, 0, 0, 0, 0, 0, 0, // Memory length
+            61u8, 0, 0, 0, 0, 0, 0, 0, // Constant length
+            8, 0, 0, 0, 0, 0, 0, 0, // Memory length
             0, // Nil value
             1, 42, 0, 0, 0, 0, 0, 0, 0, // Integer value
             2, 42, 42, 42, 42, // Float value
             3, 1, // Bool value
-            4, 42, 0, 0, 0, 0, 0, 0, 0, // String value
+            4, 4, 0, 0, 0, 0, 0, 0, 0, // String value
             5, 42, 0, 0, 0, 0, 0, 0, 0, 42, 0, 0, 0, 0, 0, 0, 0, // Function value
-            6, 42, 0, 0, 0, 0, 0, 0, 0, 42, 0, 0, 0, 0, 0, 0, 0, // Array value
-            7, 42, 0, 0, 0, 0, 0, 0, 0, // Object value
-            0, 1, 2, 3, // Memory
+            6, 2, 0, 0, 0, 0, 0, 0, 0, // Array value
+            7, 2, 0, 0, 0, 0, 0, 0, 0, // Object value
+            0, 1, 2, 3, 4, 5, 6, 7, // Memory
             42, 43, 44, 45 // ROM
         ];
         let vm = VM::from(bytes.as_ref());
@@ -124,12 +133,12 @@ mod tests {
         assert_eq!(&vm.constants[1], &Value::Integer(42));
         assert_eq!(&vm.constants[2], &Value::Float(0.00000000000015113662f32));
         assert_eq!(&vm.constants[3], &Value::Bool(true));
-        assert_eq!(&vm.constants[4], &Value::String(42));
+        assert_eq!(&vm.constants[4], &Value::String(0));
         assert_eq!(&vm.constants[5], &Value::Function { arity: 42, ip: 42 });
-        assert_eq!(&vm.constants[6], &Value::Array { capacity: 42, address: 42 });
-        assert_eq!(&vm.constants[7], &Value::Object { address: 42 });
-        assert_eq!(vm.memory.get_capacity(), 4);
-        assert_eq!(vm.memory.get_u8_vector(0, 4).unwrap(), &[0u8, 1, 2, 3]);
+        assert_eq!(&vm.constants[6], &Value::Array { capacity: 2, address: 4 });
+        assert_eq!(&vm.constants[7], &Value::Object { address: 6 });
+        assert_eq!(vm.memory.get_capacity(), 8);
+        assert_eq!(vm.memory.get_u8_vector(0, 8).unwrap(), &[0u8, 1, 2, 3, 4, 5, 6, 7]);
         assert_eq!(&vm.rom, &[42u8, 43, 44, 45]);
     }
 }

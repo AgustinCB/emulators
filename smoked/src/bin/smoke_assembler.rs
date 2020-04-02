@@ -4,6 +4,7 @@ use std::io::prelude::*;
 use std::iter::Peekable;
 use std::str::FromStr;
 use std::mem::size_of;
+use smoked::cpu::{VALUE_SIZE, USIZE_SIZE};
 
 const USAGE: &str = "Usage: smoke-assembler [input file] [output file]";
 
@@ -213,7 +214,7 @@ fn parse_constants<'a, I: Iterator<Item=Token<'a>>>(lexems: &mut Peekable<I>) ->
                 }
                 Constant::String(s) => {
                     bytes.push(4);
-                    serialize_type!(bytes, memory.len(), usize);
+                    serialize_type!(bytes, s.len(), usize);
                     memory.extend_from_slice(s.as_bytes());
                 }
                 Constant::Function { ip, arity } => {
@@ -223,11 +224,20 @@ fn parse_constants<'a, I: Iterator<Item=Token<'a>>>(lexems: &mut Peekable<I>) ->
                 }
                 Constant::Array { capacity } => {
                     bytes.push(6);
+                    let capacity = VALUE_SIZE * capacity;
                     serialize_type!(bytes, capacity, usize);
+                    for _ in 0..capacity {
+                        memory.push(0)
+                    }
                 }
                 Constant::Object { capacity } => {
                     bytes.push(7);
+                    serialize_type!(memory, capacity, usize);
+                    let capacity = (USIZE_SIZE + VALUE_SIZE) * capacity;
                     serialize_type!(bytes, capacity, usize);
+                    for _ in 0..capacity {
+                        memory.push(0)
+                    }
                 }
             }
         }

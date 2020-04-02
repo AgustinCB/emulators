@@ -82,6 +82,20 @@ impl Allocator {
         }
     }
 
+    pub fn new_with_addresses(capacity: usize, sizes: &[usize]) -> Result<Allocator, AllocatorError> {
+        let mut allocator = Allocator {
+            allocated_space: 0,
+            allocated_spaces: HashMap::new(),
+            free_chunks: FreeChunks::new(capacity),
+            next_gc_pass: FIRST_GC_PASS,
+            capacity,
+        };
+        for size in sizes {
+            allocator.malloc(*size, std::iter::empty())?;
+        }
+        Ok(allocator)
+    }
+
     pub fn get_allocated_space(&self, address: usize) -> Option<usize> {
         self.allocated_spaces.get(&address).cloned()
     }
