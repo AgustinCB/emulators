@@ -262,18 +262,8 @@ impl VM {
         debug!("{}", instruction.to_string());
         match &instruction {
             VMInstruction::Noop => {},
-            VMInstruction::Return => {
-                let return_value = self.pop()?;
-                self.sp = self.frames.last().unwrap().stack_offset;
-                self.push(return_value)?;
-                self.frames.pop();
-            },
-            VMInstruction::Constant(index) => {
-                match self.constants.get(*index).cloned() {
-                    Some(c) => self.push(c)?,
-                    None => return Err(Error::from(VMError::InvalidConstant(*index))),
-                };
-            }
+            VMInstruction::Return => self.return_from_call()?,
+            VMInstruction::Constant(index) => self.constant(*index)?,
             VMInstruction::Plus => {
                 math_operation!(self, +);
             }
@@ -345,12 +335,32 @@ impl VM {
         self.add_to_ip(steps as _);
     }
 
+    #[inline]
     fn ip(&self) -> usize {
         self.frames.last().unwrap().ip
     }
 
+    #[inline]
     fn add_to_ip(&mut self, steps: usize) {
         self.frames.last_mut().unwrap().ip += steps;
+    }
+
+    #[inline]
+    fn constant(&mut self, index: usize) -> Result<(), Error> {
+        match self.constants.get(index).cloned() {
+            Some(c) => self.push(c)?,
+            None => return Err(Error::from(VMError::InvalidConstant(index))),
+        };
+        Ok(())
+    }
+
+    #[inline]
+    fn return_from_call(&mut self) -> Result<(), Error> {
+        let return_value = self.pop()?;
+        self.sp = self.frames.last().unwrap().stack_offset;
+        self.push(return_value)?;
+        self.frames.pop();
+        Ok(())
     }
 
     fn string_concat(&mut self) -> Result<(), Error> {
