@@ -2,7 +2,6 @@ use crate::allocator::Allocator;
 use crate::memory::Memory;
 use crate::instruction::{Instruction as VMInstruction};
 use failure::Error;
-use log::debug;
 use sc::{syscall0, syscall1, syscall2, syscall3, syscall4, syscall5, syscall6};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -95,8 +94,7 @@ pub struct VM {
 
 impl VM {
     fn pop(&mut self) -> Result<Value, VMError> {
-        let sp = self.sp - self.frames.last().unwrap().stack_offset;
-        if sp == 0 {
+        if (self.sp - self.frames.last().unwrap().stack_offset) == 0 {
             return Err(VMError::EmptyStack);
         }
         self.sp -= 1;
@@ -104,8 +102,7 @@ impl VM {
     }
 
     fn peek(&self) -> Result<Value, VMError> {
-        let sp = self.sp - self.frames.last().unwrap().stack_offset;
-        if sp == 0 {
+        if (self.sp - self.frames.last().unwrap().stack_offset) == 0 {
             return Err(VMError::EmptyStack);
         }
         Ok(self.stack[self.sp - 1])
@@ -259,7 +256,6 @@ impl VM {
     }
 
     fn execute_instruction(&mut self, instruction: VMInstruction) -> Result<(), Error> {
-        debug!("{}", instruction.to_string());
         match &instruction {
             VMInstruction::Noop => {},
             VMInstruction::Return => self.return_from_call()?,
