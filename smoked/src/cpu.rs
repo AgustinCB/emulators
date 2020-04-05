@@ -1,7 +1,7 @@
 use crate::allocator::Allocator;
 use crate::memory::Memory;
-use cpu::Cpu;
-use crate::instruction::Instruction;
+use cpu::{Cpu, Instruction};
+use crate::instruction::{Instruction as VMInstruction};
 use failure::Error;
 use log::debug;
 use sc::{syscall0, syscall1, syscall2, syscall3, syscall4, syscall5, syscall6};
@@ -216,17 +216,20 @@ mod tests {
 macro_rules! comp_operation {
     ($self: ident, $op: tt) => {
         match ($self.pop()?, $self.pop()?) {
-            (Value::Integer(a), Value::Integer(b)) => $self.push(Value::Bool(a $op b)),
-            (Value::Float(a), Value::Integer(b)) => $self.push(Value::Bool(a $op b as f32)),
-            (Value::Integer(a), Value::Float(b)) => $self.push(Value::Bool((a as f32) $op b)),
-            (Value::Float(a), Value::Float(b)) => $self.push(Value::Bool(a $op b)),
-            (Value::Bool(a), Value::Bool(b)) => $self.push(Value::Bool(a $op b)),
-            (Value::Bool(a), v) => $self.push(Value::Bool(a $op v.into())),
+            (Value::Integer(a), Value::Integer(b)) => $self.push(Value::Bool(b $op a)),
+            (Value::Float(a), Value::Integer(b)) => $self.push(Value::Bool((b as f32) $op a)),
+            (Value::Integer(a), Value::Float(b)) => $self.push(Value::Bool(b $op (a as f32))),
+            (Value::Float(a), Value::Float(b)) => $self.push(Value::Bool(b $op a)),
+            (Value::Bool(a), Value::Bool(b)) => $self.push(Value::Bool(b $op a)),
+            (Value::Bool(a), v) => {
+                let b: bool = v.into();
+                $self.push(Value::Bool(b $op a))
+            },
             (v, Value::Bool(a)) => $self.push(Value::Bool(a $op v.into())),
             (Value::String(s1), Value::String(s2)) => {
                 let result = {
-                    let string1 = $self.memory.get_string(s1, $self.get_size(s1)?)?;
-                    let string2 = $self.memory.get_string(s2, $self.get_size(s2)?)?;
+                    let string1 = $self.memory.get_string(s2, $self.get_size(s2)?)?;
+                    let string2 = $self.memory.get_string(s1, $self.get_size(s1)?)?;
                     string1 $op string2
                 };
                 $self.push(Value::Bool(result))
@@ -240,10 +243,10 @@ macro_rules! comp_operation {
 macro_rules! math_operation {
     ($self: ident, $op: tt) => {
         match ($self.pop()?, $self.pop()?) {
-            (Value::Integer(a), Value::Integer(b)) => $self.push(Value::Integer(a $op b)),
-            (Value::Float(a), Value::Integer(b)) => $self.push(Value::Float(a $op b as f32)),
-            (Value::Integer(a), Value::Float(b)) => $self.push(Value::Float(a as f32 $op b)),
-            (Value::Float(a), Value::Float(b)) => $self.push(Value::Float(a $op b)),
+            (Value::Integer(a), Value::Integer(b)) => $self.push(Value::Integer(b $op a)),
+            (Value::Float(a), Value::Integer(b)) => $self.push(Value::Float(b as f32 $op a)),
+            (Value::Integer(a), Value::Float(b)) => $self.push(Value::Float(b $op a as f32)),
+            (Value::Float(a), Value::Float(b)) => $self.push(Value::Float(b $op a)),
             _ => Err(VMError::ExpectedNumbers),
         }?;
     }; 
@@ -357,12 +360,12 @@ impl VM {
     }
 
     fn get_local(&mut self, local: usize) -> Result<(), Error> {
-        self.push(self.stack[local - self.frames.last().unwrap().stack_offset])?;
+        self.push(self.stack[self.frames.last().unwrap().stack_offset + local])?;
         Ok(())
     }
 
     fn set_local(&mut self, local: usize) -> Result<(), Error> {
-        self.stack[local - self.frames.last().unwrap().stack_offset] = self.peek()?;
+        self.stack[self.frames.last().unwrap().stack_offset + local] = self.peek()?;
         Ok(())
     }
 
@@ -592,77 +595,87 @@ impl VM {
     }
 }
 
-impl Cpu<Instruction, VMError> for VM {
-    fn execute_instruction(&mut self, instruction: &Instruction) -> Result<(), Error> {
+impl Cpu<VMInstruction, VMError> for VM {
+    fn execute(&mut self) -> Result<u8, Error> {
+        let instruction = VMInstruction::from(self.get_next_instruction_bytes());
+        self.increase_pc(instruction.size()?);
+        self.execute_instruction(&instruction)?;
+        Ok(0)
+    }
+
+    fn execute_instruction(&mut self, instruction: &VMInstruction) -> Result<(), Error> {
         debug!("{}", instruction.to_string());
         match instruction {
-            Instruction::Noop => {},
-            Instruction::Return => {
+            VMInstruction::Noop => {},
+            VMInstruction::Return => {
+                let return_value = self.pop()?;
+                self.sp = self.frames.last().unwrap().stack_offset;
+                self.push(return_value)?;
                 self.frames.pop();
             },
-            Instruction::Constant(index) => {
+            VMInstruction::Constant(index) => {
                 match self.constants.get(*index).cloned() {
                     Some(c) => self.push(c)?,
                     None => return Err(Error::from(VMError::InvalidConstant(*index))),
                 };
             }
-            Instruction::Plus => {
+            VMInstruction::Plus => {
                 math_operation!(self, +);
             }
-            Instruction::Minus => {
+            VMInstruction::Minus => {
                 math_operation!(self, -);
             }
-            Instruction::Mult => {
+            VMInstruction::Mult => {
                 math_operation!(self, *);
             }
-            Instruction::Div => {
+            VMInstruction::Div => {
                 math_operation!(self, /);
             }
-            Instruction::Nil => self.push(Value::Nil)?,
-            Instruction::True => self.push(Value::Bool(true))?,
-            Instruction::False => self.push(Value::Bool(false))?,
-            Instruction::Not => {
+            VMInstruction::Nil => self.push(Value::Nil)?,
+            VMInstruction::True => self.push(Value::Bool(true))?,
+            VMInstruction::False => self.push(Value::Bool(false))?,
+            VMInstruction::Not => {
                 let b: bool = self.pop()?.into();
                 self.push(Value::Bool(!b))?;
             }
-            Instruction::Equal => {
+            VMInstruction::Equal => {
                 comp_operation!(self, ==);
             }
-            Instruction::NotEqual => {
+            VMInstruction::NotEqual => {
                 comp_operation!(self, !=);
             }
-            Instruction::Greater => {
+            VMInstruction::Greater => {
                 comp_operation!(self, >);
             }
-            Instruction::GreaterEqual => {
+            VMInstruction::GreaterEqual => {
                 comp_operation!(self, >=);
             }
-            Instruction::Less => {
+            VMInstruction::Less => {
                 comp_operation!(self, < );
             }
-            Instruction::LessEqual => {
+            VMInstruction::LessEqual => {
                 comp_operation!(self, <=);
             }
-            Instruction::StringConcat => self.string_concat()?,
-            Instruction::Syscall => self.syscall()?,
-            Instruction::GetGlobal(g) => self.get_global(*g)?,
-            Instruction::SetGlobal(g) => self.set_global(*g)?,
-            Instruction::GetLocal(g) => self.get_local(*g)?,
-            Instruction::SetLocal(g) => self.set_local(*g)?,
-            Instruction::JmpIfFalse(o) => self.jmp_if_false(*o)?,
-            Instruction::Jmp(o) => {
+            VMInstruction::StringConcat => self.string_concat()?,
+            VMInstruction::Syscall => self.syscall()?,
+            VMInstruction::GetGlobal(g) => self.get_global(*g)?,
+            VMInstruction::SetGlobal(g) => self.set_global(*g)?,
+            VMInstruction::GetLocal(g) => self.get_local(*g)?,
+            VMInstruction::SetLocal(g) => self.set_local(*g)?,
+            VMInstruction::JmpIfFalse(o) => self.jmp_if_false(*o)?,
+            VMInstruction::Jmp(o) => {
                 self.add_to_ip(*o);
             },
-            Instruction::Loop(o) => {
+            VMInstruction::Loop(o) => {
                 self.frames.last_mut().unwrap().ip -= *o;
             },
-            Instruction::Call => self.call()?,
-            Instruction::ArrayAlloc => self.array_alloc()?,
-            Instruction::ArrayGet => self.array_get()?,
-            Instruction::ArraySet => self.array_set()?,
-            Instruction::ObjectAlloc => self.object_alloc()?,
-            Instruction::ObjectGet => self.object_get()?,
-            Instruction::ObjectSet => self.object_set()?,
+            VMInstruction::Call => self.call()?,
+            VMInstruction::ArrayAlloc => self.array_alloc()?,
+            VMInstruction::ArrayGet => self.array_get()?,
+            VMInstruction::ArraySet => self.array_set()?,
+            VMInstruction::ObjectAlloc => self.object_alloc()?,
+            VMInstruction::ObjectGet => self.object_get()?,
+            VMInstruction::ObjectSet => self.object_set()?,
         };
         Ok(())
     }
@@ -684,8 +697,8 @@ impl Cpu<Instruction, VMError> for VM {
     }
 
     #[inline]
-    fn can_run(&self, _: &Instruction) -> bool {
-        true
+    fn can_run(&self, _: &VMInstruction) -> bool {
+        unreachable!()
     }
 
     #[inline]
@@ -700,7 +713,7 @@ impl Cpu<Instruction, VMError> for VM {
 
     fn get_cycles_from_one_condition(
         &self,
-        _: &Instruction,
+        _: &VMInstruction,
         _: u8,
         _: u8,
     ) -> Result<u8, Error> {
@@ -709,7 +722,7 @@ impl Cpu<Instruction, VMError> for VM {
 
     fn get_cycles_from_two_conditions(
         &self,
-        _: &Instruction,
+        _: &VMInstruction,
         _: u8,
         _: u8,
         _: u8,
@@ -784,8 +797,8 @@ mod cpu_tests {
     #[test]
     fn test_sub_integer() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[0] = Value::Integer(1);
-        vm.stack[1] = Value::Integer(2);
+        vm.stack[1] = Value::Integer(1);
+        vm.stack[0] = Value::Integer(2);
         vm.execute_instruction(&Instruction::Minus)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Integer(1));
@@ -795,8 +808,8 @@ mod cpu_tests {
     #[test]
     fn test_sub_float() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[0] = Value::Float(1.0);
-        vm.stack[1] = Value::Float(2.0);
+        vm.stack[1] = Value::Float(1.0);
+        vm.stack[0] = Value::Float(2.0);
         vm.execute_instruction(&Instruction::Minus)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Float(1.0));
@@ -806,8 +819,8 @@ mod cpu_tests {
     #[test]
     fn test_sub_float_integer() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[0] = Value::Float(1.0);
-        vm.stack[1] = Value::Integer(2);
+        vm.stack[1] = Value::Float(1.0);
+        vm.stack[0] = Value::Integer(2);
         vm.execute_instruction(&Instruction::Minus)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Float(1.0));
@@ -817,8 +830,8 @@ mod cpu_tests {
     #[test]
     fn test_sub_integer_float() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[0] = Value::Float(1.0);
-        vm.stack[1] = Value::Integer(2);
+        vm.stack[1] = Value::Float(1.0);
+        vm.stack[0] = Value::Integer(2);
         vm.execute_instruction(&Instruction::Minus)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Float(1.0));
@@ -872,8 +885,8 @@ mod cpu_tests {
     #[test]
     fn test_div_integer() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[0] = Value::Integer(1);
-        vm.stack[1] = Value::Integer(2);
+        vm.stack[1] = Value::Integer(1);
+        vm.stack[0] = Value::Integer(2);
         vm.execute_instruction(&Instruction::Div)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Integer(2));
@@ -883,8 +896,8 @@ mod cpu_tests {
     #[test]
     fn test_div_float() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[0] = Value::Float(1.0);
-        vm.stack[1] = Value::Float(2.0);
+        vm.stack[1] = Value::Float(1.0);
+        vm.stack[0] = Value::Float(2.0);
         vm.execute_instruction(&Instruction::Div)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Float(2.0));
@@ -894,8 +907,8 @@ mod cpu_tests {
     #[test]
     fn test_div_float_integer() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[0] = Value::Float(1.0);
-        vm.stack[1] = Value::Integer(2);
+        vm.stack[1] = Value::Float(1.0);
+        vm.stack[0] = Value::Integer(2);
         vm.execute_instruction(&Instruction::Div)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Float(2.0));
@@ -905,8 +918,8 @@ mod cpu_tests {
     #[test]
     fn test_div_integer_float() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[0] = Value::Float(1.0);
-        vm.stack[1] = Value::Integer(2);
+        vm.stack[1] = Value::Float(1.0);
+        vm.stack[0] = Value::Integer(2);
         vm.execute_instruction(&Instruction::Div)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Float(2.0));
@@ -999,7 +1012,7 @@ mod cpu_tests {
     #[test]
     fn test_greater_greater() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[1] = Value::Integer(1);
+        vm.stack[0] = Value::Integer(1);
         vm.execute_instruction(&Instruction::Greater)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(true));
@@ -1009,7 +1022,7 @@ mod cpu_tests {
     #[test]
     fn test_greater_lesser() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[1] = Value::Integer(-1);
+        vm.stack[0] = Value::Integer(-1);
         vm.execute_instruction(&Instruction::Greater)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(false));
@@ -1028,7 +1041,7 @@ mod cpu_tests {
     #[test]
     fn test_greater_equals_greater() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[1] = Value::Integer(1);
+        vm.stack[0] = Value::Integer(1);
         vm.execute_instruction(&Instruction::GreaterEqual)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(true));
@@ -1038,7 +1051,7 @@ mod cpu_tests {
     #[test]
     fn test_greater_equals_lesser() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[1] = Value::Integer(-1);
+        vm.stack[0] = Value::Integer(-1);
         vm.execute_instruction(&Instruction::GreaterEqual)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(false));
@@ -1057,7 +1070,7 @@ mod cpu_tests {
     #[test]
     fn test_less_greater() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[1] = Value::Integer(1);
+        vm.stack[0] = Value::Integer(1);
         vm.execute_instruction(&Instruction::Less)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(false));
@@ -1067,7 +1080,7 @@ mod cpu_tests {
     #[test]
     fn test_less_lesser() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[1] = Value::Integer(-1);
+        vm.stack[0] = Value::Integer(-1);
         vm.execute_instruction(&Instruction::Less)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(true));
@@ -1086,7 +1099,7 @@ mod cpu_tests {
     #[test]
     fn test_less_equals_greater() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[1] = Value::Integer(1);
+        vm.stack[0] = Value::Integer(1);
         vm.execute_instruction(&Instruction::LessEqual)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(false));
@@ -1096,7 +1109,7 @@ mod cpu_tests {
     #[test]
     fn test_less_equals_lesser() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[1] = Value::Integer(-1);
+        vm.stack[0] = Value::Integer(-1);
         vm.execute_instruction(&Instruction::LessEqual)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(true));
