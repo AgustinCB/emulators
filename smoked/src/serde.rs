@@ -1,7 +1,10 @@
-use crate::cpu::{STACK_MAX, VM, Value};
-use crate::memory::Memory;
 use crate::allocator::Allocator;
+use crate::cpu::{STACK_MAX, VM, Value};
+use crate::instruction::{Instruction as VMInstruction};
+use crate::memory::Memory;
+use cpu::Instruction;
 use std::cell::RefCell;
+use std::cmp::min;
 
 const I64_SIZE: usize = std::mem::size_of::<i64>();
 const USIZE_SIZE: usize = std::mem::size_of::<usize>();
@@ -89,7 +92,15 @@ impl From<&[u8]> for VM {
             &bytes[USIZE_SIZE * 2 + constant_length..USIZE_SIZE * 2 + constant_length + memory_length],
             0
         );
-        let rom = bytes[USIZE_SIZE * 2 + constant_length + memory_length..].to_vec();
+        let bytes = &bytes[USIZE_SIZE * 2 + constant_length + memory_length..];
+        let mut rom = vec![];
+        let mut index = 0;
+        while index < bytes.len() {
+            let to = min(index+9, bytes.len());
+            let instruction = VMInstruction::from(bytes[index..to].to_vec());
+            index += instruction.size().unwrap() as usize;
+            rom.push(instruction);
+        }
         let mut vm = VM {
             allocator: RefCell::new(
                 Allocator::new_with_addresses(memory_length, &addresses).unwrap()
@@ -110,6 +121,7 @@ impl From<&[u8]> for VM {
 #[cfg(test)]
 mod tests {
     use crate::cpu::{VM, Value};
+    use crate::instruction::Instruction;
 
     #[test]
     fn it_should_deserialize_into_a_vm() {
@@ -125,7 +137,7 @@ mod tests {
             6, 2, 0, 0, 0, 0, 0, 0, 0, // Array value
             7, 2, 0, 0, 0, 0, 0, 0, 0, // Object value
             0, 1, 2, 3, 4, 5, 6, 7, // Memory
-            42, 43, 44, 45 // ROM
+            0, 1, 42, 0, 0, 0, 0, 0, 0, 0, 2, 3, 4 // ROM
         ];
         let vm = VM::from(bytes.as_ref());
         assert_eq!(vm.constants.len(), 8);
@@ -139,6 +151,9 @@ mod tests {
         assert_eq!(&vm.constants[7], &Value::Object { address: 6 });
         assert_eq!(vm.memory.get_capacity(), 8);
         assert_eq!(vm.memory.get_u8_vector(0, 8).unwrap(), &[0u8, 1, 2, 3, 4, 5, 6, 7]);
-        assert_eq!(&vm.rom, &[42u8, 43, 44, 45]);
+        assert_eq!(&vm.rom, &[
+            Instruction::Return, Instruction::Constant(42), Instruction::Plus, Instruction::Minus,
+            Instruction::Mult
+        ]);
     }
 }

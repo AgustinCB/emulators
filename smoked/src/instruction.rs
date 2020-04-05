@@ -2,7 +2,7 @@ use cpu::{Cycles, Instruction as CpuInstruction};
 use failure::Error;
 use log::warn;
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Instruction {
     Return,
     Constant(usize),

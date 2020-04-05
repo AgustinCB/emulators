@@ -2,7 +2,6 @@ use smoked::cpu::VM;
 use std::env::args;
 use std::fs::File;
 use std::io::prelude::*;
-use cpu::Cpu;
 
 const USAGE: &str = "Usage: smoked [-s] [input file]";
 

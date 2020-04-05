@@ -1,12 +1,10 @@
 use crate::allocator::Allocator;
 use crate::memory::Memory;
-use cpu::{Cpu, Instruction};
 use crate::instruction::{Instruction as VMInstruction};
 use failure::Error;
 use log::debug;
 use sc::{syscall0, syscall1, syscall2, syscall3, syscall4, syscall5, syscall6};
 use std::cell::RefCell;
-use std::cmp::min;
 use std::collections::HashMap;
 
 pub(crate) const STACK_MAX: usize = 256;
@@ -92,7 +90,7 @@ pub struct VM {
     pub(crate) sp: usize,
     pub(crate) stack: [Value; STACK_MAX],
     pub(crate) constants: Vec<Value>,
-    pub(crate) rom: Vec<u8>,
+    pub(crate) rom: Vec<VMInstruction>,
 }
 
 impl VM {
@@ -253,6 +251,100 @@ macro_rules! math_operation {
 }
 
 impl VM {
+    pub fn execute(&mut self) -> Result<u8, Error> {
+        let ip = self.ip();
+        self.increase_pc(1);
+        self.execute_instruction(self.rom[ip].clone())?;
+        Ok(0)
+    }
+
+    fn execute_instruction(&mut self, instruction: VMInstruction) -> Result<(), Error> {
+        debug!("{}", instruction.to_string());
+        match &instruction {
+            VMInstruction::Noop => {},
+            VMInstruction::Return => {
+                let return_value = self.pop()?;
+                self.sp = self.frames.last().unwrap().stack_offset;
+                self.push(return_value)?;
+                self.frames.pop();
+            },
+            VMInstruction::Constant(index) => {
+                match self.constants.get(*index).cloned() {
+                    Some(c) => self.push(c)?,
+                    None => return Err(Error::from(VMError::InvalidConstant(*index))),
+                };
+            }
+            VMInstruction::Plus => {
+                math_operation!(self, +);
+            }
+            VMInstruction::Minus => {
+                math_operation!(self, -);
+            }
+            VMInstruction::Mult => {
+                math_operation!(self, *);
+            }
+            VMInstruction::Div => {
+                math_operation!(self, /);
+            }
+            VMInstruction::Nil => self.push(Value::Nil)?,
+            VMInstruction::True => self.push(Value::Bool(true))?,
+            VMInstruction::False => self.push(Value::Bool(false))?,
+            VMInstruction::Not => {
+                let b: bool = self.pop()?.into();
+                self.push(Value::Bool(!b))?;
+            }
+            VMInstruction::Equal => {
+                comp_operation!(self, ==);
+            }
+            VMInstruction::NotEqual => {
+                comp_operation!(self, !=);
+            }
+            VMInstruction::Greater => {
+                comp_operation!(self, >);
+            }
+            VMInstruction::GreaterEqual => {
+                comp_operation!(self, >=);
+            }
+            VMInstruction::Less => {
+                comp_operation!(self, < );
+            }
+            VMInstruction::LessEqual => {
+                comp_operation!(self, <=);
+            }
+            VMInstruction::StringConcat => self.string_concat()?,
+            VMInstruction::Syscall => self.syscall()?,
+            VMInstruction::GetGlobal(g) => self.get_global(*g)?,
+            VMInstruction::SetGlobal(g) => self.set_global(*g)?,
+            VMInstruction::GetLocal(g) => self.get_local(*g)?,
+            VMInstruction::SetLocal(g) => self.set_local(*g)?,
+            VMInstruction::JmpIfFalse(o) => self.jmp_if_false(*o)?,
+            VMInstruction::Jmp(o) => {
+                self.add_to_ip(*o);
+            },
+            VMInstruction::Loop(o) => {
+                self.frames.last_mut().unwrap().ip -= *o;
+            },
+            VMInstruction::Call => self.call()?,
+            VMInstruction::ArrayAlloc => self.array_alloc()?,
+            VMInstruction::ArrayGet => self.array_get()?,
+            VMInstruction::ArraySet => self.array_set()?,
+            VMInstruction::ObjectAlloc => self.object_alloc()?,
+            VMInstruction::ObjectGet => self.object_get()?,
+            VMInstruction::ObjectSet => self.object_set()?,
+        };
+        Ok(())
+    }
+
+    #[inline]
+    pub fn is_done(&self) -> bool {
+        self.frames.is_empty() || self.ip() >= self.rom.len() as _
+    }
+
+    #[inline]
+    fn increase_pc(&mut self, steps: u8) {
+        self.add_to_ip(steps as _);
+    }
+
     fn ip(&self) -> usize {
         self.frames.last().unwrap().ip
     }
@@ -595,145 +687,8 @@ impl VM {
     }
 }
 
-impl Cpu<VMInstruction, VMError> for VM {
-    fn execute(&mut self) -> Result<u8, Error> {
-        let instruction = VMInstruction::from(self.get_next_instruction_bytes());
-        self.increase_pc(instruction.size()?);
-        self.execute_instruction(&instruction)?;
-        Ok(0)
-    }
-
-    fn execute_instruction(&mut self, instruction: &VMInstruction) -> Result<(), Error> {
-        debug!("{}", instruction.to_string());
-        match instruction {
-            VMInstruction::Noop => {},
-            VMInstruction::Return => {
-                let return_value = self.pop()?;
-                self.sp = self.frames.last().unwrap().stack_offset;
-                self.push(return_value)?;
-                self.frames.pop();
-            },
-            VMInstruction::Constant(index) => {
-                match self.constants.get(*index).cloned() {
-                    Some(c) => self.push(c)?,
-                    None => return Err(Error::from(VMError::InvalidConstant(*index))),
-                };
-            }
-            VMInstruction::Plus => {
-                math_operation!(self, +);
-            }
-            VMInstruction::Minus => {
-                math_operation!(self, -);
-            }
-            VMInstruction::Mult => {
-                math_operation!(self, *);
-            }
-            VMInstruction::Div => {
-                math_operation!(self, /);
-            }
-            VMInstruction::Nil => self.push(Value::Nil)?,
-            VMInstruction::True => self.push(Value::Bool(true))?,
-            VMInstruction::False => self.push(Value::Bool(false))?,
-            VMInstruction::Not => {
-                let b: bool = self.pop()?.into();
-                self.push(Value::Bool(!b))?;
-            }
-            VMInstruction::Equal => {
-                comp_operation!(self, ==);
-            }
-            VMInstruction::NotEqual => {
-                comp_operation!(self, !=);
-            }
-            VMInstruction::Greater => {
-                comp_operation!(self, >);
-            }
-            VMInstruction::GreaterEqual => {
-                comp_operation!(self, >=);
-            }
-            VMInstruction::Less => {
-                comp_operation!(self, < );
-            }
-            VMInstruction::LessEqual => {
-                comp_operation!(self, <=);
-            }
-            VMInstruction::StringConcat => self.string_concat()?,
-            VMInstruction::Syscall => self.syscall()?,
-            VMInstruction::GetGlobal(g) => self.get_global(*g)?,
-            VMInstruction::SetGlobal(g) => self.set_global(*g)?,
-            VMInstruction::GetLocal(g) => self.get_local(*g)?,
-            VMInstruction::SetLocal(g) => self.set_local(*g)?,
-            VMInstruction::JmpIfFalse(o) => self.jmp_if_false(*o)?,
-            VMInstruction::Jmp(o) => {
-                self.add_to_ip(*o);
-            },
-            VMInstruction::Loop(o) => {
-                self.frames.last_mut().unwrap().ip -= *o;
-            },
-            VMInstruction::Call => self.call()?,
-            VMInstruction::ArrayAlloc => self.array_alloc()?,
-            VMInstruction::ArrayGet => self.array_get()?,
-            VMInstruction::ArraySet => self.array_set()?,
-            VMInstruction::ObjectAlloc => self.object_alloc()?,
-            VMInstruction::ObjectGet => self.object_get()?,
-            VMInstruction::ObjectSet => self.object_set()?,
-        };
-        Ok(())
-    }
-
-    #[inline]
-    fn get_pc(&self) -> u16 {
-        self.ip() as _
-    }
-
-    #[inline]
-    fn get_next_instruction_bytes(&self) -> Vec<u8> {
-        let mut res = Vec::with_capacity(9);
-        let from = self.ip();
-        let to = min(from + 9, self.rom.len());
-        for i in from..to {
-            res.push(self.rom[i]);
-        }
-        res
-    }
-
-    #[inline]
-    fn can_run(&self, _: &VMInstruction) -> bool {
-        unreachable!()
-    }
-
-    #[inline]
-    fn is_done(&self) -> bool {
-        self.frames.is_empty() || self.ip() >= self.rom.len() as _
-    }
-
-    #[inline]
-    fn increase_pc(&mut self, steps: u8) {
-        self.add_to_ip(steps as _);
-    }
-
-    fn get_cycles_from_one_condition(
-        &self,
-        _: &VMInstruction,
-        _: u8,
-        _: u8,
-    ) -> Result<u8, Error> {
-        unreachable!()
-    }
-
-    fn get_cycles_from_two_conditions(
-        &self,
-        _: &VMInstruction,
-        _: u8,
-        _: u8,
-        _: u8,
-    ) -> Result<u8, Error> {
-        unreachable!()
-    }
-}
-
 #[cfg(test)]
 mod cpu_tests {
-    use cpu::Cpu;
     use crate::allocator::Allocator;
     use crate::instruction::Instruction;
     use crate::memory::Memory;
@@ -745,7 +700,7 @@ mod cpu_tests {
     fn test_constant() -> Result<(), Error> {
         let mut vm = VM::test_vm(0);
         vm.constants.push(Value::Integer(1));
-        vm.execute_instruction(&Instruction::Constant(0))?;
+        vm.execute_instruction(Instruction::Constant(0))?;
         assert_eq!(vm.stack[0], Value::Integer(1));
         Ok(())
     }
@@ -755,7 +710,7 @@ mod cpu_tests {
         let mut vm = VM::test_vm(2);
         vm.stack[0] = Value::Integer(1);
         vm.stack[1] = Value::Integer(2);
-        vm.execute_instruction(&Instruction::Plus)?;
+        vm.execute_instruction(Instruction::Plus)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Integer(3));
         Ok(())
@@ -766,7 +721,7 @@ mod cpu_tests {
         let mut vm = VM::test_vm(2);
         vm.stack[0] = Value::Float(1.0);
         vm.stack[1] = Value::Float(2.0);
-        vm.execute_instruction(&Instruction::Plus)?;
+        vm.execute_instruction(Instruction::Plus)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Float(3.0));
         Ok(())
@@ -777,7 +732,7 @@ mod cpu_tests {
         let mut vm = VM::test_vm(2);
         vm.stack[0] = Value::Float(1.0);
         vm.stack[1] = Value::Integer(2);
-        vm.execute_instruction(&Instruction::Plus)?;
+        vm.execute_instruction(Instruction::Plus)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Float(3.0));
         Ok(())
@@ -788,7 +743,7 @@ mod cpu_tests {
         let mut vm = VM::test_vm(2);
         vm.stack[0] = Value::Float(1.0);
         vm.stack[1] = Value::Integer(2);
-        vm.execute_instruction(&Instruction::Plus)?;
+        vm.execute_instruction(Instruction::Plus)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Float(3.0));
         Ok(())
@@ -799,7 +754,7 @@ mod cpu_tests {
         let mut vm = VM::test_vm(2);
         vm.stack[1] = Value::Integer(1);
         vm.stack[0] = Value::Integer(2);
-        vm.execute_instruction(&Instruction::Minus)?;
+        vm.execute_instruction(Instruction::Minus)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Integer(1));
         Ok(())
@@ -810,7 +765,7 @@ mod cpu_tests {
         let mut vm = VM::test_vm(2);
         vm.stack[1] = Value::Float(1.0);
         vm.stack[0] = Value::Float(2.0);
-        vm.execute_instruction(&Instruction::Minus)?;
+        vm.execute_instruction(Instruction::Minus)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Float(1.0));
         Ok(())
@@ -821,7 +776,7 @@ mod cpu_tests {
         let mut vm = VM::test_vm(2);
         vm.stack[1] = Value::Float(1.0);
         vm.stack[0] = Value::Integer(2);
-        vm.execute_instruction(&Instruction::Minus)?;
+        vm.execute_instruction(Instruction::Minus)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Float(1.0));
         Ok(())
@@ -832,7 +787,7 @@ mod cpu_tests {
         let mut vm = VM::test_vm(2);
         vm.stack[1] = Value::Float(1.0);
         vm.stack[0] = Value::Integer(2);
-        vm.execute_instruction(&Instruction::Minus)?;
+        vm.execute_instruction(Instruction::Minus)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Float(1.0));
         Ok(())
@@ -843,7 +798,7 @@ mod cpu_tests {
         let mut vm = VM::test_vm(2);
         vm.stack[0] = Value::Integer(1);
         vm.stack[1] = Value::Integer(2);
-        vm.execute_instruction(&Instruction::Mult)?;
+        vm.execute_instruction(Instruction::Mult)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Integer(2));
         Ok(())
@@ -854,7 +809,7 @@ mod cpu_tests {
         let mut vm = VM::test_vm(2);
         vm.stack[0] = Value::Float(1.0);
         vm.stack[1] = Value::Float(2.0);
-        vm.execute_instruction(&Instruction::Mult)?;
+        vm.execute_instruction(Instruction::Mult)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Float(2.0));
         Ok(())
@@ -865,7 +820,7 @@ mod cpu_tests {
         let mut vm = VM::test_vm(2);
         vm.stack[0] = Value::Float(1.0);
         vm.stack[1] = Value::Integer(2);
-        vm.execute_instruction(&Instruction::Mult)?;
+        vm.execute_instruction(Instruction::Mult)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Float(2.0));
         Ok(())
@@ -876,7 +831,7 @@ mod cpu_tests {
         let mut vm = VM::test_vm(2);
         vm.stack[0] = Value::Float(1.0);
         vm.stack[1] = Value::Integer(2);
-        vm.execute_instruction(&Instruction::Mult)?;
+        vm.execute_instruction(Instruction::Mult)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Float(2.0));
         Ok(())
@@ -887,7 +842,7 @@ mod cpu_tests {
         let mut vm = VM::test_vm(2);
         vm.stack[1] = Value::Integer(1);
         vm.stack[0] = Value::Integer(2);
-        vm.execute_instruction(&Instruction::Div)?;
+        vm.execute_instruction(Instruction::Div)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Integer(2));
         Ok(())
@@ -898,7 +853,7 @@ mod cpu_tests {
         let mut vm = VM::test_vm(2);
         vm.stack[1] = Value::Float(1.0);
         vm.stack[0] = Value::Float(2.0);
-        vm.execute_instruction(&Instruction::Div)?;
+        vm.execute_instruction(Instruction::Div)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Float(2.0));
         Ok(())
@@ -909,7 +864,7 @@ mod cpu_tests {
         let mut vm = VM::test_vm(2);
         vm.stack[1] = Value::Float(1.0);
         vm.stack[0] = Value::Integer(2);
-        vm.execute_instruction(&Instruction::Div)?;
+        vm.execute_instruction(Instruction::Div)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Float(2.0));
         Ok(())
@@ -920,7 +875,7 @@ mod cpu_tests {
         let mut vm = VM::test_vm(2);
         vm.stack[1] = Value::Float(1.0);
         vm.stack[0] = Value::Integer(2);
-        vm.execute_instruction(&Instruction::Div)?;
+        vm.execute_instruction(Instruction::Div)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Float(2.0));
         Ok(())
@@ -929,7 +884,7 @@ mod cpu_tests {
     #[test]
     fn test_nil() -> Result<(), Error> {
         let mut vm = VM::test_vm(0);
-        vm.execute_instruction(&Instruction::Nil)?;
+        vm.execute_instruction(Instruction::Nil)?;
         assert_eq!(vm.stack[0], Value::Nil);
         Ok(())
     }
@@ -937,7 +892,7 @@ mod cpu_tests {
     #[test]
     fn test_true() -> Result<(), Error> {
         let mut vm = VM::test_vm(0);
-        vm.execute_instruction(&Instruction::True)?;
+        vm.execute_instruction(Instruction::True)?;
         assert_eq!(vm.stack[0], Value::Bool(true));
         Ok(())
     }
@@ -945,7 +900,7 @@ mod cpu_tests {
     #[test]
     fn test_false() -> Result<(), Error> {
         let mut vm = VM::test_vm(0);
-        vm.execute_instruction(&Instruction::False)?;
+        vm.execute_instruction(Instruction::False)?;
         assert_eq!(vm.stack[0], Value::Bool(false));
         Ok(())
     }
@@ -953,10 +908,10 @@ mod cpu_tests {
     #[test]
     fn test_not() -> Result<(), Error> {
         let mut vm = VM::test_vm(1);
-        vm.execute_instruction(&Instruction::Not)?;
+        vm.execute_instruction(Instruction::Not)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(true));
-        vm.execute_instruction(&Instruction::Not)?;
+        vm.execute_instruction(Instruction::Not)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(false));
         Ok(())
@@ -965,7 +920,7 @@ mod cpu_tests {
     #[test]
     fn test_equals_same() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.execute_instruction(&Instruction::Equal)?;
+        vm.execute_instruction(Instruction::Equal)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(true));
         Ok(())
@@ -975,7 +930,7 @@ mod cpu_tests {
     fn test_equals_diff() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
         vm.stack[1] = Value::Integer(1);
-        vm.execute_instruction(&Instruction::Equal)?;
+        vm.execute_instruction(Instruction::Equal)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(false));
         Ok(())
@@ -984,7 +939,7 @@ mod cpu_tests {
     #[test]
     fn test_not_equals_same() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.execute_instruction(&Instruction::NotEqual)?;
+        vm.execute_instruction(Instruction::NotEqual)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(false));
         Ok(())
@@ -994,7 +949,7 @@ mod cpu_tests {
     fn test_not_equals_diff() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
         vm.stack[1] = Value::Integer(1);
-        vm.execute_instruction(&Instruction::NotEqual)?;
+        vm.execute_instruction(Instruction::NotEqual)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(true));
         Ok(())
@@ -1003,7 +958,7 @@ mod cpu_tests {
     #[test]
     fn test_greater_same() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.execute_instruction(&Instruction::Greater)?;
+        vm.execute_instruction(Instruction::Greater)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(false));
         Ok(())
@@ -1013,7 +968,7 @@ mod cpu_tests {
     fn test_greater_greater() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
         vm.stack[0] = Value::Integer(1);
-        vm.execute_instruction(&Instruction::Greater)?;
+        vm.execute_instruction(Instruction::Greater)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(true));
         Ok(())
@@ -1023,7 +978,7 @@ mod cpu_tests {
     fn test_greater_lesser() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
         vm.stack[0] = Value::Integer(-1);
-        vm.execute_instruction(&Instruction::Greater)?;
+        vm.execute_instruction(Instruction::Greater)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(false));
         Ok(())
@@ -1032,7 +987,7 @@ mod cpu_tests {
     #[test]
     fn test_greater_equals_same() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.execute_instruction(&Instruction::GreaterEqual)?;
+        vm.execute_instruction(Instruction::GreaterEqual)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(true));
         Ok(())
@@ -1042,7 +997,7 @@ mod cpu_tests {
     fn test_greater_equals_greater() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
         vm.stack[0] = Value::Integer(1);
-        vm.execute_instruction(&Instruction::GreaterEqual)?;
+        vm.execute_instruction(Instruction::GreaterEqual)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(true));
         Ok(())
@@ -1052,7 +1007,7 @@ mod cpu_tests {
     fn test_greater_equals_lesser() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
         vm.stack[0] = Value::Integer(-1);
-        vm.execute_instruction(&Instruction::GreaterEqual)?;
+        vm.execute_instruction(Instruction::GreaterEqual)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(false));
         Ok(())
@@ -1061,7 +1016,7 @@ mod cpu_tests {
     #[test]
     fn test_less_same() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.execute_instruction(&Instruction::Less)?;
+        vm.execute_instruction(Instruction::Less)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(false));
         Ok(())
@@ -1071,7 +1026,7 @@ mod cpu_tests {
     fn test_less_greater() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
         vm.stack[0] = Value::Integer(1);
-        vm.execute_instruction(&Instruction::Less)?;
+        vm.execute_instruction(Instruction::Less)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(false));
         Ok(())
@@ -1081,7 +1036,7 @@ mod cpu_tests {
     fn test_less_lesser() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
         vm.stack[0] = Value::Integer(-1);
-        vm.execute_instruction(&Instruction::Less)?;
+        vm.execute_instruction(Instruction::Less)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(true));
         Ok(())
@@ -1090,7 +1045,7 @@ mod cpu_tests {
     #[test]
     fn test_less_equals_same() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.execute_instruction(&Instruction::LessEqual)?;
+        vm.execute_instruction(Instruction::LessEqual)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(true));
         Ok(())
@@ -1100,7 +1055,7 @@ mod cpu_tests {
     fn test_less_equals_greater() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
         vm.stack[0] = Value::Integer(1);
-        vm.execute_instruction(&Instruction::LessEqual)?;
+        vm.execute_instruction(Instruction::LessEqual)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(false));
         Ok(())
@@ -1110,7 +1065,7 @@ mod cpu_tests {
     fn test_less_equals_lesser() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
         vm.stack[0] = Value::Integer(-1);
-        vm.execute_instruction(&Instruction::LessEqual)?;
+        vm.execute_instruction(Instruction::LessEqual)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(true));
         Ok(())
@@ -1127,7 +1082,7 @@ mod cpu_tests {
         let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
         vm.stack[0] = Value::String(address1);
         vm.stack[1] = Value::String(address2);
-        vm.execute_instruction(&Instruction::Equal)?;
+        vm.execute_instruction(Instruction::Equal)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(true));
         Ok(())
@@ -1144,7 +1099,7 @@ mod cpu_tests {
         let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
         vm.stack[0] = Value::String(address1);
         vm.stack[1] = Value::String(address2);
-        vm.execute_instruction(&Instruction::Equal)?;
+        vm.execute_instruction(Instruction::Equal)?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Bool(false));
         Ok(())
@@ -1163,7 +1118,7 @@ mod cpu_tests {
         let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
         vm.stack[0] = Value::String(address2);
         vm.stack[1] = Value::String(address1);
-        vm.execute_instruction(&Instruction::StringConcat)?;
+        vm.execute_instruction(Instruction::StringConcat)?;
         assert_eq!(vm.sp, 1);
         if let Value::String(address) = vm.stack[0] {
             let r = vm.memory.get_string(address, 2)?;
@@ -1179,7 +1134,7 @@ mod cpu_tests {
         let mut vm = VM::test_vm(2);
         vm.stack[1] = Value::Integer(sc::nr::GETPID as _);
         vm.stack[0] = Value::Integer(0);
-        vm.execute_instruction(&Instruction::Syscall)?;
+        vm.execute_instruction(Instruction::Syscall)?;
         assert_eq!(vm.sp, 1);
         if let Value::Integer(n) = vm.stack[0] {
             assert!(n > 0);
@@ -1193,7 +1148,7 @@ mod cpu_tests {
     fn test_set_global() -> Result<(), Error> {
         let mut vm = VM::test_vm(1);
         vm.stack[0] = Value::Integer(0);
-        vm.execute_instruction(&Instruction::SetGlobal(0))?;
+        vm.execute_instruction(Instruction::SetGlobal(0))?;
         assert_eq!(vm.sp, 0);
         assert_eq!(vm.globals[&0], Value::Integer(0));
         Ok(())
@@ -1203,7 +1158,7 @@ mod cpu_tests {
     fn test_get_global() -> Result<(), Error> {
         let mut vm = VM::test_vm(0);
         vm.globals.insert(0, Value::Integer(0));
-        vm.execute_instruction(&Instruction::GetGlobal(0))?;
+        vm.execute_instruction(Instruction::GetGlobal(0))?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Integer(0));
         Ok(())
@@ -1219,14 +1174,14 @@ mod cpu_tests {
         memory.copy_string(&s1, address1);
         let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
         vm.constants = vec![Value::String(address1)];
-        vm.execute_instruction(&Instruction::GetGlobal(0)).unwrap();
+        vm.execute_instruction(Instruction::GetGlobal(0)).unwrap();
     }
 
     #[test]
     fn test_set_local() -> Result<(), Error> {
         let mut vm = VM::test_vm(1);
         vm.stack[0] = Value::Integer(1);
-        vm.execute_instruction(&Instruction::SetLocal(1))?;
+        vm.execute_instruction(Instruction::SetLocal(1))?;
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[1], Value::Integer(1));
         Ok(())
@@ -1236,7 +1191,7 @@ mod cpu_tests {
     fn test_get_local() -> Result<(), Error> {
         let mut vm = VM::test_vm(1);
         vm.stack[0] = Value::Integer(1);
-        vm.execute_instruction(&Instruction::GetLocal(0))?;
+        vm.execute_instruction(Instruction::GetLocal(0))?;
         assert_eq!(vm.sp, 2);
         assert_eq!(vm.stack[1], Value::Integer(1));
         Ok(())
@@ -1246,7 +1201,7 @@ mod cpu_tests {
     fn test_jmp_if_false_jmping() -> Result<(), Error> {
         let mut vm = VM::test_vm(1);
         vm.stack[0] = Value::Integer(0);
-        vm.execute_instruction(&Instruction::JmpIfFalse(3))?;
+        vm.execute_instruction(Instruction::JmpIfFalse(3))?;
         assert_eq!(vm.sp, 0);
         assert_eq!(vm.ip(), 3);
         Ok(())
@@ -1256,7 +1211,7 @@ mod cpu_tests {
     fn test_jmp_if_false_not_jmping() -> Result<(), Error> {
         let mut vm = VM::test_vm(1);
         vm.stack[0] = Value::Integer(1);
-        vm.execute_instruction(&Instruction::JmpIfFalse(3))?;
+        vm.execute_instruction(Instruction::JmpIfFalse(3))?;
         assert_eq!(vm.sp, 0);
         assert_eq!(vm.ip(), 0);
         Ok(())
@@ -1265,7 +1220,7 @@ mod cpu_tests {
     #[test]
     fn test_jmp() -> Result<(), Error> {
         let mut vm = VM::test_vm(0);
-        vm.execute_instruction(&Instruction::Jmp(3))?;
+        vm.execute_instruction(Instruction::Jmp(3))?;
         assert_eq!(vm.sp, 0);
         assert_eq!(vm.ip(), 3);
         Ok(())
@@ -1275,7 +1230,7 @@ mod cpu_tests {
     fn test_loop() -> Result<(), Error> {
         let mut vm = VM::test_vm(0);
         vm.frames[0].ip = 4;
-        vm.execute_instruction(&Instruction::Loop(3))?;
+        vm.execute_instruction(Instruction::Loop(3))?;
         assert_eq!(vm.sp, 0);
         assert_eq!(vm.ip(), 1);
         Ok(())
@@ -1288,7 +1243,7 @@ mod cpu_tests {
             ip: 20,
             arity: 1,
         };
-        vm.execute_instruction(&Instruction::Call)?;
+        vm.execute_instruction(Instruction::Call)?;
         assert_eq!(vm.frames.last().unwrap().stack_offset, 0);
         assert_eq!(vm.frames.len(), 2);
         assert_eq!(vm.ip(), 20);
@@ -1299,7 +1254,7 @@ mod cpu_tests {
     #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: ExpectedFunction")]
     fn test_call_on_non_function() {
         let mut vm = VM::test_vm(2);
-        vm.execute_instruction(&Instruction::Call).unwrap();
+        vm.execute_instruction(Instruction::Call).unwrap();
     }
 
     #[test]
@@ -1310,14 +1265,14 @@ mod cpu_tests {
             ip: 20,
             arity: 2,
         };
-        vm.execute_instruction(&Instruction::Call).unwrap();
+        vm.execute_instruction(Instruction::Call).unwrap();
     }
 
     #[test]
     fn test_array_alloc() {
         let mut vm = VM::test_vm_with_mem(1, 100);
         vm.stack[0] = Value::Integer(1);
-        vm.execute_instruction(&Instruction::ArrayAlloc).unwrap();
+        vm.execute_instruction(Instruction::ArrayAlloc).unwrap();
         if let Value::Array { capacity, address } = vm.stack[0] {
             assert_eq!(vm.allocator.borrow().get_allocated_space(address).unwrap(), capacity * VALUE_SIZE);
         } else {
@@ -1335,7 +1290,7 @@ mod cpu_tests {
         let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
         vm.stack[0] = Value::Integer(0);
         vm.stack[1] = Value::Array { address, capacity: 1};
-        vm.execute_instruction(&Instruction::ArrayGet).unwrap();
+        vm.execute_instruction(Instruction::ArrayGet).unwrap();
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Integer(42));
     }
@@ -1351,7 +1306,7 @@ mod cpu_tests {
         let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
         vm.stack[0] = Value::Integer(1);
         vm.stack[1] = Value::Array { address, capacity: 1};
-        vm.execute_instruction(&Instruction::ArrayGet).unwrap();
+        vm.execute_instruction(Instruction::ArrayGet).unwrap();
     }
 
     #[test]
@@ -1364,7 +1319,7 @@ mod cpu_tests {
         let mut vm = VM::test_vm_with_memory_and_allocator(3, memory, allocator);
         vm.stack[1] = Value::Integer(0);
         vm.stack[2] = Value::Array { address, capacity: 1};
-        vm.execute_instruction(&Instruction::ArraySet).unwrap();
+        vm.execute_instruction(Instruction::ArraySet).unwrap();
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.memory.get_t::<Value>(address).unwrap().clone(), Value::Integer(0));
         assert_eq!(vm.stack[0], Value::Integer(0));
@@ -1381,14 +1336,14 @@ mod cpu_tests {
         let mut vm = VM::test_vm_with_memory_and_allocator(3, memory, allocator);
         vm.stack[1] = Value::Integer(1);
         vm.stack[2] = Value::Array { address, capacity: 1};
-        vm.execute_instruction(&Instruction::ArraySet).unwrap();
+        vm.execute_instruction(Instruction::ArraySet).unwrap();
     }
 
     #[test]
     fn test_object_alloc() {
         let mut vm = VM::test_vm_with_mem(1, 100);
         vm.stack[0] = Value::Integer(1);
-        vm.execute_instruction(&Instruction::ObjectAlloc).unwrap();
+        vm.execute_instruction(Instruction::ObjectAlloc).unwrap();
         if let Value::Object { address } = vm.stack[0] {
             assert_eq!(
                 0usize,
@@ -1416,7 +1371,7 @@ mod cpu_tests {
         let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
         vm.stack[0] = Value::String(address);
         vm.stack[1] = Value::Object { address: obj_address };
-        vm.execute_instruction(&Instruction::ObjectGet).unwrap();
+        vm.execute_instruction(Instruction::ObjectGet).unwrap();
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Integer(42));
     }
@@ -1437,7 +1392,7 @@ mod cpu_tests {
         let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
         vm.stack[0] = Value::String(wrong_address);
         vm.stack[1] = Value::Object { address: obj_address };
-        vm.execute_instruction(&Instruction::ObjectGet).unwrap();
+        vm.execute_instruction(Instruction::ObjectGet).unwrap();
     }
 
     #[test]
@@ -1452,7 +1407,7 @@ mod cpu_tests {
         vm.stack[0] = Value::Integer(42);
         vm.stack[1] = Value::String(address);
         vm.stack[2] = Value::Object { address: obj_address };
-        vm.execute_instruction(&Instruction::ObjectSet).unwrap();
+        vm.execute_instruction(Instruction::ObjectSet).unwrap();
         let length_got = *vm.memory.get_t::<usize>(obj_address).unwrap();
         let address_got = *vm.memory.get_t::<usize>(obj_address + USIZE_SIZE).unwrap();
         let value_got = vm.memory.get_t::<Value>(obj_address + USIZE_SIZE * 2).unwrap();
@@ -1478,7 +1433,7 @@ mod cpu_tests {
         vm.stack[0] = Value::Integer(42);
         vm.stack[1] = Value::String(address);
         vm.stack[2] = Value::Object { address: obj_address };
-        vm.execute_instruction(&Instruction::ObjectSet).unwrap();
+        vm.execute_instruction(Instruction::ObjectSet).unwrap();
         let length_got = *vm.memory.get_t::<usize>(obj_address).unwrap();
         let address_got = *vm.memory.get_t::<usize>(obj_address + USIZE_SIZE).unwrap();
         let value_got = vm.memory.get_t::<Value>(obj_address + USIZE_SIZE * 2).unwrap();
@@ -1506,7 +1461,7 @@ mod cpu_tests {
         vm.stack[0] = Value::Integer(42);
         vm.stack[1] = Value::String(address2);
         vm.stack[2] = Value::Object { address: obj_address };
-        vm.execute_instruction(&Instruction::ObjectSet).unwrap();
+        vm.execute_instruction(Instruction::ObjectSet).unwrap();
         assert_eq!(vm.sp, 2);
         assert_eq!(vm.stack[0], Value::Integer(42));
         if let Value::Object { address: obj_address } = &vm.stack[1] {
