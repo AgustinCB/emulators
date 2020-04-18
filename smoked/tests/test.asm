@@ -1,4 +1,4 @@
 .data
 INTEGER 1
 .code
-CONSTANT 0
+CONSTANT 1

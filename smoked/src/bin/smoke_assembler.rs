@@ -54,12 +54,18 @@ enum Constant<'a> {
 }
 
 #[derive(Clone, Debug)]
-enum Token<'a> {
+enum TokenType<'a> {
     Data,
     Constant(Constant<'a>),
     Code,
     Instruction(&'a str),
     Number(usize),
+}
+
+#[derive(Clone, Debug)]
+struct Token<'a> {
+    token_type: TokenType<'a>,
+    location: usize,
 }
 
 fn take_while<'a, P: Fn(char) -> bool>(chars: &[char], f: P) -> usize {
@@ -105,6 +111,7 @@ fn lexer(content: &str) -> Vec<Token> {
     let mut tokens = vec![];
     let chars: Vec<char> = content.chars().peekable().collect();
     let mut index = 0usize;
+    let mut line = 0usize;
     while index < chars.len() {
         let c = chars[index];
         index += 1;
@@ -113,10 +120,16 @@ fn lexer(content: &str) -> Vec<Token> {
                 get_str!(pred, chars, index, content, |c| !c.is_whitespace());
                 match pred {
                     "data" => {
-                        tokens.push(Token::Data);
+                        tokens.push(Token {
+                            token_type: TokenType::Data,
+                            location: line,
+                        });
                     }
                     "code" => {
-                        tokens.push(Token::Code);
+                        tokens.push(Token {
+                            token_type: TokenType::Code,
+                            location: line,
+                        });
                     }
                     p => panic!("Invalid predicate {}", p),
                 }
@@ -127,27 +140,42 @@ fn lexer(content: &str) -> Vec<Token> {
                 let keyword = format!("{}{}", c, suffix);
                 expect_whitespace!(chars, index);
                 match keyword.to_lowercase().as_str() {
-                    "nil" => tokens.push(Token::Constant(Constant::Nil)),
+                    "nil" => tokens.push(Token {
+                        token_type: TokenType::Constant(Constant::Nil),
+                        location: line,
+                    }),
                     "integer" => {
                         get_str!(number_string, chars, index, content, |c| !c.is_whitespace());
                         let number = i64::from_str(number_string).unwrap();
-                        tokens.push(Token::Constant(Constant::Integer(number)));
+                        tokens.push(Token {
+                            token_type: TokenType::Constant(Constant::Integer(number)),
+                            location: line,
+                        });
                     }
                     "float" => {
                         get_str!(number_string, chars, index, content, |c| !c.is_whitespace());
                         let number = f32::from_str(number_string).unwrap();
-                        tokens.push(Token::Constant(Constant::Float(number)));
+                        tokens.push(Token {
+                            token_type: TokenType::Constant(Constant::Float(number)),
+                            location: line,
+                        });
                     }
                     "bool" => {
                         get_str!(bool, chars, index, content, |c| !c.is_whitespace());
                         let value = bool::from_str(bool).unwrap();
-                        tokens.push(Token::Constant(Constant::Bool(value)));
+                        tokens.push(Token {
+                            token_type: TokenType::Constant(Constant::Bool(value)),
+                            location: line,
+                        });
                     }
                     "string" => {
                         expect_quotes!(chars, index);
                         get_str!(value, chars, index, content, |c| c != '"');
                         expect_quotes!(chars, index);
-                        tokens.push(Token::Constant(Constant::String(value)));
+                        tokens.push(Token {
+                            token_type: TokenType::Constant(Constant::String(value)),
+                            location: line,
+                        });
                     }
                     "function" => {
                         get_str!(ip_string, chars, index, content, |c| !c.is_whitespace());
@@ -155,26 +183,42 @@ fn lexer(content: &str) -> Vec<Token> {
                         expect_whitespace!(chars, index);
                         get_str!(arity_string, chars, index, content, |c| !c.is_whitespace());
                         let arity = usize::from_str(arity_string).unwrap();
-                        tokens.push(Token::Constant(Constant::Function { ip, arity }));
+                        tokens.push(Token {
+                            token_type: TokenType::Constant(Constant::Function { ip, arity }),
+                            location: line,
+                        });
                     }
                     "array" => {
                         get_str!(capacity_string, chars, index, content, |c| !c.is_whitespace());
                         let capacity = usize::from_str(capacity_string).unwrap();
-                        tokens.push(Token::Constant(Constant::Array { capacity }));
+                        tokens.push(Token {
+                            token_type: TokenType::Constant(Constant::Array { capacity }),
+                            location: line,
+                        });
                     }
                     "object" => {
                         get_str!(capacity_string, chars, index, content, |c| !c.is_whitespace());
                         let capacity = usize::from_str(capacity_string).unwrap();
-                        tokens.push(Token::Constant(Constant::Object { capacity }));
+                        tokens.push(Token {
+                            token_type: TokenType::Constant(Constant::Object { capacity }),
+                            location: line,
+                        });
                     }
                     instruction => {
                         match instruction.parse::<usize>() {
-                            Ok(number) => tokens.push(Token::Number(number)),
-                            Err(_) => tokens.push(Token::Instruction(&content[instruction_start-1..index-1])),
+                            Ok(number) => tokens.push(Token {
+                                token_type: TokenType::Number(number),
+                                location: line,
+                            }),
+                            Err(_) => tokens.push(Token {
+                                token_type: TokenType::Instruction(&content[instruction_start-1..index-1]),
+                                location: line,
+                            }),
                         }
                     },
                 }
             },
+            '\n' => line += 1,
             s if s.is_whitespace() => {},
             _ => panic!("Unexpected space")
         }
@@ -191,12 +235,18 @@ macro_rules! serialize_type {
     }
 }
 
-fn parse_constants<'a, I: Iterator<Item=Token<'a>>>(lexems: &mut Peekable<I>) -> (Vec<u8>, Vec<u8>) {
+fn parse_constants<'a, I: Iterator<Item=Token<'a>>>(
+    lexems: &mut Peekable<I>,
+    file_name: &str,
+) -> (Vec<u8>, Vec<u8>) {
     let mut memory = vec![];
     let mut bytes = vec![];
-    if let Some(Token::Data) = lexems.peek().cloned() {
+    bytes.push(4);
+    serialize_type!(bytes, file_name.len(), usize);
+    memory.extend_from_slice(file_name.as_bytes());
+    if let Some(TokenType::Data) = lexems.peek().cloned().map(|t| t.token_type) {
         lexems.next();
-        while let Some(Token::Constant(constant)) = lexems.peek().cloned() {
+        while let Some(TokenType::Constant(constant)) = lexems.peek().cloned().map(|t| t.token_type) {
             lexems.next();
             match constant {
                 Constant::Nil => bytes.push(0),
@@ -245,14 +295,15 @@ fn parse_constants<'a, I: Iterator<Item=Token<'a>>>(lexems: &mut Peekable<I>) ->
     (memory, bytes)
 }
 
-fn parse_instructions<'a, I: Iterator<Item=Token<'a>>>(lexems: &mut Peekable<I>) -> Vec<u8> {
+fn parse_instructions<'a, I: Iterator<Item=Token<'a>>>(lexems: &mut Peekable<I>) -> (Vec<u8>, Vec<usize>) {
     let mut upcodes = vec![];
-    if let Some(Token::Code) = lexems.peek().cloned() {
+    let mut instructions = vec![];
+    if let Some(TokenType::Code) = lexems.peek().cloned().map(|t| t.token_type) {
         lexems.next();
         while let Some(token) = lexems.next() {
-            match token {
-                Token::Instruction(i) => {
-                    match i {
+            match &token.token_type {
+                TokenType::Instruction(i) => {
+                    match *i {
                         "RETURN" => upcodes.push(0),
                         "CONSTANT" => upcodes.push(1),
                         "PLUS" => upcodes.push(2),
@@ -287,20 +338,31 @@ fn parse_instructions<'a, I: Iterator<Item=Token<'a>>>(lexems: &mut Peekable<I>)
                         "OBJECT_SET" => upcodes.push(31),
                         "NOOP" => upcodes.push(255),
                         _ => panic!("Unexpected instruction {}", i),
+                    };
+                    if let Some(TokenType::Number(n)) = lexems.peek().cloned().map(|t| t.token_type) {
+                        lexems.next();
+                        serialize_type!(upcodes, n, usize);
                     }
-                },
-                Token::Number(n) => {
-                    serialize_type!(upcodes, n, usize);
+                    if !instructions.last().map(|l| l == &token.location).unwrap_or(false) {
+                        instructions.push(token.location);
+                    }
+                    let location = instructions.len() - 1;
+                    serialize_type!(upcodes, location, usize);
                 },
                 t => panic!("Unexpected token, {:?}, only instructions or tokens expected", t),
             }
         }
     }
-    upcodes
+    (upcodes, instructions)
 }
 
 fn main() {
     let conf = parse_config(args());
+    let file_name = if let Some(n) = &conf.input_file {
+        n.clone()
+    } else {
+        "stdin".to_owned()
+    };
     let mut input_file: Box<dyn Read> = conf.input_file
         .map::<Box<dyn Read>, _>(|f| { Box::new(File::open(f).unwrap()) })
         .unwrap_or_else(|| Box::new(std::io::stdin()));
@@ -310,13 +372,18 @@ fn main() {
     let mut content = "".to_owned();
     input_file.read_to_string(&mut content).unwrap();
     let mut lexems = lexer(&content).into_iter().peekable();
-    let (memory, constants) = parse_constants(&mut lexems);
-    let upcodes = parse_instructions(&mut lexems);
+    let (memory, constants) = parse_constants(&mut lexems, &file_name);
+    let (upcodes, locations) = parse_instructions(&mut lexems);
     let mut output = vec![];
     serialize_type!(output, constants.len(), usize);
     serialize_type!(output, memory.len(), usize);
+    serialize_type!(output, locations.len(), usize);
     output.extend_from_slice(&constants);
     output.extend_from_slice(&memory);
+    for line in locations {
+        serialize_type!(output, 0usize, usize);
+        serialize_type!(output, line, usize);
+    }
     output.extend_from_slice(&upcodes);
     output_file.write_all(&output).unwrap();
 }

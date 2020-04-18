@@ -1,8 +1,7 @@
 use crate::allocator::Allocator;
-use crate::cpu::{STACK_MAX, VM, Value};
-use crate::instruction::{Instruction as VMInstruction};
+use crate::cpu::{STACK_MAX, VM, Value, Location};
+use crate::instruction::{Instruction};
 use crate::memory::Memory;
-use cpu::Instruction;
 use std::cell::RefCell;
 use std::cmp::min;
 
@@ -74,7 +73,7 @@ fn extract_constants(bytes: &[u8], size: usize) -> (Vec<usize>, Vec<Value>) {
                 sizes.push(capacity);
                 last_address += capacity;
             },
-            _ => panic!("Invalid value type")
+            v => panic!("Invalid value type {}", v),
         }
     }
     (sizes, constants)
@@ -84,21 +83,37 @@ impl From<&[u8]> for VM {
     fn from(bytes: &[u8]) -> Self {
         let constant_length = extract_usize(&bytes[0..USIZE_SIZE]);
         let memory_length = extract_usize(&bytes[USIZE_SIZE..USIZE_SIZE*2]);
+        let location_length = extract_usize(&bytes[USIZE_SIZE*2..USIZE_SIZE*3]);
         let (addresses, constants) = extract_constants(
-            &bytes[USIZE_SIZE*2..USIZE_SIZE*2 + constant_length], constant_length
+            &bytes[USIZE_SIZE*3..USIZE_SIZE*3 + constant_length], constant_length
         );
         let memory = Memory::new(memory_length);
         memory.copy_u8_vector(
-            &bytes[USIZE_SIZE * 2 + constant_length..USIZE_SIZE * 2 + constant_length + memory_length],
+            &bytes[USIZE_SIZE * 3 + constant_length..USIZE_SIZE * 3 + constant_length + memory_length],
             0
         );
-        let bytes = &bytes[USIZE_SIZE * 2 + constant_length + memory_length..];
+        let mut locations = vec![];
+        for i in 0..location_length {
+            locations.push(Location {
+                address: extract_usize(&bytes[
+                    USIZE_SIZE * 3 + constant_length + memory_length + i * USIZE_SIZE..
+                        USIZE_SIZE * 3 + constant_length + memory_length + (i + 1) * USIZE_SIZE
+                ]),
+                line: extract_usize(&bytes[
+                    USIZE_SIZE * 3 + constant_length + memory_length + (i + 1) * USIZE_SIZE..
+                        USIZE_SIZE * 3 + constant_length + memory_length + (i + 2) * USIZE_SIZE
+                ]),
+            });
+        }
+        let bytes = &bytes[
+            USIZE_SIZE * 3 + constant_length + memory_length + location_length * 2 * USIZE_SIZE..
+        ];
         let mut rom = vec![];
         let mut index = 0;
         while index < bytes.len() {
-            let to = min(index+9, bytes.len());
-            let instruction = VMInstruction::from(bytes[index..to].to_vec());
-            index += instruction.size().unwrap() as usize;
+            let to = min(index+17, bytes.len());
+            let instruction = Instruction::from(&bytes[index..to]);
+            index += instruction.size() as usize;
             rom.push(instruction);
         }
         let mut vm = VM {
@@ -110,6 +125,7 @@ impl From<&[u8]> for VM {
             sp: 0,
             stack: [Value::Nil; STACK_MAX],
             constants,
+            locations,
             memory,
             rom,
         };
@@ -120,14 +136,22 @@ impl From<&[u8]> for VM {
 
 #[cfg(test)]
 mod tests {
-    use crate::cpu::{VM, Value};
-    use crate::instruction::Instruction;
+    use crate::cpu::{VM, Value, Location};
+    use crate::instruction::{Instruction, InstructionType};
+
+    fn create_instruction(instruction_type: InstructionType) -> Instruction {
+        Instruction {
+            instruction_type,
+            location: 0,
+        }
+    }
 
     #[test]
     fn it_should_deserialize_into_a_vm() {
         let bytes = [
             61u8, 0, 0, 0, 0, 0, 0, 0, // Constant length
             8, 0, 0, 0, 0, 0, 0, 0, // Memory length
+            1, 0, 0, 0, 0, 0, 0, 0, // Locations length
             0, // Nil value
             1, 42, 0, 0, 0, 0, 0, 0, 0, // Integer value
             2, 42, 42, 42, 42, // Float value
@@ -137,7 +161,12 @@ mod tests {
             6, 2, 0, 0, 0, 0, 0, 0, 0, // Array value
             7, 2, 0, 0, 0, 0, 0, 0, 0, // Object value
             0, 1, 2, 3, 4, 5, 6, 7, // Memory
-            0, 1, 42, 0, 0, 0, 0, 0, 0, 0, 2, 3, 4 // ROM
+            1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, // Locations
+            0, 0, 0, 0, 0, 0, 0, 0, 0, // ROM
+            1, 42, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            2, 0, 0, 0, 0, 0, 0, 0, 0,
+            3, 0, 0, 0, 0, 0, 0, 0, 0,
+            4, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
         let vm = VM::from(bytes.as_ref());
         assert_eq!(vm.constants.len(), 8);
@@ -151,9 +180,16 @@ mod tests {
         assert_eq!(&vm.constants[7], &Value::Object { address: 6 });
         assert_eq!(vm.memory.get_capacity(), 8);
         assert_eq!(vm.memory.get_u8_vector(0, 8).unwrap(), &[0u8, 1, 2, 3, 4, 5, 6, 7]);
+        assert_eq!(&vm.locations, &[Location {
+            address: 1,
+            line: 1,
+        }]);
         assert_eq!(&vm.rom, &[
-            Instruction::Return, Instruction::Constant(42), Instruction::Plus, Instruction::Minus,
-            Instruction::Mult
+            create_instruction(InstructionType::Return),
+            create_instruction(InstructionType::Constant(42)),
+            create_instruction(InstructionType::Plus),
+            create_instruction(InstructionType::Minus),
+            create_instruction(InstructionType::Mult),
         ]);
     }
 }
