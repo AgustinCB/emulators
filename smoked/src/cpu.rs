@@ -1,12 +1,12 @@
 use crate::allocator::Allocator;
-use crate::memory::Memory;
 use crate::instruction::{Instruction, InstructionType};
+use crate::memory::Memory;
 use failure::Error;
+use failure::_core::fmt::Formatter;
 use sc::{syscall0, syscall1, syscall2, syscall3, syscall4, syscall5, syscall6};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::Display;
-use failure::_core::fmt::Formatter;
 
 pub(crate) const STACK_MAX: usize = 256;
 
@@ -18,16 +18,47 @@ pub enum Value {
     Float(f32),
     Bool(bool),
     String(usize),
-    Function {
-        ip: usize,
-        arity: usize,
-    },
-    Array {
-        capacity: usize,
-        address: usize,
-    },
-    Object {
-        address: usize,
+    Function { ip: usize, arity: usize },
+    Array { capacity: usize, address: usize },
+    Object { address: usize },
+}
+
+impl Into<Vec<u8>> for Value {
+    fn into(self) -> Vec<u8> {
+        let mut ret = vec![];
+        match self {
+            Value::Nil => ret.extend_from_slice(&0usize.to_le_bytes()),
+            Value::Integer(i) => {
+                ret.extend_from_slice(&1usize.to_le_bytes());
+                ret.extend_from_slice(&i.to_le_bytes());
+            },
+            Value::Float(f) => {
+                ret.extend_from_slice(&2usize.to_le_bytes());
+                ret.extend_from_slice(&f.to_le_bytes());
+            },
+            Value::Bool(b) => {
+                ret.extend_from_slice(&3usize.to_le_bytes());
+                ret.extend_from_slice(&(if b { 1usize } else { 0usize }).to_le_bytes());
+            },
+            Value::String(s) => {
+                ret.extend_from_slice(&4usize.to_le_bytes());
+                ret.extend_from_slice(&s.to_le_bytes());
+            },
+            Value::Function { ip, arity } => {
+                ret.extend_from_slice(&5usize.to_le_bytes());
+                ret.extend_from_slice(&ip.to_le_bytes());
+                ret.extend_from_slice(&arity.to_le_bytes());
+            },
+            Value::Array { capacity, .. } => {
+                ret.extend_from_slice(&6usize.to_le_bytes());
+                ret.extend_from_slice(&capacity.to_le_bytes());
+            },
+            Value::Object { .. } => {
+                ret.extend_from_slice(&7usize.to_le_bytes());
+                ret.extend_from_slice(&0usize.to_le_bytes());
+            },
+        }
+        ret
     }
 }
 
@@ -87,9 +118,7 @@ pub struct VMError {
 
 impl Display for VMError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str(
-            format!("[{} line {}] {}", self.file, self.line, self.error_type).as_str()
-        )
+        f.write_str(format!("[{} line {}] {}", self.file, self.line, self.error_type).as_str())
     }
 }
 
@@ -117,6 +146,26 @@ pub struct VM {
 }
 
 impl VM {
+    pub fn new(
+        allocator: Allocator,
+        constants: Vec<Value>,
+        locations: Vec<Location>,
+        memory: Memory,
+        rom: Vec<Instruction>,
+    ) -> VM {
+        VM {
+            allocator: RefCell::new(allocator),
+            frames: vec![],
+            globals: HashMap::new(),
+            sp: 0,
+            stack: [Value::Nil; STACK_MAX],
+            constants,
+            locations,
+            memory,
+            rom,
+        }
+    }
+
     fn pop(&mut self) -> Result<Value, Error> {
         if (self.sp - self.frames.last().unwrap().stack_offset) == 0 {
             Err(self.create_error(VMErrorType::EmptyStack)?)?;
@@ -146,11 +195,14 @@ impl VM {
     }
 
     fn create_error(&self, error_type: VMErrorType) -> Result<VMError, Error> {
-        let location = self.rom[self.ip()-1].location;
-        let file = self.memory.get_string(
-            self.locations[location].address,
-            self.get_size(self.locations[location].address)?,
-        )?.to_owned();
+        let location = self.rom[self.ip() - 1].location;
+        let file = self
+            .memory
+            .get_string(
+                self.locations[location].address,
+                self.get_size(self.locations[location].address)?,
+            )?
+            .to_owned();
         Ok(VMError {
             line: self.locations[location].line,
             error_type,
@@ -163,12 +215,18 @@ impl VM {
 impl VM {
     fn test_vm(sp: usize) -> VM {
         let allocator = RefCell::new(Allocator::new(10));
-        allocator.borrow_mut().malloc(4, std::iter::empty()).unwrap();
+        allocator
+            .borrow_mut()
+            .malloc(4, std::iter::empty())
+            .unwrap();
         let memory = Memory::new(10);
         memory.copy_string("hola", 0);
         VM {
             constants: Vec::new(),
-            frames: vec![Frame { ip: 1, stack_offset: 0 }],
+            frames: vec![Frame {
+                ip: 1,
+                stack_offset: 0,
+            }],
             globals: HashMap::default(),
             locations: vec![Location {
                 address: 0,
@@ -189,7 +247,10 @@ impl VM {
         VM {
             allocator: RefCell::new(Allocator::new(mem)),
             constants: Vec::new(),
-            frames: vec![Frame { ip: 0, stack_offset: 0 }],
+            frames: vec![Frame {
+                ip: 0,
+                stack_offset: 0,
+            }],
             globals: HashMap::default(),
             locations: vec![],
             memory: Memory::new(mem),
@@ -201,16 +262,19 @@ impl VM {
 
     fn test_vm_with_memory_and_allocator(sp: usize, memory: Memory, allocator: Allocator) -> VM {
         let allocator = RefCell::new(allocator);
-        let address = allocator.borrow_mut().malloc(4, std::iter::empty()).unwrap();
+        let address = allocator
+            .borrow_mut()
+            .malloc(4, std::iter::empty())
+            .unwrap();
         memory.copy_string("hola", address);
         VM {
             constants: Vec::new(),
-            frames: vec![Frame { ip: 1, stack_offset: 0 }],
-            globals: HashMap::default(),
-            locations: vec![Location {
-                address,
-                line: 0,
+            frames: vec![Frame {
+                ip: 1,
+                stack_offset: 0,
             }],
+            globals: HashMap::default(),
+            locations: vec![Location { address, line: 0 }],
             rom: vec![Instruction {
                 instruction_type: InstructionType::Noop,
                 location: 0,
@@ -225,8 +289,8 @@ impl VM {
 
 #[cfg(test)]
 mod tests {
+    use super::{Value, STACK_MAX, VM};
     use failure::Error;
-    use super::{STACK_MAX, Value, VM};
 
     #[test]
     fn test_pop() -> Result<(), Error> {
@@ -237,14 +301,18 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: VMError { error_type: EmptyStack, file: \"hola\", line: 0 }")]
+    #[should_panic(
+        expected = "called `Result::unwrap()` on an `Err` value: VMError { error_type: EmptyStack, file: \"hola\", line: 0 }"
+    )]
     fn test_pop_on_empty_stack() {
         let mut vm = VM::test_vm(0);
         vm.pop().unwrap();
     }
 
     #[test]
-    #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: VMError { error_type: EmptyStack, file: \"hola\", line: 0 }")]
+    #[should_panic(
+        expected = "called `Result::unwrap()` on an `Err` value: VMError { error_type: EmptyStack, file: \"hola\", line: 0 }"
+    )]
     fn test_pop_on_empty_stack_frame() {
         let mut vm = VM::test_vm(1);
         vm.frames[0].stack_offset = 1;
@@ -261,7 +329,9 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: VMError { error_type: StackOverflow, file: \"hola\", line: 0 }")]
+    #[should_panic(
+        expected = "called `Result::unwrap()` on an `Err` value: VMError { error_type: StackOverflow, file: \"hola\", line: 0 }"
+    )]
     fn test_push_on_stack() {
         let mut vm = VM::test_vm(STACK_MAX);
         vm.push(Value::Integer(1)).unwrap();
@@ -292,7 +362,7 @@ macro_rules! comp_operation {
             (Value::Nil, Value::Nil) => $self.push(Value::Bool(false)),
             _ => $self.push(Value::Bool(false)),
         }?;
-    }; 
+    };
 }
 
 macro_rules! math_operation {
@@ -304,7 +374,7 @@ macro_rules! math_operation {
             (Value::Float(a), Value::Float(b)) => $self.push(Value::Float(b $op a)),
             _ => Err(Error::from($self.create_error(VMErrorType::ExpectedNumbers)?)),
         }?;
-    }; 
+    };
 }
 
 impl VM {
@@ -317,7 +387,7 @@ impl VM {
 
     fn execute_instruction(&mut self, instruction: Instruction) -> Result<(), Error> {
         match &instruction.instruction_type {
-            InstructionType::Noop => {},
+            InstructionType::Noop => {}
             InstructionType::Return => self.return_from_call()?,
             InstructionType::Constant(index) => self.constant(*index)?,
             InstructionType::Plus => {
@@ -366,10 +436,10 @@ impl VM {
             InstructionType::JmpIfFalse(o) => self.jmp_if_false(*o)?,
             InstructionType::Jmp(o) => {
                 self.add_to_ip(*o);
-            },
+            }
             InstructionType::Loop(o) => {
                 self.frames.last_mut().unwrap().ip -= *o;
-            },
+            }
             InstructionType::Call => self.call()?,
             InstructionType::ArrayAlloc => self.array_alloc()?,
             InstructionType::ArrayGet => self.array_get()?,
@@ -407,7 +477,7 @@ impl VM {
             Some(c) => self.push(c)?,
             None => {
                 Err(self.create_error(VMErrorType::InvalidConstant(index))?)?;
-            },
+            }
         };
         Ok(())
     }
@@ -430,10 +500,13 @@ impl VM {
                     string1.extend(string2);
                     string1
                 };
-                let address = self.allocator.borrow_mut().malloc(result.len(), self.get_roots())?;
+                let address = self
+                    .allocator
+                    .borrow_mut()
+                    .malloc(result.len(), self.get_roots())?;
                 self.memory.copy_u8_vector(&result, address);
                 self.push(Value::String(address))?;
-            },
+            }
             _ => Err(self.create_error(VMErrorType::ExpectedStrings)?)?,
         };
         Ok(())
@@ -451,13 +524,7 @@ impl VM {
         let ret = match arguments {
             0 => unsafe { syscall0(syscall_value) },
             1 => unsafe { syscall1(syscall_value, self.pop_usize()?) },
-            2 => unsafe {
-                syscall2(
-                    syscall_value,
-                    self.pop_usize()?,
-                    self.pop_usize()?,
-                )
-            },
+            2 => unsafe { syscall2(syscall_value, self.pop_usize()?, self.pop_usize()?) },
             3 => unsafe {
                 syscall3(
                     syscall_value,
@@ -505,9 +572,9 @@ impl VM {
     fn get_global(&mut self, global: usize) -> Result<(), Error> {
         match self.globals.get(&global).cloned() {
             None => {
-                Err(self.create_error(
-                    VMErrorType::GlobalDoesntExist(self.get_constant_string(global).unwrap())
-                )?)?;
+                Err(self.create_error(VMErrorType::GlobalDoesntExist(
+                    self.get_constant_string(global).unwrap(),
+                ))?)?;
             }
             Some(value) => self.push(value)?,
         };
@@ -552,8 +619,14 @@ impl VM {
 
     fn array_alloc(&mut self) -> Result<(), Error> {
         if let Value::Integer(capacity) = self.pop()? {
-            let address = self.allocator.borrow_mut().malloc(VALUE_SIZE * capacity as usize, self.get_roots())?;
-            self.push(Value::Array { capacity: capacity as usize, address })?;
+            let address = self
+                .allocator
+                .borrow_mut()
+                .malloc(VALUE_SIZE * capacity as usize, self.get_roots())?;
+            self.push(Value::Array {
+                capacity: capacity as usize,
+                address,
+            })?;
         } else {
             Err(self.create_error(VMErrorType::ExpectedNumbers)?)?;
         }
@@ -562,12 +635,18 @@ impl VM {
 
     fn array_get(&mut self) -> Result<(), Error> {
         match (self.pop()?, self.pop()?) {
-            (Value::Array { capacity, .. }, Value::Integer(index)) if capacity <= index as usize =>
-                Err(self.create_error(VMErrorType::IndexOutOfRange)?)?,
+            (Value::Array { capacity, .. }, Value::Integer(index))
+                if capacity <= index as usize =>
+            {
+                Err(self.create_error(VMErrorType::IndexOutOfRange)?)?
+            }
             (Value::Array { address, .. }, Value::Integer(index)) => {
-                let v = self.memory.get_t::<Value>(address + index as usize * VALUE_SIZE)?.clone();
+                let v = self
+                    .memory
+                    .get_t::<Value>(address + index as usize * VALUE_SIZE)?
+                    .clone();
                 self.push(v)?;
-            },
+            }
             (Value::Array { .. }, _) => Err(self.create_error(VMErrorType::ExpectedNumbers)?)?,
             (_, _) => Err(self.create_error(VMErrorType::ExpectedArray)?)?,
         };
@@ -576,12 +655,16 @@ impl VM {
 
     fn array_set(&mut self) -> Result<(), Error> {
         match (self.pop()?, self.pop()?) {
-            (Value::Array { capacity, .. }, Value::Integer(index)) if capacity <= index as usize =>
-                Err(self.create_error(VMErrorType::IndexOutOfRange)?)?,
+            (Value::Array { capacity, .. }, Value::Integer(index))
+                if capacity <= index as usize =>
+            {
+                Err(self.create_error(VMErrorType::IndexOutOfRange)?)?
+            }
             (Value::Array { address, .. }, Value::Integer(index)) => {
                 let v = self.peek()?;
-                self.memory.copy_t::<Value>(&v, address + index as usize * VALUE_SIZE);
-            },
+                self.memory
+                    .copy_t::<Value>(&v, address + index as usize * VALUE_SIZE);
+            }
             (Value::Array { .. }, _) => Err(self.create_error(VMErrorType::ExpectedNumbers)?)?,
             (_, _) => Err(self.create_error(VMErrorType::ExpectedArray)?)?,
         };
@@ -601,18 +684,38 @@ impl VM {
     }
 
     fn object_get(&mut self) -> Result<(), Error> {
-        if let (Value::Object { address: obj_address, }, Value::String(address)) = (self.pop()?, self.pop()?) {
-            let size = self.allocator.borrow().get_allocated_space(address).unwrap();
+        if let (
+            Value::Object {
+                address: obj_address,
+            },
+            Value::String(address),
+        ) = (self.pop()?, self.pop()?)
+        {
+            let size = self
+                .allocator
+                .borrow()
+                .get_allocated_space(address)
+                .unwrap();
             let property = self.memory.get_string(address, size)?;
             let object_length: usize = *self.memory.get_t(obj_address)?;
-            let pair_bytes = self.memory
-                .get_u8_vector(obj_address + USIZE_SIZE, object_length * (VALUE_SIZE + USIZE_SIZE) * U64_SIZE).unwrap();
+            let pair_bytes = self
+                .memory
+                .get_u8_vector(
+                    obj_address + USIZE_SIZE,
+                    object_length * (VALUE_SIZE + USIZE_SIZE) * U64_SIZE,
+                )
+                .unwrap();
             let bytes = unsafe {
-                std::slice::from_raw_parts(pair_bytes.as_ptr() as *const (usize, Value), object_length)
+                std::slice::from_raw_parts(
+                    pair_bytes.as_ptr() as *const (usize, Value),
+                    object_length,
+                )
             };
             let i = match self.property_lookup(bytes, property) {
                 Ok(i) => i,
-                Err(_) => Err(self.create_error(VMErrorType::PropertyDoesntExist(property.to_owned()))?)?,
+                Err(_) => {
+                    Err(self.create_error(VMErrorType::PropertyDoesntExist(property.to_owned()))?)?
+                }
             };
             self.push(bytes[i].1)?;
         } else {
@@ -622,21 +725,37 @@ impl VM {
     }
 
     fn object_set(&mut self) -> Result<(), Error> {
-        if let (Value::Object { address: mut obj_address, }, Value::String(address)) = (self.pop()?, self.pop()?) {
+        if let (
+            Value::Object {
+                address: mut obj_address,
+            },
+            Value::String(address),
+        ) = (self.pop()?, self.pop()?)
+        {
             let value = self.pop()?;
             let capacity = (self.get_size(obj_address)? - USIZE_SIZE) / (VALUE_SIZE + USIZE_SIZE);
             let object_length: usize = *self.memory.get_t(obj_address)?;
-            let size = self.allocator.borrow().get_allocated_space(address).unwrap();
+            let size = self
+                .allocator
+                .borrow()
+                .get_allocated_space(address)
+                .unwrap();
             let property = self.memory.get_string(address, size)?;
-            let pair_bytes = self.memory
-                .get_u8_vector(obj_address + USIZE_SIZE, object_length * (VALUE_SIZE + USIZE_SIZE) * U64_SIZE).unwrap();
+            let pair_bytes = self
+                .memory
+                .get_u8_vector(
+                    obj_address + USIZE_SIZE,
+                    object_length * (VALUE_SIZE + USIZE_SIZE) * U64_SIZE,
+                )
+                .unwrap();
             let bytes = unsafe {
-                std::slice::from_raw_parts(pair_bytes.as_ptr() as *const (usize, Value), object_length)
+                std::slice::from_raw_parts(
+                    pair_bytes.as_ptr() as *const (usize, Value),
+                    object_length,
+                )
             };
             let index = match self.property_lookup(bytes, property) {
-                Ok(index) => {
-                    index
-                },
+                Ok(index) => index,
                 Err(index) => {
                     if capacity <= object_length {
                         self.allocator.borrow_mut().free(obj_address)?;
@@ -645,22 +764,31 @@ impl VM {
                             self.get_roots(),
                         )?;
                         self.memory.copy_t(&(object_length + 1), obj_address);
-                        self.memory.copy_u8_vector(pair_bytes, obj_address + USIZE_SIZE);
+                        self.memory
+                            .copy_u8_vector(pair_bytes, obj_address + USIZE_SIZE);
                     }
                     for i in (index..bytes.len()).rev() {
                         self.memory.copy_t(
                             &bytes[i],
-                            obj_address + USIZE_SIZE + (i+1) * (VALUE_SIZE + USIZE_SIZE)
+                            obj_address + USIZE_SIZE + (i + 1) * (VALUE_SIZE + USIZE_SIZE),
                         );
                     }
                     self.memory.copy_t(&(object_length + 1), obj_address);
-                    self.memory.copy_t(&address, obj_address + USIZE_SIZE + index * (VALUE_SIZE + USIZE_SIZE));
+                    self.memory.copy_t(
+                        &address,
+                        obj_address + USIZE_SIZE + index * (VALUE_SIZE + USIZE_SIZE),
+                    );
                     index
                 }
             };
-            self.memory.copy_t(&value, obj_address + USIZE_SIZE * 2 + index * (VALUE_SIZE + USIZE_SIZE));
+            self.memory.copy_t(
+                &value,
+                obj_address + USIZE_SIZE * 2 + index * (VALUE_SIZE + USIZE_SIZE),
+            );
             self.push(value)?;
-            self.push(Value::Object { address: obj_address })?;
+            self.push(Value::Object {
+                address: obj_address,
+            })?;
         } else {
             Err(self.create_error(VMErrorType::ExpectedStrings)?)?;
         }
@@ -669,15 +797,25 @@ impl VM {
 
     fn property_lookup(&self, bytes: &[(usize, Value)], property: &str) -> Result<usize, usize> {
         bytes.binary_search_by(|(curr_address, _)| {
-            let found_length = self.allocator.borrow().get_allocated_space(*curr_address).unwrap();
+            let found_length = self
+                .allocator
+                .borrow()
+                .get_allocated_space(*curr_address)
+                .unwrap();
             let found_property = self.memory.get_string(*curr_address, found_length).unwrap();
             property.cmp(found_property)
         })
     }
 
     fn get_size(&self, address: usize) -> Result<usize, Error> {
-        let ret = self.allocator.borrow().get_allocated_space(address)
-            .ok_or_else(|| self.create_error(VMErrorType::UnallocatedAddress(address)).unwrap())?;
+        let ret = self
+            .allocator
+            .borrow()
+            .get_allocated_space(address)
+            .ok_or_else(|| {
+                self.create_error(VMErrorType::UnallocatedAddress(address))
+                    .unwrap()
+            })?;
         Ok(ret)
     }
 
@@ -689,33 +827,38 @@ impl VM {
                 let size = self.get_size(address)?;
                 let bs = self.memory.get_u8_vector(address, size)?;
                 bs.as_ptr() as usize
-            },
+            }
             _ => Err(self.create_error(VMErrorType::ExpectedNumbers)?)?,
         };
         Ok(ret)
     }
 
     fn get_constant_string(&self, constant: usize) -> Result<String, Error> {
-        let value = self.constants.get(constant).cloned()
-            .ok_or_else(|| self.create_error(VMErrorType::InvalidConstant(constant)).unwrap())?;
+        let value = self.constants.get(constant).cloned().ok_or_else(|| {
+            self.create_error(VMErrorType::InvalidConstant(constant))
+                .unwrap()
+        })?;
         let ret = match value {
-            Value::String(address) => self.memory.get_string(address, self.get_size(address)?)?.to_owned(),
+            Value::String(address) => self
+                .memory
+                .get_string(address, self.get_size(address)?)?
+                .to_owned(),
             _ => Err(self.create_error(VMErrorType::ExpectedStrings)?)?,
         };
         Ok(ret)
     }
 
-    fn get_roots<'a>(&'a self) -> impl Iterator<Item=usize> + 'a {
-        self.stack.iter()
+    fn get_roots<'a>(&'a self) -> impl Iterator<Item = usize> + 'a {
+        self.stack
+            .iter()
             .chain(self.constants.iter())
             .chain(self.globals.values())
-            .filter_map(move |v| {
-                match v {
-                    Value::String(address) => Some(vec![*address]),
-                    Value::Array { address, capacity } =>
-                        Some(self.get_addresses_from_array(*address, *capacity)),
-                    _ => None,
+            .filter_map(move |v| match v {
+                Value::String(address) => Some(vec![*address]),
+                Value::Array { address, capacity } => {
+                    Some(self.get_addresses_from_array(*address, *capacity))
                 }
+                _ => None,
             })
             .flatten()
     }
@@ -723,8 +866,10 @@ impl VM {
     fn get_addresses_from_object(&self, address: usize) -> Vec<usize> {
         let length: usize = *self.memory.get_t(address).unwrap();
         let mut result = vec![address];
-        let pair_bytes = self.memory
-            .get_u8_vector(address + USIZE_SIZE, length * (VALUE_SIZE + USIZE_SIZE)).unwrap();
+        let pair_bytes = self
+            .memory
+            .get_u8_vector(address + USIZE_SIZE, length * (VALUE_SIZE + USIZE_SIZE))
+            .unwrap();
         let bytes = unsafe {
             std::slice::from_raw_parts(pair_bytes.as_ptr() as *const (usize, Value), length)
         };
@@ -738,7 +883,10 @@ impl VM {
     fn get_addresses_from_array(&self, address: usize, capacity: usize) -> Vec<usize> {
         let mut result = vec![address];
         for _ in 0..capacity {
-            let v = self.memory.get_t::<Value>(address + capacity * std::mem::size_of::<Value>()).unwrap();
+            let v = self
+                .memory
+                .get_t::<Value>(address + capacity * std::mem::size_of::<Value>())
+                .unwrap();
             self.add_used_addresses_from_value(&mut result, v);
         }
         result
@@ -746,29 +894,32 @@ impl VM {
 
     fn add_used_addresses_from_value(&self, result: &mut Vec<usize>, v: &Value) {
         match v {
-            Value::Array { address, capacity } =>
-                result.extend(self.get_addresses_from_array(*address, *capacity)),
+            Value::Array { address, capacity } => {
+                result.extend(self.get_addresses_from_array(*address, *capacity))
+            }
             Value::String(a) => result.push(*a),
-            Value::Object { address } =>
-                result.extend(self.get_addresses_from_object(*address)),
-            _ => {},
+            Value::Object { address } => result.extend(self.get_addresses_from_object(*address)),
+            _ => {}
         }
     }
 
     pub(crate) fn new_frame(&mut self, ip: usize, arity: usize) {
-        let new_frame = Frame { ip, stack_offset: self.sp - arity };
+        let new_frame = Frame {
+            ip,
+            stack_offset: self.sp - arity,
+        };
         self.frames.push(new_frame);
     }
 }
 
 #[cfg(test)]
 mod cpu_tests {
+    use super::{Value, VM};
     use crate::allocator::Allocator;
+    use crate::cpu::{USIZE_SIZE, VALUE_SIZE};
     use crate::instruction::{Instruction, InstructionType};
     use crate::memory::Memory;
     use failure::Error;
-    use super::{Value, VM};
-    use crate::cpu::{VALUE_SIZE, USIZE_SIZE};
 
     fn create_instruction(instruction_type: InstructionType) -> Instruction {
         Instruction {
@@ -1246,7 +1397,9 @@ mod cpu_tests {
     }
 
     #[test]
-    #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: VMError { error_type: GlobalDoesntExist(\"4\"), file: \"hola\", line: 0 }")]
+    #[should_panic(
+        expected = "called `Result::unwrap()` on an `Err` value: VMError { error_type: GlobalDoesntExist(\"4\"), file: \"hola\", line: 0 }"
+    )]
     fn test_get_global_not_existing() {
         let memory = Memory::new(110);
         let mut allocator = Allocator::new(110);
@@ -1255,7 +1408,8 @@ mod cpu_tests {
         memory.copy_string(&s1, address1);
         let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
         vm.constants = vec![Value::String(address1)];
-        vm.execute_instruction(create_instruction(InstructionType::GetGlobal(0))).unwrap();
+        vm.execute_instruction(create_instruction(InstructionType::GetGlobal(0)))
+            .unwrap();
     }
 
     #[test]
@@ -1320,10 +1474,7 @@ mod cpu_tests {
     #[test]
     fn test_call() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[1] = Value::Function {
-            ip: 20,
-            arity: 1,
-        };
+        vm.stack[1] = Value::Function { ip: 20, arity: 1 };
         vm.execute_instruction(create_instruction(InstructionType::Call))?;
         assert_eq!(vm.frames.last().unwrap().stack_offset, 0);
         assert_eq!(vm.frames.len(), 2);
@@ -1332,30 +1483,37 @@ mod cpu_tests {
     }
 
     #[test]
-    #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: VMError { error_type: ExpectedNumbers, file: \"hola\", line: 0 }")]
+    #[should_panic(
+        expected = "called `Result::unwrap()` on an `Err` value: VMError { error_type: ExpectedNumbers, file: \"hola\", line: 0 }"
+    )]
     fn test_call_on_non_function() {
         let mut vm = VM::test_vm(2);
-        vm.execute_instruction(create_instruction(InstructionType::Call)).unwrap();
+        vm.execute_instruction(create_instruction(InstructionType::Call))
+            .unwrap();
     }
 
     #[test]
-    #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: VMError { error_type: NotEnoughArgumentsForFunction, file: \"hola\", line: 0 }")]
+    #[should_panic(
+        expected = "called `Result::unwrap()` on an `Err` value: VMError { error_type: NotEnoughArgumentsForFunction, file: \"hola\", line: 0 }"
+    )]
     fn test_call_without_enough_arguments() {
         let mut vm = VM::test_vm(2);
-        vm.stack[1] = Value::Function {
-            ip: 20,
-            arity: 2,
-        };
-        vm.execute_instruction(create_instruction(InstructionType::Call)).unwrap();
+        vm.stack[1] = Value::Function { ip: 20, arity: 2 };
+        vm.execute_instruction(create_instruction(InstructionType::Call))
+            .unwrap();
     }
 
     #[test]
     fn test_array_alloc() {
         let mut vm = VM::test_vm_with_mem(1, 100);
         vm.stack[0] = Value::Integer(1);
-        vm.execute_instruction(create_instruction(InstructionType::ArrayAlloc)).unwrap();
+        vm.execute_instruction(create_instruction(InstructionType::ArrayAlloc))
+            .unwrap();
         if let Value::Array { capacity, address } = vm.stack[0] {
-            assert_eq!(vm.allocator.borrow().get_allocated_space(address).unwrap(), capacity * VALUE_SIZE);
+            assert_eq!(
+                vm.allocator.borrow().get_allocated_space(address).unwrap(),
+                capacity * VALUE_SIZE
+            );
         } else {
             panic!("Expected array as output of ArrayAlloc {:?}", vm.stack[0]);
         }
@@ -1366,28 +1524,42 @@ mod cpu_tests {
         let memory = Memory::new(110);
         let mut allocator = Allocator::new(110);
         let value = Value::Integer(42);
-        let address = allocator.malloc(std::mem::size_of::<Value>(), std::iter::empty()).unwrap();
+        let address = allocator
+            .malloc(std::mem::size_of::<Value>(), std::iter::empty())
+            .unwrap();
         memory.copy_t(&value, address);
         let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
         vm.stack[0] = Value::Integer(0);
-        vm.stack[1] = Value::Array { address, capacity: 1};
-        vm.execute_instruction(create_instruction(InstructionType::ArrayGet)).unwrap();
+        vm.stack[1] = Value::Array {
+            address,
+            capacity: 1,
+        };
+        vm.execute_instruction(create_instruction(InstructionType::ArrayGet))
+            .unwrap();
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Integer(42));
     }
 
     #[test]
-    #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: VMError { error_type: IndexOutOfRange, file: \"hola\", line: 0 }")]
+    #[should_panic(
+        expected = "called `Result::unwrap()` on an `Err` value: VMError { error_type: IndexOutOfRange, file: \"hola\", line: 0 }"
+    )]
     fn test_array_get_out_of_range() {
         let memory = Memory::new(110);
         let mut allocator = Allocator::new(110);
         let value = Value::Integer(42);
-        let address = allocator.malloc(std::mem::size_of::<Value>(), std::iter::empty()).unwrap();
+        let address = allocator
+            .malloc(std::mem::size_of::<Value>(), std::iter::empty())
+            .unwrap();
         memory.copy_t(&value, address);
         let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
         vm.stack[0] = Value::Integer(1);
-        vm.stack[1] = Value::Array { address, capacity: 1};
-        vm.execute_instruction(create_instruction(InstructionType::ArrayGet)).unwrap();
+        vm.stack[1] = Value::Array {
+            address,
+            capacity: 1,
+        };
+        vm.execute_instruction(create_instruction(InstructionType::ArrayGet))
+            .unwrap();
     }
 
     #[test]
@@ -1395,41 +1567,56 @@ mod cpu_tests {
         let memory = Memory::new(110);
         let mut allocator = Allocator::new(110);
         let value = Value::Integer(42);
-        let address = allocator.malloc(std::mem::size_of::<Value>(), std::iter::empty()).unwrap();
+        let address = allocator
+            .malloc(std::mem::size_of::<Value>(), std::iter::empty())
+            .unwrap();
         memory.copy_t(&value, address);
         let mut vm = VM::test_vm_with_memory_and_allocator(3, memory, allocator);
         vm.stack[1] = Value::Integer(0);
-        vm.stack[2] = Value::Array { address, capacity: 1};
-        vm.execute_instruction(create_instruction(InstructionType::ArraySet)).unwrap();
+        vm.stack[2] = Value::Array {
+            address,
+            capacity: 1,
+        };
+        vm.execute_instruction(create_instruction(InstructionType::ArraySet))
+            .unwrap();
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.memory.get_t::<Value>(address).unwrap().clone(), Value::Integer(0));
+        assert_eq!(
+            vm.memory.get_t::<Value>(address).unwrap().clone(),
+            Value::Integer(0)
+        );
         assert_eq!(vm.stack[0], Value::Integer(0));
     }
 
     #[test]
-    #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: VMError { error_type: IndexOutOfRange, file: \"hola\", line: 0 }")]
+    #[should_panic(
+        expected = "called `Result::unwrap()` on an `Err` value: VMError { error_type: IndexOutOfRange, file: \"hola\", line: 0 }"
+    )]
     fn test_array_set_out_of_range() {
         let memory = Memory::new(110);
         let mut allocator = Allocator::new(110);
         let value = Value::Integer(42);
-        let address = allocator.malloc(std::mem::size_of::<Value>(), std::iter::empty()).unwrap();
+        let address = allocator
+            .malloc(std::mem::size_of::<Value>(), std::iter::empty())
+            .unwrap();
         memory.copy_t(&value, address);
         let mut vm = VM::test_vm_with_memory_and_allocator(3, memory, allocator);
         vm.stack[1] = Value::Integer(1);
-        vm.stack[2] = Value::Array { address, capacity: 1};
-        vm.execute_instruction(create_instruction(InstructionType::ArraySet)).unwrap();
+        vm.stack[2] = Value::Array {
+            address,
+            capacity: 1,
+        };
+        vm.execute_instruction(create_instruction(InstructionType::ArraySet))
+            .unwrap();
     }
 
     #[test]
     fn test_object_alloc() {
         let mut vm = VM::test_vm_with_mem(1, 100);
         vm.stack[0] = Value::Integer(1);
-        vm.execute_instruction(create_instruction(InstructionType::ObjectAlloc)).unwrap();
+        vm.execute_instruction(create_instruction(InstructionType::ObjectAlloc))
+            .unwrap();
         if let Value::Object { address } = vm.stack[0] {
-            assert_eq!(
-                0usize,
-                *vm.memory.get_t(address).unwrap(),
-            );
+            assert_eq!(0usize, *vm.memory.get_t(address).unwrap(),);
             assert_eq!(
                 vm.allocator.borrow().get_allocated_space(address).unwrap(),
                 VALUE_SIZE + USIZE_SIZE * 2,
@@ -1445,20 +1632,27 @@ mod cpu_tests {
         let mut allocator = Allocator::new(110);
         let address = allocator.malloc(5, std::iter::empty()).unwrap();
         memory.copy_string("VALUE", address);
-        let obj_address = allocator.malloc(VALUE_SIZE + USIZE_SIZE * 2, std::iter::empty()).unwrap();
+        let obj_address = allocator
+            .malloc(VALUE_SIZE + USIZE_SIZE * 2, std::iter::empty())
+            .unwrap();
         memory.copy_t(&1usize, obj_address);
         memory.copy_t(&address, obj_address + USIZE_SIZE);
         memory.copy_t(&Value::Integer(42), obj_address + USIZE_SIZE * 2);
         let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
         vm.stack[0] = Value::String(address);
-        vm.stack[1] = Value::Object { address: obj_address };
-        vm.execute_instruction(create_instruction(InstructionType::ObjectGet)).unwrap();
+        vm.stack[1] = Value::Object {
+            address: obj_address,
+        };
+        vm.execute_instruction(create_instruction(InstructionType::ObjectGet))
+            .unwrap();
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], Value::Integer(42));
     }
 
     #[test]
-    #[should_panic(expected = "called `Result::unwrap()` on an `Err` value: VMError { error_type: PropertyDoesntExist(\"VALUE1\"), file: \"hola\", line: 0 }")]
+    #[should_panic(
+        expected = "called `Result::unwrap()` on an `Err` value: VMError { error_type: PropertyDoesntExist(\"VALUE1\"), file: \"hola\", line: 0 }"
+    )]
     fn test_object_get_wrong_key() {
         let memory = Memory::new(110);
         let mut allocator = Allocator::new(110);
@@ -1466,14 +1660,19 @@ mod cpu_tests {
         memory.copy_string("VALUE", address);
         let wrong_address = allocator.malloc(6, std::iter::empty()).unwrap();
         memory.copy_string("VALUE1", wrong_address);
-        let obj_address = allocator.malloc(VALUE_SIZE + USIZE_SIZE * 2, std::iter::empty()).unwrap();
+        let obj_address = allocator
+            .malloc(VALUE_SIZE + USIZE_SIZE * 2, std::iter::empty())
+            .unwrap();
         memory.copy_t(&1usize, obj_address);
         memory.copy_t(&address, obj_address + USIZE_SIZE);
         memory.copy_t(&Value::Integer(42), obj_address + USIZE_SIZE * 2);
         let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
         vm.stack[0] = Value::String(wrong_address);
-        vm.stack[1] = Value::Object { address: obj_address };
-        vm.execute_instruction(create_instruction(InstructionType::ObjectGet)).unwrap();
+        vm.stack[1] = Value::Object {
+            address: obj_address,
+        };
+        vm.execute_instruction(create_instruction(InstructionType::ObjectGet))
+            .unwrap();
     }
 
     #[test]
@@ -1482,22 +1681,35 @@ mod cpu_tests {
         let mut allocator = Allocator::new(110);
         let address = allocator.malloc(5, std::iter::empty()).unwrap();
         memory.copy_string("VALUE", address);
-        let obj_address = allocator.malloc(VALUE_SIZE + USIZE_SIZE * 2, std::iter::empty()).unwrap();
+        let obj_address = allocator
+            .malloc(VALUE_SIZE + USIZE_SIZE * 2, std::iter::empty())
+            .unwrap();
         memory.copy_t(&0usize, obj_address);
         let mut vm = VM::test_vm_with_memory_and_allocator(3, memory, allocator);
         vm.stack[0] = Value::Integer(42);
         vm.stack[1] = Value::String(address);
-        vm.stack[2] = Value::Object { address: obj_address };
-        vm.execute_instruction(create_instruction(InstructionType::ObjectSet)).unwrap();
+        vm.stack[2] = Value::Object {
+            address: obj_address,
+        };
+        vm.execute_instruction(create_instruction(InstructionType::ObjectSet))
+            .unwrap();
         let length_got = *vm.memory.get_t::<usize>(obj_address).unwrap();
         let address_got = *vm.memory.get_t::<usize>(obj_address + USIZE_SIZE).unwrap();
-        let value_got = vm.memory.get_t::<Value>(obj_address + USIZE_SIZE * 2).unwrap();
+        let value_got = vm
+            .memory
+            .get_t::<Value>(obj_address + USIZE_SIZE * 2)
+            .unwrap();
         assert_eq!(length_got, 1);
         assert_eq!(address_got, address);
         assert_eq!(value_got, &Value::Integer(42));
         assert_eq!(vm.sp, 2);
         assert_eq!(vm.stack[0], Value::Integer(42));
-        assert_eq!(vm.stack[1], Value::Object { address: obj_address });
+        assert_eq!(
+            vm.stack[1],
+            Value::Object {
+                address: obj_address
+            }
+        );
     }
 
     #[test]
@@ -1506,50 +1718,91 @@ mod cpu_tests {
         let mut allocator = Allocator::new(110);
         let address = allocator.malloc(5, std::iter::empty()).unwrap();
         memory.copy_string("VALUE", address);
-        let obj_address = allocator.malloc(VALUE_SIZE + USIZE_SIZE * 2, std::iter::empty()).unwrap();
+        let obj_address = allocator
+            .malloc(VALUE_SIZE + USIZE_SIZE * 2, std::iter::empty())
+            .unwrap();
         memory.copy_t(&1usize, obj_address);
         memory.copy_t(&address, obj_address + USIZE_SIZE);
         memory.copy_t(&Value::Integer(41), obj_address + USIZE_SIZE * 2);
         let mut vm = VM::test_vm_with_memory_and_allocator(3, memory, allocator);
         vm.stack[0] = Value::Integer(42);
         vm.stack[1] = Value::String(address);
-        vm.stack[2] = Value::Object { address: obj_address };
-        vm.execute_instruction(create_instruction(InstructionType::ObjectSet)).unwrap();
+        vm.stack[2] = Value::Object {
+            address: obj_address,
+        };
+        vm.execute_instruction(create_instruction(InstructionType::ObjectSet))
+            .unwrap();
         let length_got = *vm.memory.get_t::<usize>(obj_address).unwrap();
         let address_got = *vm.memory.get_t::<usize>(obj_address + USIZE_SIZE).unwrap();
-        let value_got = vm.memory.get_t::<Value>(obj_address + USIZE_SIZE * 2).unwrap();
+        let value_got = vm
+            .memory
+            .get_t::<Value>(obj_address + USIZE_SIZE * 2)
+            .unwrap();
         assert_eq!(length_got, 1);
         assert_eq!(address_got, address);
         assert_eq!(value_got, &Value::Integer(42));
         assert_eq!(vm.sp, 2);
         assert_eq!(vm.stack[0], Value::Integer(42));
-        assert_eq!(vm.stack[1], Value::Object { address: obj_address });
+        assert_eq!(
+            vm.stack[1],
+            Value::Object {
+                address: obj_address
+            }
+        );
     }
 
     #[test]
     fn test_object_set_on_non_existing_without_space() {
         let mut vm = VM::test_vm_with_mem(3, 200);
-        let address = vm.allocator.borrow_mut().malloc(5, std::iter::empty()).unwrap();
+        let address = vm
+            .allocator
+            .borrow_mut()
+            .malloc(5, std::iter::empty())
+            .unwrap();
         vm.memory.copy_string("VALUE", address);
-        let address2 = vm.allocator.borrow_mut().malloc(6, std::iter::empty()).unwrap();
+        let address2 = vm
+            .allocator
+            .borrow_mut()
+            .malloc(6, std::iter::empty())
+            .unwrap();
         vm.memory.copy_string("VALUE1", address2);
-        let obj_address = vm.allocator.borrow_mut().malloc(VALUE_SIZE + USIZE_SIZE * 2, std::iter::empty()).unwrap();
+        let obj_address = vm
+            .allocator
+            .borrow_mut()
+            .malloc(VALUE_SIZE + USIZE_SIZE * 2, std::iter::empty())
+            .unwrap();
         vm.memory.copy_t(&1usize, obj_address);
         vm.memory.copy_t(&address, obj_address + USIZE_SIZE);
-        vm.memory.copy_t(&Value::Integer(41), obj_address + USIZE_SIZE * 2);
+        vm.memory
+            .copy_t(&Value::Integer(41), obj_address + USIZE_SIZE * 2);
         vm.stack[0] = Value::Integer(42);
         vm.stack[1] = Value::String(address2);
-        vm.stack[2] = Value::Object { address: obj_address };
-        vm.execute_instruction(create_instruction(InstructionType::ObjectSet)).unwrap();
+        vm.stack[2] = Value::Object {
+            address: obj_address,
+        };
+        vm.execute_instruction(create_instruction(InstructionType::ObjectSet))
+            .unwrap();
         assert_eq!(vm.sp, 2);
         assert_eq!(vm.stack[0], Value::Integer(42));
-        if let Value::Object { address: obj_address } = &vm.stack[1] {
+        if let Value::Object {
+            address: obj_address,
+        } = &vm.stack[1]
+        {
             let obj_address = *obj_address;
             let length_got = *vm.memory.get_t::<usize>(obj_address).unwrap();
             let address_got = *vm.memory.get_t::<usize>(obj_address + USIZE_SIZE).unwrap();
-            let value_got = vm.memory.get_t::<Value>(obj_address + USIZE_SIZE * 2).unwrap();
-            let address_got2 = *vm.memory.get_t::<usize>(obj_address + USIZE_SIZE * 2 + VALUE_SIZE).unwrap();
-            let value_got2 = vm.memory.get_t::<Value>(obj_address + USIZE_SIZE * 3 + VALUE_SIZE).unwrap();
+            let value_got = vm
+                .memory
+                .get_t::<Value>(obj_address + USIZE_SIZE * 2)
+                .unwrap();
+            let address_got2 = *vm
+                .memory
+                .get_t::<usize>(obj_address + USIZE_SIZE * 2 + VALUE_SIZE)
+                .unwrap();
+            let value_got2 = vm
+                .memory
+                .get_t::<Value>(obj_address + USIZE_SIZE * 3 + VALUE_SIZE)
+                .unwrap();
             assert_eq!(length_got, 2);
             assert_eq!(address_got, address2);
             assert_eq!(address_got2, address);

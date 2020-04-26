@@ -44,7 +44,7 @@ impl Memory {
         Ok(memory)
     }
 
-    pub(crate) fn copy_u8_vector(&self, vector: &[u8], address: usize) {
+    pub fn copy_u8_vector(&self, vector: &[u8], address: usize) {
         let memory: &mut [u8] = unsafe {
             std::slice::from_raw_parts_mut(
                 self.0.borrow_mut()[address..].as_mut_ptr(),

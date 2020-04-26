@@ -4,6 +4,7 @@ use crate::instruction::{Instruction};
 use crate::memory::Memory;
 use std::cell::RefCell;
 use std::cmp::min;
+use std::mem::size_of;
 
 const I64_SIZE: usize = std::mem::size_of::<i64>();
 const USIZE_SIZE: usize = std::mem::size_of::<usize>();
@@ -79,6 +80,42 @@ fn extract_constants(bytes: &[u8], size: usize) -> (Vec<usize>, Vec<Value>) {
     (sizes, constants)
 }
 
+#[macro_export]
+macro_rules! serialize_type {
+    ($bytes: ident, $value: expr, $type: ident) => {
+        let p: &[u8] = unsafe {
+            std::slice::from_raw_parts(&$value as *const $type as *const u8, size_of::<$type>())
+        };
+        $bytes.extend_from_slice(p);
+    }
+}
+
+pub fn to_bytes(constants: &[Value], locations: &[Location], memory: &[u8], instructions: &[Instruction]) -> Vec<u8> {
+    let mut output = vec![];
+    let mut upcodes = vec![];
+    let mut constant_bytes = vec![];
+    for i in instructions {
+        let bs: Vec<u8> = i.clone().into();
+        upcodes.extend_from_slice(&bs);
+    }
+    for c in constants {
+        let bs: Vec<u8> = (*c).into();
+        constant_bytes.extend_from_slice(&bs);
+    }
+    serialize_type!(output, constant_bytes.len(), usize);
+    serialize_type!(output, memory.len(), usize);
+    serialize_type!(output, locations.len(), usize);
+    output.extend_from_slice(&constant_bytes);
+    output.extend_from_slice(&memory);
+    for _l in locations {
+        serialize_type!(output, _l.address, usize);
+        serialize_type!(output, _l.line, usize);
+    }
+    output.extend_from_slice(&upcodes);
+    output
+
+}
+
 impl From<&[u8]> for VM {
     fn from(bytes: &[u8]) -> Self {
         let constant_length = extract_usize(&bytes[0..USIZE_SIZE]);
@@ -152,14 +189,14 @@ mod tests {
             61u8, 0, 0, 0, 0, 0, 0, 0, // Constant length
             8, 0, 0, 0, 0, 0, 0, 0, // Memory length
             1, 0, 0, 0, 0, 0, 0, 0, // Locations length
-            0, // Nil value
-            1, 42, 0, 0, 0, 0, 0, 0, 0, // Integer value
-            2, 42, 42, 42, 42, // Float value
-            3, 1, // Bool value
-            4, 4, 0, 0, 0, 0, 0, 0, 0, // String value
-            5, 42, 0, 0, 0, 0, 0, 0, 0, 42, 0, 0, 0, 0, 0, 0, 0, // Function value
-            6, 2, 0, 0, 0, 0, 0, 0, 0, // Array value
-            7, 2, 0, 0, 0, 0, 0, 0, 0, // Object value
+            0, // Nil value - 1
+            1, 42, 0, 0, 0, 0, 0, 0, 0, // Integer value - 10
+            2, 42, 42, 42, 42, // Float value - 15
+            3, 1, // Bool value - 17
+            4, 4, 0, 0, 0, 0, 0, 0, 0, // String value - 26
+            5, 42, 0, 0, 0, 0, 0, 0, 0, 42, 0, 0, 0, 0, 0, 0, 0, // Function value - 43
+            6, 2, 0, 0, 0, 0, 0, 0, 0, // Array value - 52
+            7, 2, 0, 0, 0, 0, 0, 0, 0, // Object value - 61
             0, 1, 2, 3, 4, 5, 6, 7, // Memory
             1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, // Locations
             0, 0, 0, 0, 0, 0, 0, 0, 0, // ROM

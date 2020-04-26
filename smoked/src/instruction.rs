@@ -64,6 +64,74 @@ fn create_instruction(instruction_type: InstructionType, bytes: &[u8]) -> Instru
     }
 }
 
+impl Into<Vec<u8>> for Instruction {
+    fn into(self) -> Vec<u8> {
+        let mut bytes = vec![];
+        match self.instruction_type {
+            InstructionType::Return => bytes.push(0),
+            InstructionType::Constant(b) => {
+                bytes.push(1);
+                bytes.extend_from_slice(&b.to_le_bytes());
+            },
+            InstructionType::Plus => bytes.push(2),
+            InstructionType::Minus => bytes.push(3),
+            InstructionType::Mult => bytes.push(4),
+            InstructionType::Div => bytes.push(5),
+            InstructionType::Noop => bytes.push(255),
+            InstructionType::Nil => bytes.push(6),
+            InstructionType::True => bytes.push(7),
+            InstructionType::False => bytes.push(8),
+            InstructionType::Not => bytes.push(9),
+            InstructionType::Equal => bytes.push(10),
+            InstructionType::NotEqual => bytes.push(11),
+            InstructionType::Less => bytes.push(14),
+            InstructionType::LessEqual => bytes.push(15),
+            InstructionType::Greater => bytes.push(12),
+            InstructionType::GreaterEqual => bytes.push(13),
+            InstructionType::StringConcat => bytes.push(16),
+            InstructionType::Syscall => bytes.push(17),
+            InstructionType::GetGlobal(g) => {
+                bytes.push(18);
+                bytes.extend_from_slice(&g.to_le_bytes());
+            },
+            InstructionType::SetGlobal(g) => {
+                bytes.push(19);
+                bytes.extend_from_slice(&g.to_le_bytes());
+            },
+            InstructionType::GetLocal(g) => {
+                bytes.push(20);
+                bytes.extend_from_slice(&g.to_le_bytes());
+            },
+            InstructionType::SetLocal(g) => {
+                bytes.push(21);
+                bytes.extend_from_slice(&g.to_le_bytes());
+            },
+            InstructionType::JmpIfFalse(offset) => {
+                bytes.push(22);
+                bytes.extend_from_slice(&offset.to_le_bytes());
+            },
+            InstructionType::Jmp(offset) => {
+                bytes.push(23);
+                bytes.extend_from_slice(&offset.to_le_bytes());
+            },
+            InstructionType::Loop(offset) => {
+                bytes.push(24);
+                bytes.extend_from_slice(&offset.to_le_bytes());
+            },
+            InstructionType::Call => bytes.push(25),
+            InstructionType::ArrayAlloc => bytes.push(26),
+            InstructionType::ArrayGet => bytes.push(27),
+            InstructionType::ArraySet => bytes.push(29),
+            InstructionType::ObjectAlloc => bytes.push(29),
+            InstructionType::ObjectGet => bytes.push(30),
+            InstructionType::ObjectSet => bytes.push(31),
+
+        }
+        bytes.extend_from_slice(&self.location.to_le_bytes());
+        bytes
+    }
+}
+
 impl From<&[u8]> for Instruction {
     #[inline]
     fn from(bytes: &[u8]) -> Instruction {

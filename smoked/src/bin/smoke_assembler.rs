@@ -2,12 +2,13 @@ use std::env::args;
 use std::fs::File;
 use std::io::prelude::*;
 use std::iter::Peekable;
-use std::str::FromStr;
 use std::mem::size_of;
+use std::str::FromStr;
 use smoked::cpu::{VALUE_SIZE, USIZE_SIZE};
+use smoked::serialize_type;
 
 const USAGE: &str = "Usage: smoke-assembler [input file] [output file]";
-
+#[macro_export]
 #[derive(Debug)]
 struct Config {
     input_file: Option<String>,
@@ -226,15 +227,6 @@ fn lexer(content: &str) -> Vec<Token> {
     tokens
 }
 
-macro_rules! serialize_type {
-    ($bytes: ident, $value: expr, $type: ident) => {
-        let p: &[u8] = unsafe {
-            std::slice::from_raw_parts(&$value as *const $type as *const u8, size_of::<$type>())
-        };
-        $bytes.extend_from_slice(p);
-    }
-}
-
 fn parse_constants<'a, I: Iterator<Item=Token<'a>>>(
     lexems: &mut Peekable<I>,
     file_name: &str,
@@ -346,8 +338,8 @@ fn parse_instructions<'a, I: Iterator<Item=Token<'a>>>(lexems: &mut Peekable<I>)
                     if !instructions.last().map(|l| l == &token.location).unwrap_or(false) {
                         instructions.push(token.location);
                     }
-                    let location = instructions.len() - 1;
-                    serialize_type!(upcodes, location, usize);
+                    let _location = instructions.len() - 1;
+                    serialize_type!(upcodes, _location, usize);
                 },
                 t => panic!("Unexpected token, {:?}, only instructions or tokens expected", t),
             }
@@ -380,9 +372,9 @@ fn main() {
     serialize_type!(output, locations.len(), usize);
     output.extend_from_slice(&constants);
     output.extend_from_slice(&memory);
-    for line in locations {
+    for _line in locations {
         serialize_type!(output, 0usize, usize);
-        serialize_type!(output, line, usize);
+        serialize_type!(output, _line, usize);
     }
     output.extend_from_slice(&upcodes);
     output_file.write_all(&output).unwrap();
