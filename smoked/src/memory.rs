@@ -37,7 +37,7 @@ impl Memory {
         self.copy_u8_vector(p, address)
     }
 
-    pub(crate) fn get_u8_vector(&self, address: usize, size: usize) -> Result<&[u8], MemoryError> {
+    pub fn get_u8_vector(&self, address: usize, size: usize) -> Result<&[u8], MemoryError> {
         let memory: &[u8] = unsafe {
             std::slice::from_raw_parts(self.0.borrow()[address..].as_ptr(), size)
         };

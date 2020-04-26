@@ -140,9 +140,9 @@ pub struct VM {
     pub(crate) globals: HashMap<usize, Value>,
     pub(crate) sp: usize,
     pub(crate) stack: [Value; STACK_MAX],
-    pub(crate) constants: Vec<Value>,
-    pub(crate) rom: Vec<Instruction>,
-    pub(crate) locations: Vec<Location>,
+    pub constants: Vec<Value>,
+    pub rom: Vec<Instruction>,
+    pub locations: Vec<Location>,
 }
 
 impl VM {

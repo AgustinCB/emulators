@@ -3,22 +3,27 @@ use std::env::args;
 use std::fs::File;
 use std::io::prelude::*;
 
-const USAGE: &str = "Usage: smoked [-s] [input file]";
+const USAGE: &str = "Usage: smoked [-s] [-d] [input file]";
 
 #[derive(Debug)]
 struct Config {
+    debug: bool,
     input_file: Option<String>,
     show_stack: bool,
 }
 
 fn parse_config<I: Iterator<Item=String>>(mut strings: I) -> Config {
     let mut configuration = Config {
+        debug: false,
         input_file: None,
         show_stack: false,
     };
     strings.next();
     while let Some(next) = strings.next() {
         match next.as_str() {
+            "-d" | "--debug" => {
+                configuration.debug = true;
+            }
             "-s" | "--show-stack" => {
                 configuration.show_stack = true;
             }
@@ -39,6 +44,11 @@ fn main () {
     let mut bytes = vec![];
     input_file.read_to_end(&mut bytes).unwrap();
     let mut vm = VM::from(bytes.as_ref());
+    if conf.debug {
+        eprintln!("Constants: {:?}", vm.constants);
+        eprintln!("Instructions: {:?}", vm.rom);
+        eprintln!("Locations: {:?}", vm.locations);
+    }
     while !vm.is_done() {
         vm.execute().unwrap();
     }
