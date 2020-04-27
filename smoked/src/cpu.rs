@@ -27,34 +27,34 @@ impl Into<Vec<u8>> for Value {
     fn into(self) -> Vec<u8> {
         let mut ret = vec![];
         match self {
-            Value::Nil => ret.extend_from_slice(&0usize.to_le_bytes()),
+            Value::Nil => ret.push(0),
             Value::Integer(i) => {
-                ret.extend_from_slice(&1usize.to_le_bytes());
+                ret.push(1);
                 ret.extend_from_slice(&i.to_le_bytes());
             },
             Value::Float(f) => {
-                ret.extend_from_slice(&2usize.to_le_bytes());
+                ret.push(2);
                 ret.extend_from_slice(&f.to_le_bytes());
             },
             Value::Bool(b) => {
-                ret.extend_from_slice(&3usize.to_le_bytes());
+                ret.push(3);
                 ret.extend_from_slice(&(if b { 1usize } else { 0usize }).to_le_bytes());
             },
             Value::String(s) => {
-                ret.extend_from_slice(&4usize.to_le_bytes());
+                ret.push(4);
                 ret.extend_from_slice(&s.to_le_bytes());
             },
             Value::Function { ip, arity } => {
-                ret.extend_from_slice(&5usize.to_le_bytes());
+                ret.push(5);
                 ret.extend_from_slice(&ip.to_le_bytes());
                 ret.extend_from_slice(&arity.to_le_bytes());
             },
             Value::Array { capacity, .. } => {
-                ret.extend_from_slice(&6usize.to_le_bytes());
+                ret.push(6);
                 ret.extend_from_slice(&capacity.to_le_bytes());
             },
             Value::Object { .. } => {
-                ret.extend_from_slice(&7usize.to_le_bytes());
+                ret.push(7);
                 ret.extend_from_slice(&0usize.to_le_bytes());
             },
         }
