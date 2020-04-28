@@ -31,32 +31,32 @@ impl Into<Vec<u8>> for Value {
             Value::Integer(i) => {
                 ret.push(1);
                 ret.extend_from_slice(&i.to_le_bytes());
-            },
+            }
             Value::Float(f) => {
                 ret.push(2);
                 ret.extend_from_slice(&f.to_le_bytes());
-            },
+            }
             Value::Bool(b) => {
                 ret.push(3);
                 ret.extend_from_slice(&(if b { 1usize } else { 0usize }).to_le_bytes());
-            },
+            }
             Value::String(s) => {
                 ret.push(4);
                 ret.extend_from_slice(&s.to_le_bytes());
-            },
+            }
             Value::Function { ip, arity } => {
                 ret.push(5);
                 ret.extend_from_slice(&ip.to_le_bytes());
                 ret.extend_from_slice(&arity.to_le_bytes());
-            },
+            }
             Value::Array { capacity, .. } => {
                 ret.push(6);
                 ret.extend_from_slice(&capacity.to_le_bytes());
-            },
+            }
             Value::Object { .. } => {
                 ret.push(7);
                 ret.extend_from_slice(&0usize.to_le_bytes());
-            },
+            }
         }
         ret
     }
@@ -808,15 +808,12 @@ impl VM {
     }
 
     fn get_size(&self, address: usize) -> Result<usize, Error> {
-        let ret = self
-            .allocator
-            .borrow()
-            .get_allocated_space(address)
-            .ok_or_else(|| {
-                self.create_error(VMErrorType::UnallocatedAddress(address))
-                    .unwrap()
-            })?;
-        Ok(ret)
+        match self.allocator.borrow().get_allocated_space(address) {
+            Some(ret) => Ok(ret),
+            None => Err(Error::from(
+                self.create_error(VMErrorType::UnallocatedAddress(address))?,
+            )),
+        }
     }
 
     fn pop_usize(&mut self) -> Result<usize, Error> {

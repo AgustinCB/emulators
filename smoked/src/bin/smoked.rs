@@ -12,7 +12,7 @@ struct Config {
     show_stack: bool,
 }
 
-fn parse_config<I: Iterator<Item=String>>(mut strings: I) -> Config {
+fn parse_config<I: Iterator<Item = String>>(mut strings: I) -> Config {
     let mut configuration = Config {
         debug: false,
         input_file: None,
@@ -36,9 +36,10 @@ fn parse_config<I: Iterator<Item=String>>(mut strings: I) -> Config {
     configuration
 }
 
-fn main () {
+fn main() {
     let conf = parse_config(args());
-    let mut input_file: Box<dyn Read> = conf.input_file
+    let mut input_file: Box<dyn Read> = conf
+        .input_file
         .map::<Box<dyn Read>, _>(|f| Box::new(File::create(f).unwrap()))
         .unwrap_or_else(|| Box::new(std::io::stdin()));
     let mut bytes = vec![];
@@ -50,7 +51,10 @@ fn main () {
         eprintln!("Locations: {:?}", vm.locations);
     }
     while !vm.is_done() {
-        vm.execute().unwrap();
+        if let Err(e) = vm.execute() {
+            eprintln!("{}", e);
+            break;
+        }
     }
     if conf.show_stack {
         for (index, value) in vm.stack().iter().rev().enumerate() {

@@ -82,7 +82,10 @@ impl Allocator {
         }
     }
 
-    pub fn new_with_addresses(capacity: usize, sizes: &[usize]) -> Result<Allocator, AllocatorError> {
+    pub fn new_with_addresses(
+        capacity: usize,
+        sizes: &[usize],
+    ) -> Result<Allocator, AllocatorError> {
         let mut allocator = Allocator {
             allocated_space: 0,
             allocated_spaces: HashMap::new(),
@@ -100,26 +103,29 @@ impl Allocator {
         self.allocated_spaces.get(&address).cloned()
     }
 
-    pub fn malloc_t<T, R: Iterator<Item=usize>>(&mut self, used_addresses: R) -> Result<usize, AllocatorError> {
+    pub fn malloc_t<T, R: Iterator<Item = usize>>(
+        &mut self,
+        used_addresses: R,
+    ) -> Result<usize, AllocatorError> {
         self.malloc(size_of::<T>(), used_addresses)
     }
 
-    pub fn malloc<R: Iterator<Item=usize>>(&mut self, size: usize, used_addresses: R) -> Result<usize, AllocatorError> {
+    pub fn malloc<R: Iterator<Item = usize>>(
+        &mut self,
+        size: usize,
+        used_addresses: R,
+    ) -> Result<usize, AllocatorError> {
         if self.allocated_space > self.next_gc_pass {
             self.next_gc_pass += NEXT_GC_RATIO;
             self.collect_garbage(used_addresses)?;
         }
         let free_memory = self.capacity - self.allocated_space;
         if size > free_memory {
-            Err(AllocatorError::NotEnoughMemory {
-                intended: size,
-            })
+            Err(AllocatorError::NotEnoughMemory { intended: size })
         } else {
             let space = self.free_chunks.find_suitable_chunk(size);
             match space {
-                None => Err(AllocatorError::NotEnoughMemory {
-                    intended: size,
-                }),
+                None => Err(AllocatorError::NotEnoughMemory { intended: size }),
                 Some((index, (from, to))) => {
                     self.free_chunks.remove(index);
                     if from + size < to {
@@ -157,13 +163,15 @@ impl Allocator {
         }
     }
 
-    fn collect_garbage<R: Iterator<Item=usize>>(&mut self, used_addresses: R) -> Result<(), AllocatorError> {
+    fn collect_garbage<R: Iterator<Item = usize>>(
+        &mut self,
+        used_addresses: R,
+    ) -> Result<(), AllocatorError> {
         let in_use_set: HashSet<usize> = HashSet::from_iter(used_addresses);
         let reserved_set = HashSet::from_iter(self.allocated_spaces.keys().cloned());
-        reserved_set.difference(&in_use_set)
-            .map(|address| {
-                self.free(*address)
-            })
+        reserved_set
+            .difference(&in_use_set)
+            .map(|address| self.free(*address))
             .collect::<Result<Vec<()>, AllocatorError>>()?;
         Ok(())
     }
