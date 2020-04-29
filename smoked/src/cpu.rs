@@ -367,8 +367,10 @@ macro_rules! comp_operation {
 
 macro_rules! logical_operation {
     ($self: ident, $op: tt) => {
-        let a: bool = $self.pop()?.into();
-        let b: bool = $self.pop()?.into();
+        let value_a = $self.pop()?;
+        let value_b = $self.pop()?;
+        let a: bool = value_a.into();
+        let b: bool = value_b.into();
         $self.push(Value::Bool(b $op a))?;
     };
 }
