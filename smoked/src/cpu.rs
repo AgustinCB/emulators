@@ -443,6 +443,14 @@ impl VM {
             InstructionType::Or => {
                 logical_operation!(self, ||);
             }
+            InstructionType::Abs => {
+                let v = self.pop()?;
+                match v {
+                    Value::Integer(a) => self.push(Value::Integer(a.abs()))?,
+                    Value::Float(a) => self.push(Value::Float(a.abs()))?,
+                    _ => Err(self.create_error(VMErrorType::ExpectedNumbers)?)?,
+                };
+            }
             InstructionType::StringConcat => self.string_concat()?,
             InstructionType::Syscall => self.syscall()?,
             InstructionType::GetGlobal(g) => self.get_global(*g)?,

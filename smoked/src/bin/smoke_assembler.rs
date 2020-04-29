@@ -328,6 +328,9 @@ fn parse_instructions<'a, I: Iterator<Item=Token<'a>>>(lexems: &mut Peekable<I>)
                         "OBJECT_ALLOC" => upcodes.push(29),
                         "OBJECT_GET" => upcodes.push(30),
                         "OBJECT_SET" => upcodes.push(31),
+                        "AND" => upcodes.push(32),
+                        "OR" => upcodes.push(33),
+                        "ABS" => upcodes.push(34),
                         "NOOP" => upcodes.push(255),
                         _ => panic!("Unexpected instruction {}", i),
                     };
