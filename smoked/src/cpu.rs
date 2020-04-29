@@ -365,6 +365,14 @@ macro_rules! comp_operation {
     };
 }
 
+macro_rules! logical_operation {
+    ($self: ident, $op: tt) => {
+        let a: bool = $self.pop()?.into();
+        let b: bool = $self.pop()?.into();
+        $self.push(Value::Bool(b $op a))?;
+    };
+}
+
 macro_rules! math_operation {
     ($self: ident, $op: tt, $location: expr) => {
         match ($self.pop()?, $self.pop()?) {
@@ -426,6 +434,12 @@ impl VM {
             }
             InstructionType::LessEqual => {
                 comp_operation!(self, <=);
+            }
+            InstructionType::And => {
+                logical_operation!(self, &&);
+            }
+            InstructionType::Or => {
+                logical_operation!(self, ||);
             }
             InstructionType::StringConcat => self.string_concat()?,
             InstructionType::Syscall => self.syscall()?,

@@ -35,6 +35,8 @@ pub enum InstructionType {
     ObjectAlloc,
     ObjectGet,
     ObjectSet,
+    And,
+    Or,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -125,6 +127,8 @@ impl Into<Vec<u8>> for Instruction {
             InstructionType::ObjectAlloc => bytes.push(29),
             InstructionType::ObjectGet => bytes.push(30),
             InstructionType::ObjectSet => bytes.push(31),
+            InstructionType::And => bytes.push(32),
+            InstructionType::Or => bytes.push(33),
 
         }
         bytes.extend_from_slice(&self.location.to_le_bytes());
@@ -184,6 +188,8 @@ impl From<&[u8]> for Instruction {
             29 => create_instruction(InstructionType::ObjectAlloc, &bytes[1..]),
             30 => create_instruction(InstructionType::ObjectGet, &bytes[1..]),
             31 => create_instruction(InstructionType::ObjectSet, &bytes[1..]),
+            32 => create_instruction(InstructionType::And, &bytes[1..]),
+            33 => create_instruction(InstructionType::Or, &bytes[1..]),
             255 => create_instruction(InstructionType::Noop, &bytes[1..]),
             _ => {
                 warn!("Invalid instruction");
@@ -229,6 +235,8 @@ impl ToString for Instruction {
             InstructionType::ObjectAlloc => "OBJECT_ALLOC".to_owned(),
             InstructionType::ObjectGet => "OBJECT_GET".to_owned(),
             InstructionType::ObjectSet => "OBJECT_SET".to_owned(),
+            InstructionType::And => "AND".to_owned(),
+            InstructionType::Or => "OR".to_owned(),
         }
     }
 }
