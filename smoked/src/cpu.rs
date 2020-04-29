@@ -38,7 +38,7 @@ impl Into<Vec<u8>> for Value {
             }
             Value::Bool(b) => {
                 ret.push(3);
-                ret.extend_from_slice(&(if b { 1usize } else { 0usize }).to_le_bytes());
+                ret.push(if b { 1u8 } else { 0u8 });
             }
             Value::String(s) => {
                 ret.push(4);
