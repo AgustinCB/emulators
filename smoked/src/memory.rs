@@ -34,7 +34,13 @@ impl Memory {
     pub fn copy_t<T>(&self, value: &T, address: usize) {
         let v: *const T = value;
         let p: &[u8] = unsafe { std::slice::from_raw_parts(v as *const u8, size_of::<T>()) };
-        self.copy_u8_vector(p, address)
+        self.copy_u8_vector(p, address);
+    }
+
+    pub fn copy_t_slice<T>(&self, values: &[T], address: usize) {
+        let s = values.len();
+        let p: &[u8] = unsafe { std::slice::from_raw_parts(values.as_ptr() as *const u8, size_of::<T>() * s) };
+        self.copy_u8_vector(p, address);
     }
 
     pub fn get_u8_vector(&self, address: usize, size: usize) -> Result<&[u8], MemoryError> {

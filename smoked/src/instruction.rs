@@ -32,6 +32,7 @@ pub enum InstructionType {
     ArrayAlloc,
     ArrayGet,
     ArraySet,
+    MultiArraySet,
     ObjectAlloc,
     ObjectGet,
     ObjectSet,
@@ -131,6 +132,7 @@ impl Into<Vec<u8>> for Instruction {
             InstructionType::And => bytes.push(32),
             InstructionType::Or => bytes.push(33),
             InstructionType::Abs => bytes.push(34),
+            InstructionType::MultiArraySet => bytes.push(35),
         }
         bytes.extend_from_slice(&self.location.to_le_bytes());
         bytes
@@ -192,6 +194,7 @@ impl From<&[u8]> for Instruction {
             32 => create_instruction(InstructionType::And, &bytes[1..]),
             33 => create_instruction(InstructionType::Or, &bytes[1..]),
             34 => create_instruction(InstructionType::Abs, &bytes[1..]),
+            35 => create_instruction(InstructionType::MultiArraySet, &bytes[1..]),
             255 => create_instruction(InstructionType::Noop, &bytes[1..]),
             _ => {
                 warn!("Invalid instruction");
@@ -234,6 +237,7 @@ impl ToString for Instruction {
             InstructionType::ArrayAlloc => "ARRAY_ALLOC".to_owned(),
             InstructionType::ArrayGet => "ARRAY_GET".to_owned(),
             InstructionType::ArraySet => "ARRAY_SET".to_owned(),
+            InstructionType::MultiArraySet => "MULTI_ARRAY_SET".to_owned(),
             InstructionType::ObjectAlloc => "OBJECT_ALLOC".to_owned(),
             InstructionType::ObjectGet => "OBJECT_GET".to_owned(),
             InstructionType::ObjectSet => "OBJECT_SET".to_owned(),

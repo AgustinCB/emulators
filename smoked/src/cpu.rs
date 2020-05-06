@@ -468,6 +468,7 @@ impl VM {
             InstructionType::ArrayAlloc => self.array_alloc()?,
             InstructionType::ArrayGet => self.array_get()?,
             InstructionType::ArraySet => self.array_set()?,
+            InstructionType::MultiArraySet => self.multi_array_set()?,
             InstructionType::ObjectAlloc => self.object_alloc()?,
             InstructionType::ObjectGet => self.object_get()?,
             InstructionType::ObjectSet => self.object_set()?,
@@ -691,6 +692,22 @@ impl VM {
             }
             (Value::Array { .. }, _) => Err(self.create_error(VMErrorType::ExpectedNumbers)?)?,
             (_, _) => Err(self.create_error(VMErrorType::ExpectedArray)?)?,
+        };
+        Ok(())
+    }
+
+    fn multi_array_set(&mut self) -> Result<(), Error> {
+        match self.pop()? {
+            Value::Array { address, capacity } => {
+                let mut vs = vec![];
+                for _ in 0..capacity {
+                    let v = self.pop()?;
+                    vs.push(v);
+                }
+                self.memory.copy_t_slice(&vs, address);
+                self.push(Value::Array { address, capacity })?;
+            }
+            _ => Err(self.create_error(VMErrorType::ExpectedArray)?)?,
         };
         Ok(())
     }
@@ -1628,6 +1645,37 @@ mod cpu_tests {
         };
         vm.execute_instruction(create_instruction(InstructionType::ArraySet))
             .unwrap();
+    }
+
+    #[test]
+    fn test_multi_array_set() {
+        let memory = Memory::new(110);
+        let mut allocator = Allocator::new(110);
+        let value = Value::Integer(42);
+        let address = allocator
+            .malloc(std::mem::size_of::<Value>() * 2, std::iter::empty())
+            .unwrap();
+        memory.copy_t(&value, address);
+        memory.copy_t(&value, address + VALUE_SIZE);
+        let mut vm = VM::test_vm_with_memory_and_allocator(3, memory, allocator);
+        vm.stack[0] = Value::Integer(1);
+        vm.stack[1] = Value::Integer(2);
+        vm.stack[2] = Value::Array {
+            address,
+            capacity: 2,
+        };
+        vm.execute_instruction(create_instruction(InstructionType::MultiArraySet))
+            .unwrap();
+        assert_eq!(vm.sp, 1);
+        assert_eq!(
+            vm.memory.get_t::<Value>(address).unwrap().clone(),
+            Value::Integer(2)
+        );
+        assert_eq!(
+            vm.memory.get_t::<Value>(address + VALUE_SIZE).unwrap().clone(),
+            Value::Integer(1)
+        );
+        assert_eq!(vm.stack[0], Value::Array { address, capacity: 2 });
     }
 
     #[test]
