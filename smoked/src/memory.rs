@@ -38,8 +38,8 @@ impl Memory {
     }
 
     pub fn copy_t_slice<T>(&self, values: &[T], address: usize) {
-        let s = values.len();
-        let p: &[u8] = unsafe { std::slice::from_raw_parts(values.as_ptr() as *const u8, size_of::<T>() * s) };
+        let len = size_of::<T>() * values.len();
+        let p: &[u8] = unsafe { std::slice::from_raw_parts(values.as_ptr() as *const u8, len) };
         self.copy_u8_vector(p, address);
     }
 
