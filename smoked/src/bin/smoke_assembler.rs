@@ -233,9 +233,7 @@ fn parse_constants<'a, I: Iterator<Item=Token<'a>>>(
 ) -> (Vec<u8>, Vec<u8>) {
     let mut memory = vec![];
     let mut bytes = vec![];
-    bytes.push(4);
-    serialize_type!(bytes, file_name.len(), usize);
-    memory.extend_from_slice(file_name.as_bytes());
+    let mut next_address = 0usize;
     if let Some(TokenType::Data) = lexems.peek().cloned().map(|t| t.token_type) {
         lexems.next();
         while let Some(TokenType::Constant(constant)) = lexems.peek().cloned().map(|t| t.token_type) {
@@ -256,8 +254,9 @@ fn parse_constants<'a, I: Iterator<Item=Token<'a>>>(
                 }
                 Constant::String(s) => {
                     bytes.push(4);
-                    serialize_type!(bytes, s.len(), usize);
+                    serialize_type!(bytes, next_address, usize);
                     memory.extend_from_slice(s.as_bytes());
+                    next_address += s.len();
                 }
                 Constant::Function { ip, arity } => {
                     bytes.push(5);
@@ -284,6 +283,9 @@ fn parse_constants<'a, I: Iterator<Item=Token<'a>>>(
             }
         }
     }
+    bytes.push(4);
+    serialize_type!(bytes, next_address, usize);
+    memory.extend_from_slice(file_name.as_bytes());
     (memory, bytes)
 }
 

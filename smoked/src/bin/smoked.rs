@@ -1,7 +1,8 @@
-use smoked::cpu::VM;
 use std::env::args;
 use std::fs::File;
 use std::io::prelude::*;
+use smoked::serde::from_bytes;
+use std::str::FromStr;
 
 const USAGE: &str = "Usage: smoked [-s] [-d] [input file]";
 
@@ -10,6 +11,7 @@ struct Config {
     debug: bool,
     input_file: Option<String>,
     show_stack: bool,
+    stack_size: Option<usize>,
 }
 
 fn parse_config<I: Iterator<Item = String>>(mut strings: I) -> Config {
@@ -17,6 +19,7 @@ fn parse_config<I: Iterator<Item = String>>(mut strings: I) -> Config {
         debug: false,
         input_file: None,
         show_stack: false,
+        stack_size: None,
     };
     strings.next();
     while let Some(next) = strings.next() {
@@ -26,6 +29,11 @@ fn parse_config<I: Iterator<Item = String>>(mut strings: I) -> Config {
             }
             "-s" | "--show-stack" => {
                 configuration.show_stack = true;
+            }
+            "-S" | "--stack-size" => {
+                let string_number = strings.next().unwrap();
+                let number = usize::from_str(&string_number).unwrap();
+                configuration.stack_size = Some(number);
             }
             s if configuration.input_file.is_none() => {
                 configuration.input_file = Some(s.to_owned());
@@ -44,7 +52,7 @@ fn main() {
         .unwrap_or_else(|| Box::new(std::io::stdin()));
     let mut bytes = vec![];
     input_file.read_to_end(&mut bytes).unwrap();
-    let mut vm = VM::from(bytes.as_ref());
+    let mut vm = from_bytes(bytes.as_ref(), conf.stack_size.clone());
     if conf.debug {
         eprintln!("Constants: {:?}", vm.constants);
         eprintln!("Instructions: {:?}", vm.rom);

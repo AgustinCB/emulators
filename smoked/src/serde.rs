@@ -118,73 +118,72 @@ pub fn to_bytes(
     output
 }
 
-impl From<&[u8]> for VM {
-    fn from(bytes: &[u8]) -> Self {
-        let constant_length = extract_usize(&bytes[0..USIZE_SIZE]);
-        let memory_length = extract_usize(&bytes[USIZE_SIZE..USIZE_SIZE * 2]);
-        let location_length = extract_usize(&bytes[USIZE_SIZE * 2..USIZE_SIZE * 3]);
-        let (addresses, constants) = extract_constants(
-            &bytes[USIZE_SIZE * 3..USIZE_SIZE * 3 + constant_length],
-            constant_length,
-        );
-        let mut sizes = vec![];
-        let mut diffs = addresses.clone();
-        diffs.push(memory_length);
-        for (i, s) in diffs[1..].iter().enumerate() {
-            sizes.push(s - diffs[i]);
-        }
-        let memory = Memory::new(memory_length);
-        memory.copy_u8_vector(
-            &bytes[USIZE_SIZE * 3 + constant_length
-                ..USIZE_SIZE * 3 + constant_length + memory_length],
-            0,
-        );
-        let mut locations = vec![];
-        for i in 0..location_length {
-            locations.push(Location {
-                address: extract_usize(
-                    &bytes[USIZE_SIZE * 3 + constant_length + memory_length + i * 2 * USIZE_SIZE
-                        ..USIZE_SIZE * 3
-                            + constant_length
-                            + memory_length
-                            + (i * 2 + 1) * USIZE_SIZE],
-                ),
-                line: extract_usize(
-                    &bytes[USIZE_SIZE * 3
-                        + constant_length
-                        + memory_length
-                        + (i * 2 + 1) * USIZE_SIZE
-                        ..USIZE_SIZE * 3
-                            + constant_length
-                            + memory_length
-                            + (i * 2 + 2) * USIZE_SIZE],
-                ),
-            });
-        }
-        let bytes = &bytes
-            [USIZE_SIZE * 3 + constant_length + memory_length + location_length * 2 * USIZE_SIZE..];
-        let mut rom = vec![];
-        let mut index = 0;
-        while index < bytes.len() {
-            let to = min(index + 17, bytes.len());
-            let instruction = Instruction::from(&bytes[index..to]);
-            index += instruction.size() as usize;
-            rom.push(instruction);
-        }
-        let mut vm = VM {
-            allocator: RefCell::new(Allocator::new_with_addresses(memory_length, &sizes).unwrap()),
-            frames: vec![],
-            globals: Default::default(),
-            sp: 0,
-            stack: [Value::Nil; STACK_MAX],
-            constants,
-            locations,
-            memory,
-            rom,
-        };
-        vm.new_frame(0, 0);
-        vm
+pub fn from_bytes(bytes: &[u8], stack_size: Option<usize>) -> VM {
+    let constant_length = extract_usize(&bytes[0..USIZE_SIZE]);
+    let memory_length = extract_usize(&bytes[USIZE_SIZE..USIZE_SIZE * 2]);
+    let location_length = extract_usize(&bytes[USIZE_SIZE * 2..USIZE_SIZE * 3]);
+    let (addresses, constants) = extract_constants(
+        &bytes[USIZE_SIZE * 3..USIZE_SIZE * 3 + constant_length],
+        constant_length,
+    );
+    let mut sizes = vec![];
+    let mut diffs = addresses.clone();
+    diffs.push(memory_length);
+    for (i, s) in diffs[1..].iter().enumerate() {
+        sizes.push(s - diffs[i]);
     }
+    let stack_size = stack_size.unwrap_or(memory_length);
+    let memory = Memory::new(stack_size);
+    memory.copy_u8_vector(
+        &bytes[USIZE_SIZE * 3 + constant_length
+            ..USIZE_SIZE * 3 + constant_length + memory_length],
+        0,
+    );
+    let mut locations = vec![];
+    for i in 0..location_length {
+        locations.push(Location {
+            address: extract_usize(
+                &bytes[USIZE_SIZE * 3 + constant_length + memory_length + i * 2 * USIZE_SIZE
+                    ..USIZE_SIZE * 3
+                    + constant_length
+                    + memory_length
+                    + (i * 2 + 1) * USIZE_SIZE],
+            ),
+            line: extract_usize(
+                &bytes[USIZE_SIZE * 3
+                    + constant_length
+                    + memory_length
+                    + (i * 2 + 1) * USIZE_SIZE
+                    ..USIZE_SIZE * 3
+                    + constant_length
+                    + memory_length
+                    + (i * 2 + 2) * USIZE_SIZE],
+            ),
+        });
+    }
+    let bytes = &bytes
+        [USIZE_SIZE * 3 + constant_length + memory_length + location_length * 2 * USIZE_SIZE..];
+    let mut rom = vec![];
+    let mut index = 0;
+    while index < bytes.len() {
+        let to = min(index + 17, bytes.len());
+        let instruction = Instruction::from(&bytes[index..to]);
+        index += instruction.size() as usize;
+        rom.push(instruction);
+    }
+    let mut vm = VM {
+        allocator: RefCell::new(Allocator::new_with_addresses(stack_size, &sizes).unwrap()),
+        frames: vec![],
+        globals: Default::default(),
+        sp: 0,
+        stack: [Value::Nil; STACK_MAX],
+        constants,
+        locations,
+        memory,
+        rom,
+    };
+    vm.new_frame(0, 0);
+    vm
 }
 
 #[cfg(test)]
