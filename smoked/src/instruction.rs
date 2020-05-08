@@ -41,6 +41,7 @@ pub enum InstructionType {
     Abs,
     Push,
     Pop,
+    RepeatedArraySet,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -137,6 +138,7 @@ impl Into<Vec<u8>> for Instruction {
             InstructionType::MultiArraySet => bytes.push(35),
             InstructionType::Push => bytes.push(36),
             InstructionType::Pop => bytes.push(37),
+            InstructionType::RepeatedArraySet => bytes.push(38),
         }
         bytes.extend_from_slice(&self.location.to_le_bytes());
         bytes
@@ -201,6 +203,7 @@ impl From<&[u8]> for Instruction {
             35 => create_instruction(InstructionType::MultiArraySet, &bytes[1..]),
             36 => create_instruction(InstructionType::Push, &bytes[1..]),
             37 => create_instruction(InstructionType::Pop, &bytes[1..]),
+            38 => create_instruction(InstructionType::RepeatedArraySet, &bytes[1..]),
             255 => create_instruction(InstructionType::Noop, &bytes[1..]),
             _ => {
                 warn!("Invalid instruction");
@@ -252,6 +255,7 @@ impl ToString for Instruction {
             InstructionType::Abs => "ABS".to_owned(),
             InstructionType::Push => "PUSH".to_owned(),
             InstructionType::Pop => "POP".to_owned(),
+            InstructionType::RepeatedArraySet => "REPEATED_ARRAY_SET".to_owned(),
         }
     }
 }

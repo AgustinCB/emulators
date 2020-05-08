@@ -476,6 +476,7 @@ impl VM {
                 self.pop()?;
             },
             InstructionType::Push => self.push(self.peek()?)?,
+            InstructionType::RepeatedArraySet => self.repeated_array_set()?,
         };
         Ok(())
     }
@@ -708,6 +709,19 @@ impl VM {
                     let v = self.pop()?;
                     vs.push(v);
                 }
+                self.memory.copy_t_slice(&vs, address);
+                self.push(Value::Array { address, capacity })?;
+            }
+            _ => Err(self.create_error(VMErrorType::ExpectedArray)?)?,
+        };
+        Ok(())
+    }
+
+    fn repeated_array_set(&mut self) -> Result<(), Error> {
+        match self.pop()? {
+            Value::Array { address, capacity } => {
+                let v = self.pop()?;
+                let vs = vec![v].repeat(capacity);
                 self.memory.copy_t_slice(&vs, address);
                 self.push(Value::Array { address, capacity })?;
             }
