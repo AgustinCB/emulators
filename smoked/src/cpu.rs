@@ -472,6 +472,10 @@ impl VM {
             InstructionType::ObjectAlloc => self.object_alloc()?,
             InstructionType::ObjectGet => self.object_get()?,
             InstructionType::ObjectSet => self.object_set()?,
+            InstructionType::Pop => {
+                self.pop()?;
+            },
+            InstructionType::Push => self.push(self.peek()?)?,
         };
         Ok(())
     }

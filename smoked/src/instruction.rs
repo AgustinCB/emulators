@@ -39,6 +39,8 @@ pub enum InstructionType {
     And,
     Or,
     Abs,
+    Push,
+    Pop,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -133,6 +135,8 @@ impl Into<Vec<u8>> for Instruction {
             InstructionType::Or => bytes.push(33),
             InstructionType::Abs => bytes.push(34),
             InstructionType::MultiArraySet => bytes.push(35),
+            InstructionType::Push => bytes.push(36),
+            InstructionType::Pop => bytes.push(37),
         }
         bytes.extend_from_slice(&self.location.to_le_bytes());
         bytes
@@ -195,6 +199,8 @@ impl From<&[u8]> for Instruction {
             33 => create_instruction(InstructionType::Or, &bytes[1..]),
             34 => create_instruction(InstructionType::Abs, &bytes[1..]),
             35 => create_instruction(InstructionType::MultiArraySet, &bytes[1..]),
+            36 => create_instruction(InstructionType::Push, &bytes[1..]),
+            37 => create_instruction(InstructionType::Pop, &bytes[1..]),
             255 => create_instruction(InstructionType::Noop, &bytes[1..]),
             _ => {
                 warn!("Invalid instruction");
@@ -244,6 +250,8 @@ impl ToString for Instruction {
             InstructionType::And => "AND".to_owned(),
             InstructionType::Or => "OR".to_owned(),
             InstructionType::Abs => "ABS".to_owned(),
+            InstructionType::Push => "PUSH".to_owned(),
+            InstructionType::Pop => "POP".to_owned(),
         }
     }
 }
