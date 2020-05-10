@@ -477,6 +477,9 @@ impl VM {
             },
             InstructionType::Push => self.push(self.peek()?)?,
             InstructionType::RepeatedArraySet => self.repeated_array_set()?,
+            InstructionType::Strlen => self.strlen()?,
+            InstructionType::Swap => self.swap()?,
+            InstructionType::ToStr => self.instr_to_str()?,
         };
         Ok(())
     }
@@ -850,6 +853,47 @@ impl VM {
             })?;
         } else {
             Err(self.create_error(VMErrorType::ExpectedStrings)?)?;
+        }
+        Ok(())
+    }
+
+    fn strlen(&mut self) -> Result<(), Error> {
+        match self.pop()? {
+            Value::String(s) => {
+                let s_size = self.get_size(s)?;
+                self.push(Value::Integer(s_size as _))?;
+            },
+            _ => Err(self.create_error(VMErrorType::ExpectedStrings)?)?,
+        };
+        Ok(())
+    }
+
+    fn swap(&mut self) -> Result<(), Error> {
+        let botttom = self.pop()?;
+        let top = self.pop()?;
+        self.push(botttom)?;
+        self.push(top)?;
+        Ok(())
+    }
+
+    fn instr_to_str(&mut self) -> Result<(), Error> {
+        let v = self.pop()?;
+        if let Value::String(address) = v {
+            self.push(Value::String(address))?;
+        } else {
+            let s = match v {
+                Value::Nil => "nil".to_string(),
+                Value::Integer(i) => i.to_string(),
+                Value::Bool(b) => b.to_string(),
+                Value::Float(f) => f.to_string(),
+                Value::Function { .. } => "[function]".to_string(),
+                Value::Array { .. } => "[array]".to_string(),
+                Value::Object { .. } => "[object]".to_string(),
+                _ => panic!("Cannot happen"),
+            };
+            let a = self.allocator.borrow_mut().malloc(s.len(), self.get_roots())?;
+            self.memory.copy_u8_vector(s.as_bytes(), a);
+            self.push(Value::String(a))?;
         }
         Ok(())
     }

@@ -42,6 +42,9 @@ pub enum InstructionType {
     Push,
     Pop,
     RepeatedArraySet,
+    Strlen,
+    Swap,
+    ToStr,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -139,6 +142,9 @@ impl Into<Vec<u8>> for Instruction {
             InstructionType::Push => bytes.push(36),
             InstructionType::Pop => bytes.push(37),
             InstructionType::RepeatedArraySet => bytes.push(38),
+            InstructionType::Strlen => bytes.push(39),
+            InstructionType::Swap => bytes.push(40),
+            InstructionType::ToStr => bytes.push(41),
         }
         bytes.extend_from_slice(&self.location.to_le_bytes());
         bytes
@@ -204,6 +210,9 @@ impl From<&[u8]> for Instruction {
             36 => create_instruction(InstructionType::Push, &bytes[1..]),
             37 => create_instruction(InstructionType::Pop, &bytes[1..]),
             38 => create_instruction(InstructionType::RepeatedArraySet, &bytes[1..]),
+            39 => create_instruction(InstructionType::Strlen, &bytes[1..]),
+            40 => create_instruction(InstructionType::Swap, &bytes[1..]),
+            41 => create_instruction(InstructionType::ToStr, &bytes[1..]),
             255 => create_instruction(InstructionType::Noop, &bytes[1..]),
             _ => {
                 warn!("Invalid instruction");
@@ -256,6 +265,9 @@ impl ToString for Instruction {
             InstructionType::Push => "PUSH".to_owned(),
             InstructionType::Pop => "POP".to_owned(),
             InstructionType::RepeatedArraySet => "REPEATED_ARRAY_SET".to_owned(),
+            InstructionType::Strlen => "STRLEN".to_owned(),
+            InstructionType::Swap => "SWAP".to_owned(),
+            InstructionType::ToStr => "TO_STR".to_owned(),
         }
     }
 }
