@@ -166,6 +166,15 @@ impl VM {
         }
     }
 
+    fn maybe_pop(&mut self) -> Option<Value> {
+        if (self.sp - self.frames.last().unwrap().stack_offset) == 0 {
+            None
+        } else {
+            self.sp -= 1;
+            Some(self.stack[self.sp])
+        }
+    }
+
     fn pop(&mut self) -> Result<Value, Error> {
         if (self.sp - self.frames.last().unwrap().stack_offset) == 0 {
             Err(self.create_error(VMErrorType::EmptyStack)?)?;
@@ -517,9 +526,11 @@ impl VM {
 
     #[inline]
     fn return_from_call(&mut self) -> Result<(), Error> {
-        let return_value = self.pop()?;
+        let return_value = self.maybe_pop();
         self.sp = self.frames.last().unwrap().stack_offset;
-        self.push(return_value)?;
+        if let Some(return_value) = return_value {
+            self.push(return_value)?;
+        }
         self.frames.pop();
         Ok(())
     }
