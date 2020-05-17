@@ -188,8 +188,9 @@ pub fn from_bytes(bytes: &[u8], stack_size: Option<usize>) -> VM {
 
 #[cfg(test)]
 mod tests {
-    use crate::cpu::{Location, Value, VM};
+    use crate::cpu::{Location, Value};
     use crate::instruction::{Instruction, InstructionType};
+    use crate::serde::from_bytes;
 
     fn create_instruction(instruction_type: InstructionType) -> Instruction {
         Instruction {
@@ -218,7 +219,7 @@ mod tests {
             1, 42, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0,
             0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
-        let vm = VM::from(bytes.as_ref());
+        let vm = from_bytes(bytes.as_ref(), None);
         assert_eq!(vm.constants.len(), 8);
         assert_eq!(&vm.constants[0], &Value::Nil);
         assert_eq!(&vm.constants[1], &Value::Integer(42));

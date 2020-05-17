@@ -123,8 +123,9 @@ impl Display for VMError {
 }
 
 pub(crate) struct Frame {
-    stack_offset: usize,
+    arity: usize,
     ip: usize,
+    stack_offset: usize,
 }
 
 #[derive(Debug, PartialEq)]
@@ -163,15 +164,6 @@ impl VM {
             locations,
             memory,
             rom,
-        }
-    }
-
-    fn maybe_pop(&mut self) -> Option<Value> {
-        if (self.sp - self.frames.last().unwrap().stack_offset) == 0 {
-            None
-        } else {
-            self.sp -= 1;
-            Some(self.stack[self.sp])
         }
     }
 
@@ -233,6 +225,7 @@ impl VM {
         VM {
             constants: Vec::new(),
             frames: vec![Frame {
+                arity: 0,
                 ip: 1,
                 stack_offset: 0,
             }],
@@ -257,6 +250,7 @@ impl VM {
             allocator: RefCell::new(Allocator::new(mem)),
             constants: Vec::new(),
             frames: vec![Frame {
+                arity: 0,
                 ip: 0,
                 stack_offset: 0,
             }],
@@ -279,6 +273,7 @@ impl VM {
         VM {
             constants: Vec::new(),
             frames: vec![Frame {
+                arity: 0,
                 ip: 1,
                 stack_offset: 0,
             }],
@@ -526,8 +521,17 @@ impl VM {
 
     #[inline]
     fn return_from_call(&mut self) -> Result<(), Error> {
-        let return_value = self.maybe_pop();
-        self.sp = self.frames.last().unwrap().stack_offset;
+        let return_value = {
+            let previous_frame = self.frames.last().unwrap();
+            let pso = previous_frame.stack_offset;
+            let r = if self.sp - previous_frame.arity > previous_frame.stack_offset {
+                Some(self.pop()?)
+            } else {
+                None
+            };
+            self.sp = pso;
+            r
+        };
         if let Some(return_value) = return_value {
             self.push(return_value)?;
         }
@@ -1016,6 +1020,7 @@ impl VM {
 
     pub(crate) fn new_frame(&mut self, ip: usize, arity: usize) {
         let new_frame = Frame {
+            arity: 0,
             ip,
             stack_offset: self.sp - arity,
         };
