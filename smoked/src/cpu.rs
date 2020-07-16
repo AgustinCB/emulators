@@ -561,14 +561,8 @@ impl VM {
     }
 
     fn syscall(&mut self) -> Result<(), Error> {
-        let syscall_value = match self.pop()? {
-            Value::Integer(a) => a as usize,
-            _ => Err(self.create_error(VMErrorType::ExpectedNumbers)?)?,
-        };
-        let arguments = match self.pop()? {
-            Value::Integer(a) => a as u8,
-            _ => Err(self.create_error(VMErrorType::ExpectedNumbers)?)?,
-        };
+        let syscall_value = self.pop_usize()?;
+        let arguments = self.pop_usize()?;
         let ret = match arguments {
             0 => unsafe { syscall0(syscall_value) },
             1 => unsafe { syscall1(syscall_value, self.pop_usize()?) },
