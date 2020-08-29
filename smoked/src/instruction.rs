@@ -45,6 +45,7 @@ pub enum InstructionType {
     Strlen,
     Swap,
     ToStr,
+    Uplift(usize),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -58,7 +59,7 @@ impl Instruction {
         match &self.instruction_type {
             InstructionType::Constant(_) | InstructionType::SetGlobal(_) | InstructionType::GetGlobal(_) |
             InstructionType::SetLocal(_) | InstructionType::GetLocal(_) | InstructionType::Jmp(_) |
-            InstructionType::JmpIfFalse(_) | InstructionType::Loop(_) => 17,
+            InstructionType::JmpIfFalse(_) | InstructionType::Loop(_) | InstructionType::Uplift(_)=> 17,
             _ => 9,
         }
     }
@@ -145,6 +146,10 @@ impl Into<Vec<u8>> for Instruction {
             InstructionType::Strlen => bytes.push(39),
             InstructionType::Swap => bytes.push(40),
             InstructionType::ToStr => bytes.push(41),
+            InstructionType::Uplift(g) => {
+                bytes.push(42);
+                bytes.extend_from_slice(&g.to_le_bytes());
+            },
         }
         bytes.extend_from_slice(&self.location.to_le_bytes());
         bytes
@@ -213,6 +218,9 @@ impl From<&[u8]> for Instruction {
             39 => create_instruction(InstructionType::Strlen, &bytes[1..]),
             40 => create_instruction(InstructionType::Swap, &bytes[1..]),
             41 => create_instruction(InstructionType::ToStr, &bytes[1..]),
+            42 => create_instruction(InstructionType::Uplift(usize::from_le_bytes(
+                [bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7], bytes[8]],
+            )), &bytes[9..]),
             255 => create_instruction(InstructionType::Noop, &bytes[1..]),
             _ => {
                 warn!("Invalid instruction");
@@ -268,6 +276,7 @@ impl ToString for Instruction {
             InstructionType::Strlen => "STRLEN".to_owned(),
             InstructionType::Swap => "SWAP".to_owned(),
             InstructionType::ToStr => "TO_STR".to_owned(),
+            InstructionType::Uplift(local) => format!("UPLIFT {}", local),
         }
     }
 }

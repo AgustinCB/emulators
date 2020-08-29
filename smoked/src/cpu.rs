@@ -18,6 +18,7 @@ pub enum Value {
     Float(f32),
     Bool(bool),
     String(usize),
+    Pointer(usize),
     Function { ip: usize, arity: usize },
     Array { capacity: usize, address: usize },
     Object { address: usize },
@@ -57,6 +58,10 @@ impl Into<Vec<u8>> for Value {
                 ret.push(7);
                 ret.extend_from_slice(&0usize.to_le_bytes());
             }
+            Value::Pointer(address) => {
+                ret.push(8);
+                ret.extend_from_slice(&address.to_le_bytes())
+            }
         }
         ret
     }
@@ -77,6 +82,7 @@ impl Into<bool> for Value {
             Value::Function { .. } => true,
             Value::Nil => false,
             Value::Object { .. } => true,
+            Value::Pointer(_) => true,
         }
     }
 }
@@ -209,6 +215,18 @@ impl VM {
             error_type,
             file,
         })
+    }
+
+    fn dereference_pointer(&self, value: Value) -> Result<Value, Error> {
+        if let Value::Pointer(address) = value {
+            Ok(self.memory.get_t::<Value>(address)?.clone())
+        } else {
+            Ok(value)
+        }
+    }
+    fn dereference_pop(&mut self) -> Result<Value, Error> {
+        let value = self.pop()?;
+        self.dereference_pointer(value)
     }
 }
 
@@ -344,7 +362,7 @@ mod tests {
 
 macro_rules! comp_operation {
     ($self: ident, $op: tt) => {
-        match ($self.pop()?, $self.pop()?) {
+        match ($self.dereference_pop()?, $self.dereference_pop()?) {
             (Value::Integer(a), Value::Integer(b)) => $self.push(Value::Bool(b $op a)),
             (Value::Float(a), Value::Integer(b)) => $self.push(Value::Bool((b as f32) $op a)),
             (Value::Integer(a), Value::Float(b)) => $self.push(Value::Bool(b $op (a as f32))),
@@ -371,8 +389,8 @@ macro_rules! comp_operation {
 
 macro_rules! logical_operation {
     ($self: ident, $op: tt) => {
-        let value_a = $self.pop()?;
-        let value_b = $self.pop()?;
+        let value_a = $self.dereference_pop()?;
+        let value_b = $self.dereference_pop()?;
         let a: bool = value_a.into();
         let b: bool = value_b.into();
         $self.push(Value::Bool(b $op a))?;
@@ -381,7 +399,7 @@ macro_rules! logical_operation {
 
 macro_rules! math_operation {
     ($self: ident, $op: tt, $location: expr) => {
-        match ($self.pop()?, $self.pop()?) {
+        match ($self.dereference_pop()?, $self.dereference_pop()?) {
             (Value::Integer(a), Value::Integer(b)) => $self.push(Value::Integer(b $op a)),
             (Value::Float(a), Value::Integer(b)) => $self.push(Value::Float(b as f32 $op a)),
             (Value::Integer(a), Value::Float(b)) => $self.push(Value::Float(b $op a as f32)),
@@ -420,7 +438,7 @@ impl VM {
             InstructionType::True => self.push(Value::Bool(true))?,
             InstructionType::False => self.push(Value::Bool(false))?,
             InstructionType::Not => {
-                let b: bool = self.pop()?.into();
+                let b: bool = self.dereference_pop()?.into();
                 self.push(Value::Bool(!b))?;
             }
             InstructionType::Equal => {
@@ -448,7 +466,7 @@ impl VM {
                 logical_operation!(self, ||);
             }
             InstructionType::Abs => {
-                let v = self.pop()?;
+                let v = self.dereference_pop()?;
                 match v {
                     Value::Integer(a) => self.push(Value::Integer(a.abs()))?,
                     Value::Float(a) => self.push(Value::Float(a.abs()))?,
@@ -484,6 +502,7 @@ impl VM {
             InstructionType::Strlen => self.strlen()?,
             InstructionType::Swap => self.swap()?,
             InstructionType::ToStr => self.instr_to_str()?,
+            InstructionType::Uplift(local) => self.uplift(*local)?,
         };
         Ok(())
     }
@@ -540,7 +559,7 @@ impl VM {
     }
 
     fn string_concat(&mut self) -> Result<(), Error> {
-        match (self.pop()?, self.pop()?) {
+        match (self.dereference_pop()?, self.dereference_pop()?) {
             (Value::String(s1), Value::String(s2)) => {
                 let result = {
                     let mut string1 = self.memory.get_u8_vector(s1, self.get_size(s1)?)?.to_vec();
@@ -639,8 +658,16 @@ impl VM {
         Ok(())
     }
 
+    fn uplift(&mut self, local: usize) -> Result<(), Error> {
+        let value = self.stack[self.frames.last().unwrap().stack_offset + local];
+        let address = self.allocator.borrow_mut().malloc_t::<Value, _>(self.get_roots())?;
+        self.memory.copy_t(&value, address);
+        self.stack[self.frames.last().unwrap().stack_offset + local] = Value::Pointer(address);
+        Ok(())
+    }
+
     fn jmp_if_false(&mut self, offset: usize) -> Result<(), Error> {
-        let jmp_cond: bool = self.pop()?.into();
+        let jmp_cond: bool = self.dereference_pop()?.into();
         if !jmp_cond {
             self.add_to_ip(offset);
         }
@@ -660,7 +687,7 @@ impl VM {
     }
 
     fn array_alloc(&mut self) -> Result<(), Error> {
-        if let Value::Integer(capacity) = self.pop()? {
+        if let Value::Integer(capacity) = self.dereference_pop()? {
             let address = self
                 .allocator
                 .borrow_mut()
@@ -676,7 +703,7 @@ impl VM {
     }
 
     fn array_get(&mut self) -> Result<(), Error> {
-        match (self.pop()?, self.pop()?) {
+        match (self.dereference_pop()?, self.dereference_pop()?) {
             (Value::Array { capacity, .. }, Value::Integer(index))
                 if capacity <= index as usize =>
             {
@@ -696,7 +723,7 @@ impl VM {
     }
 
     fn array_set(&mut self) -> Result<(), Error> {
-        match (self.pop()?, self.pop()?) {
+        match (self.dereference_pop()?, self.dereference_pop()?) {
             (Value::Array { capacity, .. }, Value::Integer(index))
                 if capacity <= index as usize =>
             {
@@ -714,7 +741,7 @@ impl VM {
     }
 
     fn multi_array_set(&mut self) -> Result<(), Error> {
-        match self.pop()? {
+        match self.dereference_pop()? {
             Value::Array { address, capacity } => {
                 let mut vs = vec![];
                 for _ in 0..capacity {
@@ -730,7 +757,7 @@ impl VM {
     }
 
     fn repeated_array_set(&mut self) -> Result<(), Error> {
-        match self.pop()? {
+        match self.dereference_pop()? {
             Value::Array { address, capacity } => {
                 let v = self.pop()?;
                 let vs = vec![v].repeat(capacity);
@@ -743,7 +770,7 @@ impl VM {
     }
 
     fn object_alloc(&mut self) -> Result<(), Error> {
-        if let Value::Integer(capacity) = self.pop()? {
+        if let Value::Integer(capacity) = self.dereference_pop()? {
             let size = (VALUE_SIZE + USIZE_SIZE) * capacity as usize + USIZE_SIZE;
             let address = self.allocator.borrow_mut().malloc(size, self.get_roots())?;
             self.push(Value::Object { address })?;
@@ -760,7 +787,7 @@ impl VM {
                 address: obj_address,
             },
             Value::String(address),
-        ) = (self.pop()?, self.pop()?)
+        ) = (self.dereference_pop()?, self.dereference_pop()?)
         {
             let size = self
                 .allocator
@@ -801,7 +828,7 @@ impl VM {
                 address: mut obj_address,
             },
             Value::String(address),
-        ) = (self.pop()?, self.pop()?)
+        ) = (self.dereference_pop()?, self.dereference_pop()?)
         {
             let value = self.pop()?;
             let capacity = (self.get_size(obj_address)? - USIZE_SIZE) / (VALUE_SIZE + USIZE_SIZE);
@@ -867,7 +894,7 @@ impl VM {
     }
 
     fn strlen(&mut self) -> Result<(), Error> {
-        match self.pop()? {
+        match self.dereference_pop()? {
             Value::String(s) => {
                 let s_size = self.get_size(s)?;
                 self.push(Value::Integer(s_size as _))?;
@@ -886,7 +913,7 @@ impl VM {
     }
 
     fn instr_to_str(&mut self) -> Result<(), Error> {
-        let v = self.pop()?;
+        let v = self.dereference_pop()?;
         if let Value::String(address) = v {
             self.push(Value::String(address))?;
         } else {
@@ -929,7 +956,7 @@ impl VM {
     }
 
     fn pop_usize(&mut self) -> Result<usize, Error> {
-        let ret = match self.pop()? {
+        let ret = match self.dereference_pop()? {
             Value::Integer(a) => a as usize,
             Value::Float(f) => f as usize,
             Value::String(address) => {
@@ -1539,6 +1566,19 @@ mod cpu_tests {
         vm.execute_instruction(create_instruction(InstructionType::GetLocal(0)))?;
         assert_eq!(vm.sp, 2);
         assert_eq!(vm.stack[1], Value::Integer(1));
+        Ok(())
+    }
+
+    #[test]
+    fn test_uplift_local() -> Result<(), Error> {
+        let memory = Memory::new(110);
+        let allocator = Allocator::new(110);
+        let mut vm = VM::test_vm_with_memory_and_allocator(1, memory, allocator);
+        vm.stack[0] = Value::Integer(1);
+        vm.execute_instruction(create_instruction(InstructionType::Uplift(0)))?;
+        assert_eq!(vm.sp, 1);
+        assert_eq!(vm.stack[0], Value::Pointer(4));
+        assert_eq!(*vm.memory.get_t::<Value>(4).unwrap(), Value::Integer(1));
         Ok(())
     }
 
