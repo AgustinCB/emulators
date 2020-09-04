@@ -669,6 +669,7 @@ impl VM {
         let address = self.allocator.borrow_mut().malloc_t::<Value, _>(self.get_roots())?;
         self.memory.copy_t(&value, address);
         self.stack[self.frames.last().unwrap().stack_offset + local] = Value::Pointer(address);
+        self.push(Value::Pointer(address))?;
         Ok(())
     }
 
@@ -1590,8 +1591,9 @@ mod cpu_tests {
         let mut vm = VM::test_vm_with_memory_and_allocator(1, memory, allocator);
         vm.stack[0] = Value::Integer(1);
         vm.execute_instruction(create_instruction(InstructionType::Uplift(0)))?;
-        assert_eq!(vm.sp, 1);
+        assert_eq!(vm.sp, 2);
         assert_eq!(vm.stack[0], Value::Pointer(4));
+        assert_eq!(vm.stack[1], Value::Pointer(4));
         assert_eq!(*vm.memory.get_t::<Value>(4).unwrap(), Value::Integer(1));
         Ok(())
     }
