@@ -54,7 +54,14 @@ fn extract_constants(bytes: &[u8], size: usize) -> (Vec<usize>, Vec<Value>) {
                 index += USIZE_SIZE;
                 let arity = extract_usize(&bytes[index..index + USIZE_SIZE]);
                 index += USIZE_SIZE;
-                constants.push(Value::Function { ip, arity });
+                let uplifts = if bytes[index] == 1 {
+                    index += 1 + USIZE_SIZE;
+                    Some(extract_usize(&bytes[index-USIZE_SIZE..index]))
+                } else {
+                    index += 1;
+                    None
+                };
+                constants.push(Value::Function { ip, arity, uplifts });
             }
             6 => {
                 let capacity = extract_usize(&bytes[index..index + USIZE_SIZE]);
@@ -202,7 +209,7 @@ mod tests {
     #[test]
     fn it_should_deserialize_into_a_vm() {
         let bytes = [
-            61u8, 0, 0, 0, 0, 0, 0, 0, // Constant length
+            62u8, 0, 0, 0, 0, 0, 0, 0, // Constant length
             8, 0, 0, 0, 0, 0, 0, 0, // Memory length
             1, 0, 0, 0, 0, 0, 0, 0, // Locations length
             0, // Nil value - 1
@@ -210,7 +217,7 @@ mod tests {
             2, 42, 42, 42, 42, // Float value - 15
             3, 1, // Bool value - 17
             4, 4, 0, 0, 0, 0, 0, 0, 0, // String value - 26
-            5, 42, 0, 0, 0, 0, 0, 0, 0, 42, 0, 0, 0, 0, 0, 0, 0, // Function value - 43
+            5, 42, 0, 0, 0, 0, 0, 0, 0, 42, 0, 0, 0, 0, 0, 0, 0, 0, // Function value - 43
             6, 2, 0, 0, 0, 0, 0, 0, 0, // Array value - 52
             7, 2, 0, 0, 0, 0, 0, 0, 0, // Object value - 61
             0, 1, 2, 3, 4, 5, 6, 7, // Memory
@@ -226,7 +233,7 @@ mod tests {
         assert_eq!(&vm.constants[2], &Value::Float(0.00000000000015113662f32));
         assert_eq!(&vm.constants[3], &Value::Bool(true));
         assert_eq!(&vm.constants[4], &Value::String(4));
-        assert_eq!(&vm.constants[5], &Value::Function { arity: 42, ip: 42 });
+        assert_eq!(&vm.constants[5], &Value::Function { arity: 42, ip: 42, uplifts: None });
         assert_eq!(
             &vm.constants[6],
             &Value::Array {

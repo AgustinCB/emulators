@@ -19,7 +19,7 @@ pub enum Value {
     Bool(bool),
     String(usize),
     Pointer(usize),
-    Function { ip: usize, arity: usize },
+    Function { ip: usize, arity: usize, uplifts: Option<usize> },
     Array { capacity: usize, address: usize },
     Object { address: usize },
 }
@@ -45,10 +45,16 @@ impl Into<Vec<u8>> for Value {
                 ret.push(4);
                 ret.extend_from_slice(&s.to_le_bytes());
             }
-            Value::Function { ip, arity } => {
+            Value::Function { ip, arity, uplifts } => {
                 ret.push(5);
                 ret.extend_from_slice(&ip.to_le_bytes());
                 ret.extend_from_slice(&arity.to_le_bytes());
+                if let Some(uplifts) = uplifts {
+                    ret.push(1);
+                    ret.extend_from_slice(&uplifts.to_le_bytes());
+                } else {
+                    ret.push(0);
+                }
             }
             Value::Array { capacity, .. } => {
                 ret.push(6);
@@ -675,11 +681,19 @@ impl VM {
     }
 
     fn call(&mut self) -> Result<(), Error> {
-        if let Value::Function { ip, arity } = self.pop()? {
+        if let Value::Function { ip, arity, uplifts } = self.pop()? {
             if self.sp < arity {
                 Err(self.create_error(VMErrorType::NotEnoughArgumentsForFunction)?)?;
             }
             self.new_frame(ip, arity);
+            if let Some(address) = uplifts {
+                let array_size = self.get_size(address)? / VALUE_SIZE;
+                for i in 0..array_size {
+                    let value = *self.memory.get_t::<Value>(address + i * VALUE_SIZE)?;
+                    self.push(value)?;
+                    self.set_local(i)?;
+                }
+            }
         } else {
             Err(self.create_error(VMErrorType::ExpectedNumbers)?)?;
         }
@@ -1624,7 +1638,7 @@ mod cpu_tests {
     #[test]
     fn test_call() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[1] = Value::Function { ip: 20, arity: 1 };
+        vm.stack[1] = Value::Function { ip: 20, arity: 1, uplifts: None };
         vm.execute_instruction(create_instruction(InstructionType::Call))?;
         assert_eq!(vm.frames.last().unwrap().stack_offset, 0);
         assert_eq!(vm.frames.len(), 2);
@@ -1648,7 +1662,7 @@ mod cpu_tests {
     )]
     fn test_call_without_enough_arguments() {
         let mut vm = VM::test_vm(2);
-        vm.stack[1] = Value::Function { ip: 20, arity: 2 };
+        vm.stack[1] = Value::Function { ip: 20, arity: 2, uplifts: None, };
         vm.execute_instruction(create_instruction(InstructionType::Call))
             .unwrap();
     }
