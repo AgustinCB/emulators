@@ -509,6 +509,7 @@ impl VM {
             InstructionType::Swap => self.swap()?,
             InstructionType::ToStr => self.instr_to_str()?,
             InstructionType::Uplift(local) => self.uplift(*local)?,
+            InstructionType::AttachArray(function) => self.attach_array(*function)?,
         };
         Ok(())
     }
@@ -671,6 +672,24 @@ impl VM {
         self.stack[self.frames.last().unwrap().stack_offset + local] = Value::Pointer(address);
         self.push(Value::Pointer(address))?;
         Ok(())
+    }
+
+    fn attach_array(&mut self, global: usize) -> Result<(), Error> {
+        let function = self.globals.get(&global).cloned();
+        if let None = function {
+            return Err(Error::from(self.create_error(VMErrorType::InvalidConstant(global))?));
+        }
+        if let Some(Value::Function { ip, arity, .. }) = function {
+            let address = if let Value::Array { address, .. } = self.pop()? {
+                address
+            } else {
+                return Err(Error::from(self.create_error(VMErrorType::ExpectedArray)?));
+            };
+            self.globals.insert(global, Value::Function { ip, arity, uplifts: Some(address) });
+            Ok(())
+        } else {
+            Err(Error::from(self.create_error(VMErrorType::ExpectedFunction)?))
+        }
     }
 
     fn jmp_if_false(&mut self, offset: usize) -> Result<(), Error> {
@@ -2006,5 +2025,20 @@ mod cpu_tests {
             assert_eq!(value_got, &Value::Integer(42));
             assert_eq!(value_got2, &Value::Integer(41));
         }
+    }
+
+    #[test]
+    fn test_attach_uplifts() -> Result<(), Error> {
+        let mut vm = VM::test_vm(1);
+        vm.globals.insert(0, Value::Function {
+            ip: 0,
+            arity: 0,
+            uplifts: None
+        });
+        vm.stack[0] = Value::Array { address: 0, capacity: 0 };
+        vm.execute_instruction(create_instruction(InstructionType::AttachArray(0)))?;
+        assert_eq!(vm.sp, 0);
+        assert_eq!(vm.globals.get(&0).cloned(), Some(Value::Function { ip: 0, arity: 0, uplifts: Some(0), }));
+        Ok(())
     }
 }
