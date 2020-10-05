@@ -197,13 +197,49 @@ pub fn from_bytes(bytes: &[u8], stack_size: Option<usize>) -> VM {
 mod tests {
     use crate::cpu::{Location, Value};
     use crate::instruction::{Instruction, InstructionType};
-    use crate::serde::from_bytes;
+    use crate::serde::{from_bytes, to_bytes};
 
     fn create_instruction(instruction_type: InstructionType) -> Instruction {
         Instruction {
             instruction_type,
             location: 0,
         }
+    }
+
+    #[test]
+    fn it_should_serialize_a_vm() {
+        let bytes = [
+            62u8, 0, 0, 0, 0, 0, 0, 0, // Constant length
+            8, 0, 0, 0, 0, 0, 0, 0, // Memory length
+            1, 0, 0, 0, 0, 0, 0, 0, // Locations length
+            0, // Nil value - 1
+            1, 42, 0, 0, 0, 0, 0, 0, 0, // Integer value - 10
+            2, 42, 42, 42, 42, // Float value - 15
+            3, 1, // Bool value - 17
+            4, 4, 0, 0, 0, 0, 0, 0, 0, // String value - 26
+            5, 42, 0, 0, 0, 0, 0, 0, 0, 42, 0, 0, 0, 0, 0, 0, 0, 0, // Function value - 43
+            6, 2, 0, 0, 0, 0, 0, 0, 0, // Array value - 52
+            7, 0, 0, 0, 0, 0, 0, 0, 0, // Object value - 61
+            0, 1, 2, 3, 4, 5, 6, 7, // Memory
+            1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, // Locations
+            0, 0, 0, 0, 0, 0, 0, 0, 0, // ROM
+            1, 42, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0,
+            0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        let got = to_bytes(&[
+            Value::Nil, Value::Integer(42), Value::Float(0.00000000000015113662f32), Value::Bool(true),
+            Value::String(4), Value::Function { arity: 42, ip: 42, uplifts: None, }, Value::Array { capacity: 2, address: 4},
+            Value::Object { address: 6 },
+        ],&[Location { address: 1, line: 1, }], &[0u8, 1, 2, 3, 4, 5, 6, 7],
+            &[
+                create_instruction(InstructionType::Return),
+                create_instruction(InstructionType::Constant(42)),
+                create_instruction(InstructionType::Plus),
+                create_instruction(InstructionType::Minus),
+                create_instruction(InstructionType::Mult),
+            ]
+        );
+        assert_eq!(bytes.to_vec(), got);
     }
 
     #[test]
