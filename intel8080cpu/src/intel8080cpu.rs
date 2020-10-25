@@ -214,7 +214,16 @@ impl<'a> Intel8080Cpu<'a> {
     }
 
     pub fn get_debug_string(&self) -> String {
-        alloc::format!("PC: {:?}\nRegister Set: {:?}\nFlags {:?}", self.pc, self.registers, self.flags)
+        let registers_string = alloc::format!("{:?}", self.registers)
+            .replace("{", "{\n  ")
+            .replace("}", "\n}");
+        let flags_string = alloc::format!("{:?}", self.flags)
+            .replace("true", "t")
+            .replace("false", "f")
+            .replace(", aux", ",\n  aux")
+            .replace("{", "{\n  ")
+            .replace("}", "\n}");
+        alloc::format!("PC: {:?}\n{}\n{}", self.pc, &registers_string, &flags_string)
     }
 
     fn make_inputs_vector() -> Vec<Option<Box<dyn InputDevice>>> {
