@@ -153,7 +153,7 @@ impl Into<Vec<u8>> for Instruction {
                 bytes.extend_from_slice(&g.to_le_bytes());
             },
             InstructionType::AttachArray(f) => {
-                bytes.push(42);
+                bytes.push(43);
                 bytes.extend_from_slice(&f.to_le_bytes());
             },
         }

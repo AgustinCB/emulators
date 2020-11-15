@@ -410,7 +410,10 @@ macro_rules! math_operation {
             (Value::Float(a), Value::Integer(b)) => $self.push(Value::Float(b as f32 $op a)),
             (Value::Integer(a), Value::Float(b)) => $self.push(Value::Float(b $op a as f32)),
             (Value::Float(a), Value::Float(b)) => $self.push(Value::Float(b $op a)),
-            _ => Err(Error::from($self.create_error(VMErrorType::ExpectedNumbers)?)),
+            (v1, v2) => {
+                eprintln!("Got: {:?} and {:?}", v1, v2);
+                Err(Error::from($self.create_error(VMErrorType::ExpectedNumbers)?))
+            },
         }?;
     };
 }
@@ -650,7 +653,7 @@ impl VM {
     }
 
     fn set_global(&mut self, global: usize) -> Result<(), Error> {
-        let value = self.pop()?;
+        let value = self.peek()?;
         self.globals.insert(global, value);
         Ok(())
     }
@@ -661,7 +664,11 @@ impl VM {
     }
 
     fn set_local(&mut self, local: usize) -> Result<(), Error> {
-        self.stack[self.frames.last().unwrap().stack_offset + local] = self.peek()?;
+        if let Value::Pointer(address) = self.stack[self.frames.last().unwrap().stack_offset + local] {
+            self.memory.copy_t(&self.stack[self.frames.last().unwrap().stack_offset + local], address);
+        } else {
+            self.stack[self.frames.last().unwrap().stack_offset + local] = self.peek()?;
+        }
         Ok(())
     }
 
