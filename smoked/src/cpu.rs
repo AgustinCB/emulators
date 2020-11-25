@@ -411,7 +411,6 @@ macro_rules! math_operation {
             (Value::Integer(a), Value::Float(b)) => $self.push(Value::Float(b $op a as f32)),
             (Value::Float(a), Value::Float(b)) => $self.push(Value::Float(b $op a)),
             (v1, v2) => {
-                eprintln!("Got: {:?} and {:?}", v1, v2);
                 Err(Error::from($self.create_error(VMErrorType::ExpectedNumbers)?))
             },
         }?;
@@ -653,8 +652,14 @@ impl VM {
     }
 
     fn set_global(&mut self, global: usize) -> Result<(), Error> {
-        let value = self.peek()?;
-        self.globals.insert(global, value);
+        let value = self.dereference_pop()?;
+        if let Some(Value::Pointer(address)) = self.globals.get(&global) {
+            self.memory.copy_t(&self.peek()?, *address);
+            self.push(Value::Pointer(*address));
+        } else {
+            self.globals.insert(global, value);
+            self.push(value);
+        }
         Ok(())
     }
 
@@ -664,10 +669,13 @@ impl VM {
     }
 
     fn set_local(&mut self, local: usize) -> Result<(), Error> {
-        if let Value::Pointer(address) = self.stack[self.frames.last().unwrap().stack_offset + local] {
-            self.memory.copy_t(&self.stack[self.frames.last().unwrap().stack_offset + local], address);
+        let value = self.dereference_pop()?;
+        if let Value::Pointer(address) =self.stack[self.frames.last().unwrap().stack_offset + local] {
+            self.memory.copy_t(&value, address);
+            self.push(Value::Pointer(address));
         } else {
-            self.stack[self.frames.last().unwrap().stack_offset + local] = self.peek()?;
+            self.stack[self.frames.last().unwrap().stack_offset + local] = value;
+            self.push(value);
         }
         Ok(())
     }
@@ -1559,7 +1567,7 @@ mod cpu_tests {
         let mut vm = VM::test_vm(1);
         vm.stack[0] = Value::Integer(0);
         vm.execute_instruction(create_instruction(InstructionType::SetGlobal(0)))?;
-        assert_eq!(vm.sp, 0);
+        assert_eq!(vm.sp, 1);
         assert_eq!(vm.globals[&0], Value::Integer(0));
         Ok(())
     }
