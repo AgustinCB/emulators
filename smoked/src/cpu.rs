@@ -410,7 +410,7 @@ macro_rules! math_operation {
             (Value::Float(a), Value::Integer(b)) => $self.push(Value::Float(b as f32 $op a)),
             (Value::Integer(a), Value::Float(b)) => $self.push(Value::Float(b $op a as f32)),
             (Value::Float(a), Value::Float(b)) => $self.push(Value::Float(b $op a)),
-            (v1, v2) => {
+            _ => {
                 Err(Error::from($self.create_error(VMErrorType::ExpectedNumbers)?))
             },
         }?;
@@ -654,11 +654,12 @@ impl VM {
     fn set_global(&mut self, global: usize) -> Result<(), Error> {
         let value = self.dereference_pop()?;
         if let Some(Value::Pointer(address)) = self.globals.get(&global) {
-            self.memory.copy_t(&self.peek()?, *address);
-            self.push(Value::Pointer(*address));
+            let address = *address;
+            self.memory.copy_t(&self.peek()?, address);
+            self.push(Value::Pointer(address))?;
         } else {
             self.globals.insert(global, value);
-            self.push(value);
+            self.push(value)?;
         }
         Ok(())
     }
@@ -672,10 +673,10 @@ impl VM {
         let value = self.dereference_pop()?;
         if let Value::Pointer(address) =self.stack[self.frames.last().unwrap().stack_offset + local] {
             self.memory.copy_t(&value, address);
-            self.push(Value::Pointer(address));
+            self.push(Value::Pointer(address))?;
         } else {
             self.stack[self.frames.last().unwrap().stack_offset + local] = value;
-            self.push(value);
+            self.push(value)?;
         }
         Ok(())
     }
