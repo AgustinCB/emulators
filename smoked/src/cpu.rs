@@ -512,7 +512,24 @@ impl VM {
             InstructionType::ToStr => self.instr_to_str()?,
             InstructionType::Uplift(local) => self.uplift(*local)?,
             InstructionType::AttachArray(function) => self.attach_array(*function)?,
+            InstructionType::CheckType(type_index) => self.check_type(*type_index)?,
         };
+        Ok(())
+    }
+
+    fn check_type(&mut self, type_index: usize) -> Result<(), Error> {
+        let value = self.dereference_pop()?;
+        let result = match (value, type_index) {
+            (Value::Nil, 0) => true,
+            (Value::Bool(_), 1) => true,
+            (Value::Integer(_), 2) => true,
+            (Value::Float(_), 3) => true,
+            (Value::String(_), 4) => true,
+            (Value::Function { .. }, 5) => true,
+            (Value::Array { .. }, 6) => true,
+            _ => false
+        };
+        self.push(Value::Bool(result))?;
         Ok(())
     }
 
@@ -2055,6 +2072,26 @@ mod cpu_tests {
         vm.execute_instruction(create_instruction(InstructionType::AttachArray(0)))?;
         assert_eq!(vm.sp, 0);
         assert_eq!(vm.globals.get(&0).cloned(), Some(Value::Function { ip: 0, arity: 0, uplifts: Some(0), }));
+        Ok(())
+    }
+
+    #[test]
+    fn test_check_type() -> Result<(), Error> {
+        let mut vm = VM::test_vm(1);
+        vm.stack[0] = Value::Nil;
+        vm.execute_instruction(create_instruction(InstructionType::CheckType(0)))?;
+        assert_eq!(vm.sp, 1);
+        assert_eq!(vm.stack[0], Value::Bool(true));
+        Ok(())
+    }
+
+    #[test]
+    fn test_check_type_failing() -> Result<(), Error> {
+        let mut vm = VM::test_vm(1);
+        vm.stack[0] = Value::Nil;
+        vm.execute_instruction(create_instruction(InstructionType::CheckType(1)))?;
+        assert_eq!(vm.sp, 1);
+        assert_eq!(vm.stack[0], Value::Bool(false));
         Ok(())
     }
 }
