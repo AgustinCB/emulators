@@ -116,7 +116,7 @@ pub enum VMErrorType {
     #[fail(display = "Unallocated address {}", 0)]
     UnallocatedAddress(usize),
     #[fail(display = "Global {} doesn't exist", 0)]
-    GlobalDoesntExist(String),
+    GlobalDoesntExist(usize),
     #[fail(display = "Property {} not in object", 0)]
     PropertyDoesntExist(String),
 }
@@ -659,9 +659,7 @@ impl VM {
     fn get_global(&mut self, global: usize) -> Result<(), Error> {
         match self.globals.get(&global).cloned() {
             None => {
-                Err(self.create_error(VMErrorType::GlobalDoesntExist(
-                    self.get_constant_string(global).unwrap(),
-                ))?)?;
+                Err(self.create_error(VMErrorType::GlobalDoesntExist(global))?)?;
             }
             Some(value) => self.push(value)?,
         };
@@ -708,7 +706,7 @@ impl VM {
     }
 
     fn attach_array(&mut self, global: usize) -> Result<(), Error> {
-        let function = self.globals.get(&global).cloned();
+        let function = self.constants.get(global).cloned();
         if let None = function {
             return Err(Error::from(self.create_error(VMErrorType::InvalidConstant(global))?));
         }
