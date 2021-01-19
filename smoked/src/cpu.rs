@@ -153,6 +153,7 @@ pub struct VM {
     pub(crate) globals: HashMap<usize, Value>,
     pub(crate) sp: usize,
     pub(crate) stack: [Value; STACK_MAX],
+    pub debug: bool,
     pub constants: Vec<Value>,
     pub rom: Vec<Instruction>,
     pub locations: Vec<Location>,
@@ -172,6 +173,7 @@ impl VM {
             globals: HashMap::new(),
             sp: 0,
             stack: [Value::Nil; STACK_MAX],
+            debug: false,
             constants,
             locations,
             memory,
@@ -248,6 +250,7 @@ impl VM {
         memory.copy_string("hola", 0);
         VM {
             constants: Vec::new(),
+            debug: false,
             frames: vec![Frame {
                 arity: 0,
                 ip: 1,
@@ -273,6 +276,7 @@ impl VM {
         VM {
             allocator: RefCell::new(Allocator::new(mem)),
             constants: Vec::new(),
+            debug: false,
             frames: vec![Frame {
                 arity: 0,
                 ip: 0,
@@ -296,6 +300,7 @@ impl VM {
         memory.copy_string("hola", address);
         VM {
             constants: Vec::new(),
+            debug: false,
             frames: vec![Frame {
                 arity: 0,
                 ip: 1,
@@ -1600,7 +1605,7 @@ mod cpu_tests {
 
     #[test]
     #[should_panic(
-        expected = "called `Result::unwrap()` on an `Err` value: VMError { error_type: GlobalDoesntExist(\"4\"), file: \"hola\", line: 0 }"
+        expected = "called `Result::unwrap()` on an `Err` value: VMError { error_type: GlobalDoesntExist(0), file: \"hola\", line: 0 }"
     )]
     fn test_get_global_not_existing() {
         let memory = Memory::new(110);

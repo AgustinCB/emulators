@@ -180,6 +180,7 @@ pub fn from_bytes(bytes: &[u8], stack_size: Option<usize>) -> VM {
     }
     let mut vm = VM {
         allocator: RefCell::new(Allocator::new_with_addresses(stack_size, &sizes).unwrap()),
+        debug: false,
         frames: vec![],
         globals: Default::default(),
         sp: 0,

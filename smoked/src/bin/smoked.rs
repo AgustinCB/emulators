@@ -10,6 +10,7 @@ const USAGE: &str = "Usage: smoked [-s] [-d] [input file]";
 struct Config {
     debug: bool,
     input_file: Option<String>,
+    show_instructions: bool,
     show_stack: bool,
     stack_size: Option<usize>,
 }
@@ -18,6 +19,7 @@ fn parse_config<I: Iterator<Item = String>>(mut strings: I) -> Config {
     let mut configuration = Config {
         debug: false,
         input_file: None,
+        show_instructions: false,
         show_stack: false,
         stack_size: None,
     };
@@ -26,6 +28,9 @@ fn parse_config<I: Iterator<Item = String>>(mut strings: I) -> Config {
         match next.as_str() {
             "-d" | "--debug" => {
                 configuration.debug = true;
+            }
+            "-i" | "--show-instructions" => {
+                configuration.show_instructions = true;
             }
             "-s" | "--show-stack" => {
                 configuration.show_stack = true;
@@ -53,6 +58,7 @@ fn main() {
     let mut bytes = vec![];
     input_file.read_to_end(&mut bytes).unwrap();
     let mut vm = from_bytes(bytes.as_ref(), conf.stack_size.clone());
+    vm.debug = conf.show_instructions;
     if conf.debug {
         eprintln!("Constants: {:?}", vm.constants);
         eprintln!("Instructions: {:?}", vm.rom);
