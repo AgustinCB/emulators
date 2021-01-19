@@ -52,7 +52,7 @@ fn parse_config<I: Iterator<Item = String>>(mut strings: I) -> Config {
 fn main() {
     let conf = parse_config(args());
     let mut input_file: Box<dyn Read> = conf
-        .input_file
+        .input_file.clone()
         .map::<Box<dyn Read>, _>(|f| Box::new(File::create(f).unwrap()))
         .unwrap_or_else(|| Box::new(std::io::stdin()));
     let mut bytes = vec![];

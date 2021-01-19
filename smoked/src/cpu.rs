@@ -431,6 +431,9 @@ impl VM {
     }
 
     fn execute_instruction(&mut self, instruction: Instruction) -> Result<(), Error> {
+        if self.debug {
+            eprintln!("Instruction: {:?}\tStack: {:?}", instruction, self.stack());
+        }
         match &instruction.instruction_type {
             InstructionType::Noop => {}
             InstructionType::Return => self.return_from_call()?,
