@@ -706,7 +706,7 @@ impl VM {
     }
 
     fn attach_array(&mut self, global: usize) -> Result<(), Error> {
-        let function = self.constants.get(global).cloned();
+        let function = self.globals.get(&global).cloned();
         if let None = function {
             return Err(Error::from(self.create_error(VMErrorType::InvalidConstant(global))?));
         }
@@ -990,7 +990,7 @@ impl VM {
                 Value::Function { .. } => "[function]".to_string(),
                 Value::Array { .. } => "[array]".to_string(),
                 Value::Object { .. } => "[object]".to_string(),
-                _ => panic!("Cannot happen"),
+                v => panic!("Cannot convert {:?} to string", v),
             };
             let a = self.allocator.borrow_mut().malloc(s.len(), self.get_roots())?;
             self.memory.copy_u8_vector(s.as_bytes(), a);
