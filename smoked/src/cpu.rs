@@ -688,7 +688,7 @@ impl VM {
     }
 
     fn get_local(&mut self, local: usize) -> Result<(), Error> {
-        self.push(self.stack[self.frames.last().unwrap().stack_offset + local])?;
+        self.push(self.stack()[self.frames.last().unwrap().stack_offset + local])?;
         Ok(())
     }
 
