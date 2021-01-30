@@ -694,6 +694,9 @@ impl VM {
 
     fn set_local(&mut self, local: usize) -> Result<(), Error> {
         let value = self.dereference_pop()?;
+        if self.sp - self.frames.last().unwrap().stack_offset == 0 {
+            self.sp += local+1;
+        }
         if let Value::Pointer(address) =self.stack[self.frames.last().unwrap().stack_offset + local] {
             self.memory.copy_t(&value, address);
             self.push(Value::Pointer(address))?;
@@ -706,10 +709,14 @@ impl VM {
 
     fn uplift(&mut self, local: usize) -> Result<(), Error> {
         let value = self.stack[self.frames.last().unwrap().stack_offset + local];
-        let address = self.allocator.borrow_mut().malloc_t::<Value, _>(self.get_roots())?;
-        self.memory.copy_t(&value, address);
-        self.stack[self.frames.last().unwrap().stack_offset + local] = Value::Pointer(address);
-        self.push(Value::Pointer(address))?;
+        if let Value::Pointer(_) = value {
+            self.push(value)?;
+        } else {
+            let address = self.allocator.borrow_mut().malloc_t::<Value, _>(self.get_roots())?;
+            self.memory.copy_t(&value, address);
+            self.stack[self.frames.last().unwrap().stack_offset + local] = Value::Pointer(address);
+            self.push(Value::Pointer(address))?;
+        }
         Ok(())
     }
 
@@ -1626,8 +1633,9 @@ mod cpu_tests {
     fn test_set_local() -> Result<(), Error> {
         let mut vm = VM::test_vm(1);
         vm.stack[0] = Value::Integer(1);
-        vm.execute_instruction(create_instruction(InstructionType::SetLocal(1)))?;
-        assert_eq!(vm.sp, 1);
+        vm.execute_instruction(create_instruction(InstructionType::SetLocal(0)))?;
+        assert_eq!(vm.sp, 2);
+        assert_eq!(vm.stack[0], Value::Integer(1));
         assert_eq!(vm.stack[1], Value::Integer(1));
         Ok(())
     }
