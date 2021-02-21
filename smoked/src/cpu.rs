@@ -21,7 +21,7 @@ pub enum Value {
     Pointer(usize),
     Function { ip: usize, arity: usize, uplifts: Option<usize> },
     Array { capacity: usize, address: usize },
-    Object { address: usize },
+    Object { capacity: usize, address: usize },
 }
 
 impl Into<Vec<u8>> for Value {
@@ -60,9 +60,9 @@ impl Into<Vec<u8>> for Value {
                 ret.push(6);
                 ret.extend_from_slice(&capacity.to_le_bytes());
             }
-            Value::Object { .. } => {
+            Value::Object { capacity, .. } => {
                 ret.push(7);
-                ret.extend_from_slice(&0usize.to_le_bytes());
+                ret.extend_from_slice(&capacity.to_le_bytes());
             }
             Value::Pointer(address) => {
                 ret.push(8);
@@ -853,7 +853,7 @@ impl VM {
         if let Value::Integer(capacity) = self.dereference_pop()? {
             let size = (VALUE_SIZE + USIZE_SIZE) * capacity as usize + USIZE_SIZE;
             let address = self.allocator.borrow_mut().malloc(size, self.get_roots())?;
-            self.push(Value::Object { address })?;
+            self.push(Value::Object { address, capacity: capacity as usize })?;
             self.memory.copy_t(&0usize, address);
         } else {
             Err(self.create_error(VMErrorType::ExpectedNumbers)?)?;
@@ -865,6 +865,7 @@ impl VM {
         if let (
             Value::Object {
                 address: obj_address,
+                ..
             },
             Value::String(address),
         ) = (self.dereference_pop()?, self.dereference_pop()?)
@@ -906,6 +907,7 @@ impl VM {
         if let (
             Value::Object {
                 address: mut obj_address,
+                capacity: mut obj_capacity,
             },
             Value::String(address),
         ) = (self.dereference_pop()?, self.dereference_pop()?)
@@ -941,6 +943,7 @@ impl VM {
                             USIZE_SIZE + capacity * 2 * (VALUE_SIZE + USIZE_SIZE),
                             self.get_roots(),
                         )?;
+                        obj_capacity = object_length + 1;
                         self.memory.copy_t(&(object_length + 1), obj_address);
                         self.memory
                             .copy_u8_vector(pair_bytes, obj_address + USIZE_SIZE);
@@ -966,6 +969,7 @@ impl VM {
             self.push(value)?;
             self.push(Value::Object {
                 address: obj_address,
+                capacity: obj_capacity,
             })?;
         } else {
             Err(self.create_error(VMErrorType::ExpectedStrings)?)?;
@@ -1114,7 +1118,7 @@ impl VM {
                 result.extend(self.get_addresses_from_array(*address, *capacity))
             }
             Value::String(a) => result.push(*a),
-            Value::Object { address } => result.extend(self.get_addresses_from_object(*address)),
+            Value::Object { address, .. } => result.extend(self.get_addresses_from_object(*address)),
             _ => {}
         }
     }
@@ -1878,8 +1882,9 @@ mod cpu_tests {
         vm.stack[0] = Value::Integer(1);
         vm.execute_instruction(create_instruction(InstructionType::ObjectAlloc))
             .unwrap();
-        if let Value::Object { address } = vm.stack[0] {
+        if let Value::Object { address, capacity } = vm.stack[0] {
             assert_eq!(0usize, *vm.memory.get_t(address).unwrap(),);
+            assert_eq!(1usize, capacity,);
             assert_eq!(
                 vm.allocator.borrow().get_allocated_space(address).unwrap(),
                 VALUE_SIZE + USIZE_SIZE * 2,
@@ -1904,6 +1909,7 @@ mod cpu_tests {
         let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
         vm.stack[0] = Value::String(address);
         vm.stack[1] = Value::Object {
+            capacity: 1,
             address: obj_address,
         };
         vm.execute_instruction(create_instruction(InstructionType::ObjectGet))
@@ -1932,6 +1938,7 @@ mod cpu_tests {
         let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
         vm.stack[0] = Value::String(wrong_address);
         vm.stack[1] = Value::Object {
+            capacity: 1,
             address: obj_address,
         };
         vm.execute_instruction(create_instruction(InstructionType::ObjectGet))
@@ -1953,6 +1960,7 @@ mod cpu_tests {
         vm.stack[1] = Value::String(address);
         vm.stack[2] = Value::Object {
             address: obj_address,
+            capacity: 1,
         };
         vm.execute_instruction(create_instruction(InstructionType::ObjectSet))
             .unwrap();
@@ -1970,7 +1978,8 @@ mod cpu_tests {
         assert_eq!(
             vm.stack[1],
             Value::Object {
-                address: obj_address
+                address: obj_address,
+                capacity: 1,
             }
         );
     }
@@ -1992,6 +2001,7 @@ mod cpu_tests {
         vm.stack[1] = Value::String(address);
         vm.stack[2] = Value::Object {
             address: obj_address,
+            capacity: 1,
         };
         vm.execute_instruction(create_instruction(InstructionType::ObjectSet))
             .unwrap();
@@ -2009,6 +2019,7 @@ mod cpu_tests {
         assert_eq!(
             vm.stack[1],
             Value::Object {
+                capacity: 1,
                 address: obj_address
             }
         );
@@ -2042,6 +2053,7 @@ mod cpu_tests {
         vm.stack[1] = Value::String(address2);
         vm.stack[2] = Value::Object {
             address: obj_address,
+            capacity: 1,
         };
         vm.execute_instruction(create_instruction(InstructionType::ObjectSet))
             .unwrap();
@@ -2049,6 +2061,7 @@ mod cpu_tests {
         assert_eq!(vm.stack[0], Value::Integer(42));
         if let Value::Object {
             address: obj_address,
+            capacity: 1,
         } = &vm.stack[1]
         {
             let obj_address = *obj_address;
