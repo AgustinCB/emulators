@@ -43,7 +43,7 @@ fn parse_config<I: Iterator<Item = String>>(mut strings: I) -> Config {
             s if configuration.input_file.is_none() => {
                 configuration.input_file = Some(s.to_owned());
             }
-            _ => panic!(USAGE),
+            _ => panic!("{}", USAGE),
         }
     }
     configuration

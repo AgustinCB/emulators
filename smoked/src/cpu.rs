@@ -9,6 +9,8 @@ use std::collections::HashMap;
 use std::fmt::Display;
 
 pub(crate) const STACK_MAX: usize = 256;
+pub const USIZE_SIZE: usize = std::mem::size_of::<usize>();
+const F32_SIZE: usize = std::mem::size_of::<f32>();
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -22,6 +24,82 @@ pub enum Value {
     Function { ip: usize, arity: usize, uplifts: Option<usize> },
     Array { capacity: usize, address: usize },
     Object { capacity: usize, address: usize },
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum CompoundValue {
+    SimpleValue(Value),
+    PartialFunction { function: Value, arguments: Vec<Value>, }
+}
+
+fn next_x_items<I: Iterator<Item=u8>>(iterator: &mut I, x: usize) -> Vec<u8> {
+    let mut result = vec![];
+    for _ in 0..x {
+        result.push(iterator.next().unwrap());
+    }
+    result
+}
+
+impl<I: Iterator<Item=u8>> From<&mut I> for Value {
+    fn from(bytes: &mut I) -> Self {
+        match bytes.next().unwrap() {
+            0 => Value::Nil,
+            1 => {
+                let bytes = next_x_items(bytes, U64_SIZE);
+                let integer = *unsafe { (bytes.as_ptr() as *const i64).as_ref() }.unwrap();
+                Value::Integer(integer)
+            }
+            2 => {
+                let bytes = next_x_items(bytes, F32_SIZE);
+                let float = *unsafe { (bytes.as_ptr() as *const f32).as_ref() }.unwrap();
+                Value::Float(float)
+            }
+            3 => {
+                let bool = bytes.next().unwrap() != 0;
+                Value::Bool(bool)
+            }
+            4 => {
+                let bytes = next_x_items(bytes, USIZE_SIZE);
+                let address = * unsafe { (bytes.as_ptr() as *const usize).as_ref() }.unwrap();
+                Value::String(address)
+            }
+            5 => {
+                let ip_bytes = next_x_items(bytes, USIZE_SIZE);
+                let ip = * unsafe { (ip_bytes.as_ptr() as *const usize).as_ref() }.unwrap();
+                let arity_bytes = next_x_items(bytes, USIZE_SIZE);
+                let arity = * unsafe { (arity_bytes.as_ptr() as *const usize).as_ref() }.unwrap();
+                let uplifts = if bytes.next().unwrap() == 0 {
+                    None
+                } else {
+                    let address_bytes = next_x_items(bytes, USIZE_SIZE);
+                    Some(
+                        * unsafe { (address_bytes.as_ptr() as *const usize).as_ref() }.unwrap()
+                    )
+                };
+                Value::Function { arity, ip, uplifts }
+            }
+            6 => {
+                let capacity_bytes = next_x_items(bytes, USIZE_SIZE);
+                let capacity = * unsafe { (capacity_bytes.as_ptr() as *const usize).as_ref() }.unwrap();
+                let address_bytes = next_x_items(bytes, USIZE_SIZE);
+                let address = * unsafe { (address_bytes.as_ptr() as *const usize).as_ref() }.unwrap();
+                Value::Array { address, capacity }
+            }
+            7 => {
+                let capacity_bytes = next_x_items(bytes, USIZE_SIZE);
+                let capacity = * unsafe { (capacity_bytes.as_ptr() as *const usize).as_ref() }.unwrap();
+                let address_bytes = next_x_items(bytes, USIZE_SIZE);
+                let address = * unsafe { (address_bytes.as_ptr() as *const usize).as_ref() }.unwrap();
+                Value::Object { address, capacity }
+            }
+            8 => {
+                let address_bytes = next_x_items(bytes, USIZE_SIZE);
+                let address = * unsafe { (address_bytes.as_ptr() as *const usize).as_ref() }.unwrap();
+                Value::Pointer(address)
+            }
+            _ => unimplemented!()
+        }
+    }
 }
 
 impl Into<Vec<u8>> for Value {
@@ -56,13 +134,15 @@ impl Into<Vec<u8>> for Value {
                     ret.push(0);
                 }
             }
-            Value::Array { capacity, .. } => {
+            Value::Array { capacity, address } => {
                 ret.push(6);
                 ret.extend_from_slice(&capacity.to_le_bytes());
+                ret.extend_from_slice(&address.to_le_bytes())
             }
-            Value::Object { capacity, .. } => {
+            Value::Object { capacity, address } => {
                 ret.push(7);
                 ret.extend_from_slice(&capacity.to_le_bytes());
+                ret.extend_from_slice(&address.to_le_bytes())
             }
             Value::Pointer(address) => {
                 ret.push(8);
@@ -75,7 +155,10 @@ impl Into<Vec<u8>> for Value {
 
 const U64_SIZE: usize = std::mem::size_of::<u64>();
 pub const VALUE_SIZE: usize = std::mem::size_of::<Value>();
-pub const USIZE_SIZE: usize = std::mem::size_of::<usize>();
+const COMPOUND_VALUE_SIZE: usize = std::mem::size_of::<CompoundValue>();
+pub(crate) const NULL_VALUE: CompoundValue = CompoundValue::SimpleValue(Value::Nil);
+#[cfg(test)]
+const ZERO_VALUE: CompoundValue = CompoundValue::SimpleValue(Value::Integer(0));
 
 impl Into<bool> for Value {
     fn into(self) -> bool {
@@ -93,18 +176,31 @@ impl Into<bool> for Value {
     }
 }
 
+impl Into<bool> for CompoundValue {
+    fn into(self) -> bool {
+        match self {
+            CompoundValue::SimpleValue(sv) => sv.into(),
+            CompoundValue::PartialFunction { .. } => true,
+        }
+    }
+}
+
 #[derive(Debug, Fail, PartialEq)]
 pub enum VMErrorType {
     #[fail(display = "Trying to push to a full stack")]
     StackOverflow,
     #[fail(display = "Trying to pop from an empty stack")]
     EmptyStack,
-    #[fail(display = "Expected two numbers")]
-    ExpectedNumbers,
-    #[fail(display = "Expected two Strings")]
-    ExpectedStrings,
-    #[fail(display = "Expected a function")]
-    ExpectedFunction,
+    #[fail(display = "Expected two numbers. Got {:?} and {:?}", 0, 1)]
+    ExpectedNumbers(CompoundValue, CompoundValue),
+    #[fail(display = "Expected a number. Got {:?}", 0)]
+    ExpectedNumber(CompoundValue),
+    #[fail(display = "Expected String")]
+    ExpectedString,
+    #[fail(display = "Expected two Strings. Got {:?} and {:?}", 0, 1)]
+    ExpectedStrings(CompoundValue, CompoundValue),
+    #[fail(display = "Expected a function. Got {:?}", 0)]
+    ExpectedFunction(CompoundValue),
     #[fail(display = "Expected an array")]
     ExpectedArray,
     #[fail(display = "Index out of range")]
@@ -150,11 +246,11 @@ pub struct VM {
     pub(crate) allocator: RefCell<Allocator>,
     pub(crate) memory: Memory,
     pub(crate) frames: Vec<Frame>,
-    pub(crate) globals: HashMap<usize, Value>,
+    pub(crate) globals: HashMap<usize, CompoundValue>,
     pub(crate) sp: usize,
-    pub(crate) stack: [Value; STACK_MAX],
+    pub(crate) stack: [CompoundValue; STACK_MAX],
     pub debug: bool,
-    pub constants: Vec<Value>,
+    pub constants: Vec<CompoundValue>,
     pub rom: Vec<Instruction>,
     pub locations: Vec<Location>,
 }
@@ -162,7 +258,7 @@ pub struct VM {
 impl VM {
     pub fn new(
         allocator: Allocator,
-        constants: Vec<Value>,
+        constants: Vec<CompoundValue>,
         locations: Vec<Location>,
         memory: Memory,
         rom: Vec<Instruction>,
@@ -172,7 +268,7 @@ impl VM {
             frames: vec![],
             globals: HashMap::new(),
             sp: 0,
-            stack: [Value::Nil; STACK_MAX],
+            stack: [NULL_VALUE; STACK_MAX],
             debug: false,
             constants,
             locations,
@@ -181,22 +277,22 @@ impl VM {
         }
     }
 
-    fn pop(&mut self) -> Result<Value, Error> {
+    fn pop(&mut self) -> Result<CompoundValue, Error> {
         if (self.sp - self.frames.last().unwrap().stack_offset) == 0 {
             Err(self.create_error(VMErrorType::EmptyStack)?)?;
         }
         self.sp -= 1;
-        Ok(self.stack[self.sp])
+        Ok(self.stack[self.sp].clone())
     }
 
-    fn peek(&self) -> Result<Value, Error> {
+    fn peek(&self) -> Result<CompoundValue, Error> {
         if (self.sp - self.frames.last().unwrap().stack_offset) == 0 {
             Err(self.create_error(VMErrorType::EmptyStack)?)?;
         }
-        Ok(self.stack[self.sp - 1])
+        Ok(self.stack[self.sp - 1].clone())
     }
 
-    fn push(&mut self, v: Value) -> Result<(), Error> {
+    fn push(&mut self, v: CompoundValue) -> Result<(), Error> {
         if self.sp == self.stack.len() {
             Err(self.create_error(VMErrorType::StackOverflow)?)?;
         }
@@ -205,7 +301,7 @@ impl VM {
         Ok(())
     }
 
-    pub fn stack(&self) -> &[Value] {
+    pub fn stack(&self) -> &[CompoundValue] {
         &self.stack[..self.sp]
     }
 
@@ -225,16 +321,51 @@ impl VM {
         })
     }
 
-    fn dereference_pointer(&self, value: Value) -> Result<Value, Error> {
-        if let Value::Pointer(address) = value {
-            Ok(self.memory.get_t::<Value>(address)?.clone())
+    fn dereference_pointer(&self, value: CompoundValue) -> Result<CompoundValue, Error> {
+        if let CompoundValue::SimpleValue(Value::Pointer(address)) = value {
+            Ok(self.memory.get_t::<CompoundValue>(address)?.clone())
         } else {
             Ok(value)
         }
     }
-    fn dereference_pop(&mut self) -> Result<Value, Error> {
+    fn dereference_pop(&mut self) -> Result<CompoundValue, Error> {
         let value = self.pop()?;
         self.dereference_pointer(value)
+    }
+
+    fn switch_context(
+        &mut self,
+        ip: usize,
+        arity: usize,
+        uplifts: Option<usize>,
+        extra_arguments: Option<&[Value]>,
+    ) -> Result<(), Error> {
+        if self.sp < arity {
+            Err(self.create_error(VMErrorType::NotEnoughArgumentsForFunction)?)?;
+        }
+        let arguments_length = extra_arguments.map_or(0, |a| a.len());
+        self.new_frame(ip, arity - arguments_length);
+        if let Some(arguments) = extra_arguments {
+            for i in (arguments_length..arity).rev() {
+                self.get_local(i - arguments_length)?;
+                self.set_local(i)?;
+            }
+            let offset = arity - arguments_length;
+            for (i, argument) in arguments.iter().enumerate() {
+                self.push(CompoundValue::SimpleValue(argument.clone()))?;
+                self.set_local(i)?;
+            }
+        }
+        if let Some(address) = uplifts {
+            let array_size = self.get_size(address)? / COMPOUND_VALUE_SIZE;
+            let offset = arity;
+            for i in 0..array_size {
+                let value = self.memory.get_t::<CompoundValue>(address + i * COMPOUND_VALUE_SIZE)?.clone();
+                self.push(value)?;
+                self.set_local(i + offset)?;
+            }
+        }
+        Ok(())
     }
 }
 
@@ -261,7 +392,7 @@ impl VM {
                 address: 0,
                 line: 0,
             }],
-            stack: [Value::Integer(0); STACK_MAX],
+            stack: [ZERO_VALUE; STACK_MAX],
             rom: vec![Instruction {
                 instruction_type: InstructionType::Noop,
                 location: 0,
@@ -285,7 +416,7 @@ impl VM {
             globals: HashMap::default(),
             locations: vec![],
             memory: Memory::new(mem),
-            stack: [Value::Integer(0); STACK_MAX],
+            stack: [ZERO_VALUE; STACK_MAX],
             rom: Vec::new(),
             sp,
         }
@@ -312,7 +443,7 @@ impl VM {
                 instruction_type: InstructionType::Noop,
                 location: 0,
             }],
-            stack: [Value::Integer(0); STACK_MAX],
+            stack: [ZERO_VALUE; STACK_MAX],
             allocator,
             memory,
             sp,
@@ -324,12 +455,13 @@ impl VM {
 mod tests {
     use super::{Value, STACK_MAX, VM};
     use failure::Error;
+    use crate::cpu::CompoundValue;
 
     #[test]
     fn test_pop() -> Result<(), Error> {
         let mut vm = VM::test_vm(1);
         let v = vm.pop()?;
-        assert_eq!(v, Value::Integer(0));
+        assert_eq!(v, CompoundValue::SimpleValue(Value::Integer(0)));
         Ok(())
     }
 
@@ -355,9 +487,9 @@ mod tests {
     #[test]
     fn test_push() -> Result<(), Error> {
         let mut vm = VM::test_vm(0);
-        vm.push(Value::Integer(1))?;
+        vm.push(CompoundValue::SimpleValue(Value::Integer(1)))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Integer(1));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Integer(1)));
         Ok(())
     }
 
@@ -367,33 +499,33 @@ mod tests {
     )]
     fn test_push_on_stack() {
         let mut vm = VM::test_vm(STACK_MAX);
-        vm.push(Value::Integer(1)).unwrap();
+        vm.push(CompoundValue::SimpleValue(Value::Integer(1))).unwrap();
     }
 }
 
 macro_rules! comp_operation {
     ($self: ident, $op: tt) => {
         match ($self.dereference_pop()?, $self.dereference_pop()?) {
-            (Value::Integer(a), Value::Integer(b)) => $self.push(Value::Bool(b $op a)),
-            (Value::Float(a), Value::Integer(b)) => $self.push(Value::Bool((b as f32) $op a)),
-            (Value::Integer(a), Value::Float(b)) => $self.push(Value::Bool(b $op (a as f32))),
-            (Value::Float(a), Value::Float(b)) => $self.push(Value::Bool(b $op a)),
-            (Value::Bool(a), Value::Bool(b)) => $self.push(Value::Bool(b $op a)),
-            (Value::Bool(a), v) => {
+            (CompoundValue::SimpleValue(Value::Integer(a)), CompoundValue::SimpleValue(Value::Integer(b))) => $self.push(CompoundValue::SimpleValue(Value::Bool(b $op a))),
+            (CompoundValue::SimpleValue(Value::Float(a)), CompoundValue::SimpleValue(Value::Integer(b))) => $self.push(CompoundValue::SimpleValue(Value::Bool((b as f32) $op a))),
+            (CompoundValue::SimpleValue(Value::Integer(a)), CompoundValue::SimpleValue(Value::Float(b))) => $self.push(CompoundValue::SimpleValue(Value::Bool(b $op (a as f32)))),
+            (CompoundValue::SimpleValue(Value::Float(a)), CompoundValue::SimpleValue(Value::Float(b))) => $self.push(CompoundValue::SimpleValue(Value::Bool(b $op a))),
+            (CompoundValue::SimpleValue(Value::Bool(a)), CompoundValue::SimpleValue(Value::Bool(b))) => $self.push(CompoundValue::SimpleValue(Value::Bool(b $op a))),
+            (CompoundValue::SimpleValue(Value::Bool(a)), v) => {
                 let b: bool = v.into();
-                $self.push(Value::Bool(b $op a))
+                $self.push(CompoundValue::SimpleValue(Value::Bool(b $op a)))
             },
-            (v, Value::Bool(a)) => $self.push(Value::Bool(a $op v.into())),
-            (Value::String(s1), Value::String(s2)) => {
+            (v, CompoundValue::SimpleValue(Value::Bool(a))) => $self.push(CompoundValue::SimpleValue(Value::Bool(a $op v.into()))),
+            (CompoundValue::SimpleValue(Value::String(s1)), CompoundValue::SimpleValue(Value::String(s2))) => {
                 let result = {
                     let string1 = $self.memory.get_string(s2, $self.get_size(s2)?)?;
                     let string2 = $self.memory.get_string(s1, $self.get_size(s1)?)?;
                     string1 $op string2
                 };
-                $self.push(Value::Bool(result))
+                $self.push(CompoundValue::SimpleValue(Value::Bool(result)))
             },
-            (Value::Nil, Value::Nil) => $self.push(Value::Bool(false)),
-            _ => $self.push(Value::Bool(false)),
+            (CompoundValue::SimpleValue(Value::Nil), CompoundValue::SimpleValue(Value::Nil)) => $self.push(CompoundValue::SimpleValue(Value::Bool(false))),
+            _ => $self.push(CompoundValue::SimpleValue(Value::Bool(false))),
         }?;
     };
 }
@@ -404,19 +536,19 @@ macro_rules! logical_operation {
         let value_b = $self.dereference_pop()?;
         let a: bool = value_a.into();
         let b: bool = value_b.into();
-        $self.push(Value::Bool(b $op a))?;
+        $self.push(CompoundValue::SimpleValue(Value::Bool(b $op a)))?;
     };
 }
 
 macro_rules! math_operation {
     ($self: ident, $op: tt, $location: expr) => {
         match ($self.dereference_pop()?, $self.dereference_pop()?) {
-            (Value::Integer(a), Value::Integer(b)) => $self.push(Value::Integer(b $op a)),
-            (Value::Float(a), Value::Integer(b)) => $self.push(Value::Float(b as f32 $op a)),
-            (Value::Integer(a), Value::Float(b)) => $self.push(Value::Float(b $op a as f32)),
-            (Value::Float(a), Value::Float(b)) => $self.push(Value::Float(b $op a)),
-            _ => {
-                Err(Error::from($self.create_error(VMErrorType::ExpectedNumbers)?))
+            (CompoundValue::SimpleValue(Value::Integer(a)), CompoundValue::SimpleValue(Value::Integer(b))) => $self.push(CompoundValue::SimpleValue(Value::Integer(b $op a))),
+            (CompoundValue::SimpleValue(Value::Float(a)), CompoundValue::SimpleValue(Value::Integer(b))) => $self.push(CompoundValue::SimpleValue(Value::Float(b as f32 $op a))),
+            (CompoundValue::SimpleValue(Value::Integer(a)), CompoundValue::SimpleValue(Value::Float(b))) => $self.push(CompoundValue::SimpleValue(Value::Float(b $op a as f32))),
+            (CompoundValue::SimpleValue(Value::Float(a)), CompoundValue::SimpleValue(Value::Float(b))) => $self.push(CompoundValue::SimpleValue(Value::Float(b $op a))),
+            (v1, v2) => {
+                Err(Error::from($self.create_error(VMErrorType::ExpectedNumbers(v1, v2))?))
             },
         }?;
     };
@@ -450,12 +582,12 @@ impl VM {
             InstructionType::Div => {
                 math_operation!(self, /, instruction.location);
             }
-            InstructionType::Nil => self.push(Value::Nil)?,
-            InstructionType::True => self.push(Value::Bool(true))?,
-            InstructionType::False => self.push(Value::Bool(false))?,
+            InstructionType::Nil => self.push(CompoundValue::SimpleValue(Value::Nil))?,
+            InstructionType::True => self.push(CompoundValue::SimpleValue(Value::Bool(true)))?,
+            InstructionType::False => self.push(CompoundValue::SimpleValue(Value::Bool(false)))?,
             InstructionType::Not => {
                 let b: bool = self.dereference_pop()?.into();
-                self.push(Value::Bool(!b))?;
+                self.push(CompoundValue::SimpleValue(Value::Bool(!b)))?;
             }
             InstructionType::Equal => {
                 comp_operation!(self, ==);
@@ -484,9 +616,9 @@ impl VM {
             InstructionType::Abs => {
                 let v = self.dereference_pop()?;
                 match v {
-                    Value::Integer(a) => self.push(Value::Integer(a.abs()))?,
-                    Value::Float(a) => self.push(Value::Float(a.abs()))?,
-                    _ => Err(self.create_error(VMErrorType::ExpectedNumbers)?)?,
+                    CompoundValue::SimpleValue(Value::Integer(a)) => self.push(CompoundValue::SimpleValue(Value::Integer(a.abs())))?,
+                    CompoundValue::SimpleValue(Value::Float(a)) => self.push(CompoundValue::SimpleValue(Value::Float(a.abs())))?,
+                    v => Err(self.create_error(VMErrorType::ExpectedNumber(v))?)?,
                 };
             }
             InstructionType::StringConcat => self.string_concat()?,
@@ -528,16 +660,16 @@ impl VM {
     fn check_type(&mut self, type_index: usize) -> Result<(), Error> {
         let value = self.dereference_pop()?;
         let result = match (value, type_index) {
-            (Value::Nil, 0) => true,
-            (Value::Bool(_), 1) => true,
-            (Value::Integer(_), 2) => true,
-            (Value::Float(_), 3) => true,
-            (Value::String(_), 4) => true,
-            (Value::Function { .. }, 5) => true,
-            (Value::Array { .. }, 6) => true,
+            (CompoundValue::SimpleValue(Value::Nil), 0) => true,
+            (CompoundValue::SimpleValue(Value::Bool(_)), 1) => true,
+            (CompoundValue::SimpleValue(Value::Integer(_)), 2) => true,
+            (CompoundValue::SimpleValue(Value::Float(_)), 3) => true,
+            (CompoundValue::SimpleValue(Value::String(_)), 4) => true,
+            (CompoundValue::SimpleValue(Value::Function { .. }), 5) => true,
+            (CompoundValue::SimpleValue(Value::Array { .. }), 6) => true,
             _ => false
         };
-        self.push(Value::Bool(result))?;
+        self.push(CompoundValue::SimpleValue(Value::Bool(result)))?;
         Ok(())
     }
 
@@ -594,7 +726,7 @@ impl VM {
 
     fn string_concat(&mut self) -> Result<(), Error> {
         match (self.dereference_pop()?, self.dereference_pop()?) {
-            (Value::String(s1), Value::String(s2)) => {
+            (CompoundValue::SimpleValue(Value::String(s1)), CompoundValue::SimpleValue(Value::String(s2))) => {
                 let result = {
                     let mut string1 = self.memory.get_u8_vector(s1, self.get_size(s1)?)?.to_vec();
                     let string2 = self.memory.get_u8_vector(s2, self.get_size(s2)?)?;
@@ -606,9 +738,9 @@ impl VM {
                     .borrow_mut()
                     .malloc(result.len(), self.get_roots())?;
                 self.memory.copy_u8_vector(&result, address);
-                self.push(Value::String(address))?;
+                self.push(CompoundValue::SimpleValue(Value::String(address)))?;
             }
-            _ => Err(self.create_error(VMErrorType::ExpectedStrings)?)?,
+            (v1, v2) => Err(self.create_error(VMErrorType::ExpectedStrings(v1, v2))?)?,
         };
         Ok(())
     }
@@ -660,7 +792,7 @@ impl VM {
             },
             _ => unreachable!(),
         };
-        self.push(Value::Integer(ret as _))?;
+        self.push(CompoundValue::SimpleValue(Value::Integer(ret as _)))?;
         Ok(())
     }
 
@@ -676,19 +808,19 @@ impl VM {
 
     fn set_global(&mut self, global: usize) -> Result<(), Error> {
         let value = self.dereference_pop()?;
-        if let Some(Value::Pointer(address)) = self.globals.get(&global) {
+        if let Some(CompoundValue::SimpleValue(Value::Pointer(address))) = self.globals.get(&global) {
             let address = *address;
             self.memory.copy_t(&self.peek()?, address);
-            self.push(Value::Pointer(address))?;
+            self.push(CompoundValue::SimpleValue(Value::Pointer(address)))?;
         } else {
-            self.globals.insert(global, value);
+            self.globals.insert(global, value.clone());
             self.push(value)?;
         }
         Ok(())
     }
 
     fn get_local(&mut self, local: usize) -> Result<(), Error> {
-        self.push(self.stack()[self.frames.last().unwrap().stack_offset + local])?;
+        self.push(self.stack()[self.frames.last().unwrap().stack_offset + local].clone())?;
         Ok(())
     }
 
@@ -697,25 +829,25 @@ impl VM {
         if self.sp - self.frames.last().unwrap().stack_offset == 0 {
             self.sp += local+1;
         }
-        if let Value::Pointer(address) =self.stack[self.frames.last().unwrap().stack_offset + local] {
+        if let CompoundValue::SimpleValue(Value::Pointer(address)) = self.stack[self.frames.last().unwrap().stack_offset + local] {
             self.memory.copy_t(&value, address);
-            self.push(Value::Pointer(address))?;
+            self.push(CompoundValue::SimpleValue(Value::Pointer(address)))?;
         } else {
-            self.stack[self.frames.last().unwrap().stack_offset + local] = value;
+            self.stack[self.frames.last().unwrap().stack_offset + local] = value.clone();
             self.push(value)?;
         }
         Ok(())
     }
 
     fn uplift(&mut self, local: usize) -> Result<(), Error> {
-        let value = self.stack[self.frames.last().unwrap().stack_offset + local];
-        if let Value::Pointer(_) = value {
+        let value = self.stack[self.frames.last().unwrap().stack_offset + local].clone();
+        if let CompoundValue::SimpleValue(Value::Pointer(_)) = value {
             self.push(value)?;
         } else {
-            let address = self.allocator.borrow_mut().malloc_t::<Value, _>(self.get_roots())?;
+            let address = self.allocator.borrow_mut().malloc_t::<CompoundValue, _>(self.get_roots())?;
             self.memory.copy_t(&value, address);
-            self.stack[self.frames.last().unwrap().stack_offset + local] = Value::Pointer(address);
-            self.push(Value::Pointer(address))?;
+            self.stack[self.frames.last().unwrap().stack_offset + local] = CompoundValue::SimpleValue(Value::Pointer(address));
+            self.push(CompoundValue::SimpleValue(Value::Pointer(address)))?;
         }
         Ok(())
     }
@@ -725,16 +857,16 @@ impl VM {
         if let None = function {
             return Err(Error::from(self.create_error(VMErrorType::InvalidConstant(global))?));
         }
-        if let Some(Value::Function { ip, arity, .. }) = function {
-            let address = if let Value::Array { address, .. } = self.pop()? {
+        if let Some(CompoundValue::SimpleValue(Value::Function { ip, arity, .. })) = function {
+            let address = if let CompoundValue::SimpleValue(Value::Array { address, .. }) = self.pop()? {
                 address
             } else {
                 return Err(Error::from(self.create_error(VMErrorType::ExpectedArray)?));
             };
-            self.globals.insert(global, Value::Function { ip, arity, uplifts: Some(address) });
+            self.globals.insert(global, CompoundValue::SimpleValue(Value::Function { ip, arity, uplifts: Some(address) }));
             Ok(())
         } else {
-            Err(Error::from(self.create_error(VMErrorType::ExpectedFunction)?))
+            Err(Error::from(self.create_error(VMErrorType::ExpectedFunction(function.unwrap()))?))
         }
     }
 
@@ -747,56 +879,62 @@ impl VM {
     }
 
     fn call(&mut self) -> Result<(), Error> {
-        if let Value::Function { ip, arity, uplifts } = self.pop()? {
-            if self.sp < arity {
-                Err(self.create_error(VMErrorType::NotEnoughArgumentsForFunction)?)?;
+        match self.dereference_pop()? {
+            CompoundValue::SimpleValue(Value::Function { ip, arity, uplifts }) => {
+                self.switch_context(ip, arity, uplifts, None)?;
+            },
+            CompoundValue::PartialFunction {
+                function: Value::Function { ip, arity, uplifts },
+                arguments
+            } => {
+                self.switch_context(ip, arity, uplifts, Some(&arguments))?;
             }
-            self.new_frame(ip, arity);
-            if let Some(address) = uplifts {
-                let array_size = self.get_size(address)? / VALUE_SIZE;
-                for i in 0..array_size {
-                    let value = *self.memory.get_t::<Value>(address + i * VALUE_SIZE)?;
-                    self.push(value)?;
-                    self.set_local(i)?;
-                }
+            CompoundValue::SimpleValue(Value::Object { address, capacity }) => {
+                let new_address = self.allocator.borrow_mut().malloc(capacity, self.get_roots())?;
+                let object_bytes = self.memory.get_u8_vector(address, capacity)?;
+                self.memory.copy_u8_vector(object_bytes, new_address);
+                self.push(CompoundValue::SimpleValue(Value::Object {
+                    address: new_address,
+                    capacity,
+                }))?;
             }
-        } else {
-            Err(self.create_error(VMErrorType::ExpectedNumbers)?)?;
-        }
+            v => Err(self.create_error(VMErrorType::ExpectedFunction(v))?)?,
+        };
         Ok(())
     }
 
     fn array_alloc(&mut self) -> Result<(), Error> {
-        if let Value::Integer(capacity) = self.dereference_pop()? {
-            let address = self
-                .allocator
-                .borrow_mut()
-                .malloc(VALUE_SIZE * capacity as usize, self.get_roots())?;
-            self.push(Value::Array {
-                capacity: capacity as usize,
-                address,
-            })?;
-        } else {
-            Err(self.create_error(VMErrorType::ExpectedNumbers)?)?;
+        match self.dereference_pop()? {
+            CompoundValue::SimpleValue(Value::Integer(capacity)) =>  {
+                let address = self
+                    .allocator
+                    .borrow_mut()
+                    .malloc(COMPOUND_VALUE_SIZE * capacity as usize, self.get_roots())?;
+                self.push(CompoundValue::SimpleValue(Value::Array {
+                    capacity: capacity as usize,
+                    address,
+                }))?;
+            }
+            v => Err(self.create_error(VMErrorType::ExpectedNumber(v))?)?,
         }
         Ok(())
     }
 
     fn array_get(&mut self) -> Result<(), Error> {
         match (self.dereference_pop()?, self.dereference_pop()?) {
-            (Value::Array { capacity, .. }, Value::Integer(index))
+            (CompoundValue::SimpleValue(Value::Array { capacity, .. }), CompoundValue::SimpleValue(Value::Integer(index)))
                 if capacity <= index as usize =>
             {
                 Err(self.create_error(VMErrorType::IndexOutOfRange)?)?
             }
-            (Value::Array { address, .. }, Value::Integer(index)) => {
+            (CompoundValue::SimpleValue(Value::Array { address, .. }), CompoundValue::SimpleValue(Value::Integer(index))) => {
                 let v = self
                     .memory
-                    .get_t::<Value>(address + index as usize * VALUE_SIZE)?
+                    .get_t::<CompoundValue>(address + index as usize * COMPOUND_VALUE_SIZE)?
                     .clone();
                 self.push(v)?;
             }
-            (Value::Array { .. }, _) => Err(self.create_error(VMErrorType::ExpectedNumbers)?)?,
+            (CompoundValue::SimpleValue(Value::Array { .. }), v) => Err(self.create_error(VMErrorType::ExpectedNumber(v))?)?,
             (_, _) => Err(self.create_error(VMErrorType::ExpectedArray)?)?,
         };
         Ok(())
@@ -804,17 +942,17 @@ impl VM {
 
     fn array_set(&mut self) -> Result<(), Error> {
         match (self.dereference_pop()?, self.dereference_pop()?) {
-            (Value::Array { capacity, .. }, Value::Integer(index))
+            (CompoundValue::SimpleValue(Value::Array { capacity, .. }), CompoundValue::SimpleValue(Value::Integer(index)))
                 if capacity <= index as usize =>
             {
                 Err(self.create_error(VMErrorType::IndexOutOfRange)?)?
             }
-            (Value::Array { address, .. }, Value::Integer(index)) => {
+            (CompoundValue::SimpleValue(Value::Array { address, .. }), CompoundValue::SimpleValue(Value::Integer(index))) => {
                 let v = self.peek()?;
                 self.memory
-                    .copy_t::<Value>(&v, address + index as usize * VALUE_SIZE);
+                    .copy_t::<CompoundValue>(&v, address + index as usize * COMPOUND_VALUE_SIZE);
             }
-            (Value::Array { .. }, _) => Err(self.create_error(VMErrorType::ExpectedNumbers)?)?,
+            (CompoundValue::SimpleValue(Value::Array { .. }), v) => Err(self.create_error(VMErrorType::ExpectedNumber(v))?)?,
             (_, _) => Err(self.create_error(VMErrorType::ExpectedArray)?)?,
         };
         Ok(())
@@ -822,14 +960,14 @@ impl VM {
 
     fn multi_array_set(&mut self) -> Result<(), Error> {
         match self.dereference_pop()? {
-            Value::Array { address, capacity } => {
+            CompoundValue::SimpleValue(Value::Array { address, capacity }) => {
                 let mut vs = vec![];
                 for _ in 0..capacity {
                     let v = self.pop()?;
                     vs.push(v);
                 }
                 self.memory.copy_t_slice(&vs, address);
-                self.push(Value::Array { address, capacity })?;
+                self.push(CompoundValue::SimpleValue(Value::Array { address, capacity }))?;
             }
             _ => Err(self.create_error(VMErrorType::ExpectedArray)?)?,
         };
@@ -838,11 +976,11 @@ impl VM {
 
     fn repeated_array_set(&mut self) -> Result<(), Error> {
         match self.dereference_pop()? {
-            Value::Array { address, capacity } => {
+            CompoundValue::SimpleValue(Value::Array { address, capacity }) => {
                 let v = self.pop()?;
-                let vs = vec![v].repeat(capacity);
+                let vs = vec![v].into_iter().cycle().take(capacity).collect::<Vec<CompoundValue>>();
                 self.memory.copy_t_slice(&vs, address);
-                self.push(Value::Array { address, capacity })?;
+                self.push(CompoundValue::SimpleValue(Value::Array { address, capacity }))?;
             }
             _ => Err(self.create_error(VMErrorType::ExpectedArray)?)?,
         };
@@ -850,24 +988,25 @@ impl VM {
     }
 
     fn object_alloc(&mut self) -> Result<(), Error> {
-        if let Value::Integer(capacity) = self.dereference_pop()? {
-            let size = (VALUE_SIZE + USIZE_SIZE) * capacity as usize + USIZE_SIZE;
-            let address = self.allocator.borrow_mut().malloc(size, self.get_roots())?;
-            self.push(Value::Object { address, capacity: capacity as usize })?;
-            self.memory.copy_t(&0usize, address);
-        } else {
-            Err(self.create_error(VMErrorType::ExpectedNumbers)?)?;
+        match self.dereference_pop()? {
+            CompoundValue::SimpleValue(Value::Integer(capacity)) => {
+                let size = (VALUE_SIZE + USIZE_SIZE) * capacity as usize + USIZE_SIZE;
+                let address = self.allocator.borrow_mut().malloc(size, self.get_roots())?;
+                self.push(CompoundValue::SimpleValue(Value::Object { address, capacity: capacity as usize }))?;
+                self.memory.copy_t(&0usize, address);
+            }
+            v => Err(self.create_error(VMErrorType::ExpectedNumber(v))?)?,
         }
         Ok(())
     }
 
     fn object_get(&mut self) -> Result<(), Error> {
         if let (
-            Value::Object {
+            CompoundValue::SimpleValue(this_value@Value::Object {
                 address: obj_address,
                 ..
-            },
-            Value::String(address),
+            }),
+            CompoundValue::SimpleValue(Value::String(address)),
         ) = (self.dereference_pop()?, self.dereference_pop()?)
         {
             let size = self
@@ -881,7 +1020,7 @@ impl VM {
                 .memory
                 .get_u8_vector(
                     obj_address + USIZE_SIZE,
-                    object_length * (VALUE_SIZE + USIZE_SIZE) * U64_SIZE,
+                    object_length * (VALUE_SIZE + USIZE_SIZE),
                 )
                 .unwrap();
             let bytes = unsafe {
@@ -896,23 +1035,30 @@ impl VM {
                     Err(self.create_error(VMErrorType::PropertyDoesntExist(property.to_owned()))?)?
                 }
             };
-            self.push(bytes[i].1)?;
+            if let Value::Function { .. } = bytes[i].1 {
+                self.push(CompoundValue::PartialFunction {
+                    function: bytes[i].1,
+                    arguments: vec![this_value]
+                })?;
+            } else {
+                self.push(CompoundValue::SimpleValue(bytes[i].1))?;
+            }
         } else {
-            Err(self.create_error(VMErrorType::ExpectedStrings)?)?;
+            Err(self.create_error(VMErrorType::ExpectedString)?)?;
         }
         Ok(())
     }
 
     fn object_set(&mut self) -> Result<(), Error> {
         if let (
-            Value::Object {
+            CompoundValue::SimpleValue(Value::Object {
                 address: mut obj_address,
                 capacity: mut obj_capacity,
-            },
-            Value::String(address),
-        ) = (self.dereference_pop()?, self.dereference_pop()?)
+            }),
+            CompoundValue::SimpleValue(Value::String(address)),
+            CompoundValue::SimpleValue(value),
+        ) = (self.dereference_pop()?, self.dereference_pop()?, self.pop()?)
         {
-            let value = self.pop()?;
             let capacity = (self.get_size(obj_address)? - USIZE_SIZE) / (VALUE_SIZE + USIZE_SIZE);
             let object_length: usize = *self.memory.get_t(obj_address)?;
             let size = self
@@ -966,24 +1112,24 @@ impl VM {
                 &value,
                 obj_address + USIZE_SIZE * 2 + index * (VALUE_SIZE + USIZE_SIZE),
             );
-            self.push(value)?;
-            self.push(Value::Object {
+            self.push(CompoundValue::SimpleValue(value))?;
+            self.push(CompoundValue::SimpleValue(Value::Object {
                 address: obj_address,
                 capacity: obj_capacity,
-            })?;
+            }))?;
         } else {
-            Err(self.create_error(VMErrorType::ExpectedStrings)?)?;
+            Err(self.create_error(VMErrorType::ExpectedString)?)?;
         }
         Ok(())
     }
 
     fn strlen(&mut self) -> Result<(), Error> {
         match self.dereference_pop()? {
-            Value::String(s) => {
+            CompoundValue::SimpleValue(Value::String(s)) => {
                 let s_size = self.get_size(s)?;
-                self.push(Value::Integer(s_size as _))?;
+                self.push(CompoundValue::SimpleValue(Value::Integer(s_size as _)))?;
             },
-            _ => Err(self.create_error(VMErrorType::ExpectedStrings)?)?,
+            _ => Err(self.create_error(VMErrorType::ExpectedString)?)?,
         };
         Ok(())
     }
@@ -998,36 +1144,38 @@ impl VM {
 
     fn instr_to_str(&mut self) -> Result<(), Error> {
         let v = self.dereference_pop()?;
-        if let Value::String(address) = v {
-            self.push(Value::String(address))?;
+        if let CompoundValue::SimpleValue(Value::String(address)) = v {
+            self.push(CompoundValue::SimpleValue(Value::String(address)))?;
         } else {
             let s = match v {
-                Value::Nil => "nil".to_string(),
-                Value::Integer(i) => i.to_string(),
-                Value::Bool(b) => b.to_string(),
-                Value::Float(f) => f.to_string(),
-                Value::Function { .. } => "[function]".to_string(),
-                Value::Array { .. } => "[array]".to_string(),
-                Value::Object { .. } => "[object]".to_string(),
+                CompoundValue::SimpleValue(Value::Nil) => "nil".to_string(),
+                CompoundValue::SimpleValue(Value::Integer(i)) => i.to_string(),
+                CompoundValue::SimpleValue(Value::Bool(b)) => b.to_string(),
+                CompoundValue::SimpleValue(Value::Float(f)) => f.to_string(),
+                CompoundValue::SimpleValue(Value::Function { .. }) => "[function]".to_string(),
+                CompoundValue::SimpleValue(Value::Array { .. }) => "[array]".to_string(),
+                CompoundValue::SimpleValue(Value::Object { address, .. }) => format!("[object {}]", address),
+                CompoundValue::PartialFunction { .. } => "[partial function]".to_string(),
                 v => panic!("Cannot convert {:?} to string", v),
             };
             let a = self.allocator.borrow_mut().malloc(s.len(), self.get_roots())?;
             self.memory.copy_u8_vector(s.as_bytes(), a);
-            self.push(Value::String(a))?;
+            self.push(CompoundValue::SimpleValue(Value::String(a)))?;
         }
         Ok(())
     }
 
     fn property_lookup(&self, bytes: &[(usize, Value)], property: &str) -> Result<usize, usize> {
-        bytes.binary_search_by(|(curr_address, _)| {
+        let res = bytes.binary_search_by(|(curr_address, _)| {
             let found_length = self
                 .allocator
                 .borrow()
                 .get_allocated_space(*curr_address)
                 .unwrap();
             let found_property = self.memory.get_string(*curr_address, found_length).unwrap();
-            property.cmp(found_property)
-        })
+            found_property.cmp(property)
+        });
+        res
     }
 
     fn get_size(&self, address: usize) -> Result<usize, Error> {
@@ -1041,29 +1189,14 @@ impl VM {
 
     fn pop_usize(&mut self) -> Result<usize, Error> {
         let ret = match self.dereference_pop()? {
-            Value::Integer(a) => a as usize,
-            Value::Float(f) => f as usize,
-            Value::String(address) => {
+            CompoundValue::SimpleValue(Value::Integer(a)) => a as usize,
+            CompoundValue::SimpleValue(Value::Float(f)) => f as usize,
+            CompoundValue::SimpleValue(Value::String(address)) => {
                 let size = self.get_size(address)?;
                 let bs = self.memory.get_u8_vector(address, size)?;
                 bs.as_ptr() as usize
             }
-            _ => Err(self.create_error(VMErrorType::ExpectedNumbers)?)?,
-        };
-        Ok(ret)
-    }
-
-    fn get_constant_string(&self, constant: usize) -> Result<String, Error> {
-        let value = self.constants.get(constant).cloned().ok_or_else(|| {
-            self.create_error(VMErrorType::InvalidConstant(constant))
-                .unwrap()
-        })?;
-        let ret = match value {
-            Value::String(address) => self
-                .memory
-                .get_string(address, self.get_size(address)?)?
-                .to_owned(),
-            _ => Err(self.create_error(VMErrorType::ExpectedStrings)?)?,
+            v => Err(self.create_error(VMErrorType::ExpectedNumber(v))?)?,
         };
         Ok(ret)
     }
@@ -1074,8 +1207,8 @@ impl VM {
             .chain(self.constants.iter())
             .chain(self.globals.values())
             .filter_map(move |v| match v {
-                Value::String(address) => Some(vec![*address]),
-                Value::Array { address, capacity } => {
+                CompoundValue::SimpleValue(Value::String(address)) => Some(vec![*address]),
+                CompoundValue::SimpleValue(Value::Array { address, capacity }) => {
                     Some(self.get_addresses_from_array(*address, *capacity))
                 }
                 _ => None,
@@ -1137,7 +1270,7 @@ impl VM {
 mod cpu_tests {
     use super::{Value, VM};
     use crate::allocator::Allocator;
-    use crate::cpu::{USIZE_SIZE, VALUE_SIZE};
+    use crate::cpu::{USIZE_SIZE, VALUE_SIZE, CompoundValue, COMPOUND_VALUE_SIZE};
     use crate::instruction::{Instruction, InstructionType};
     use crate::memory::Memory;
     use failure::Error;
@@ -1152,185 +1285,185 @@ mod cpu_tests {
     #[test]
     fn test_constant() -> Result<(), Error> {
         let mut vm = VM::test_vm(0);
-        vm.constants.push(Value::Integer(1));
+        vm.constants.push(CompoundValue::SimpleValue(Value::Integer(1)));
         vm.execute_instruction(create_instruction(InstructionType::Constant(0)))?;
-        assert_eq!(vm.stack[0], Value::Integer(1));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Integer(1)));
         Ok(())
     }
 
     #[test]
     fn test_add_integer() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[0] = Value::Integer(1);
-        vm.stack[1] = Value::Integer(2);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Integer(1));
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Integer(2));
         vm.execute_instruction(create_instruction(InstructionType::Plus))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Integer(3));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Integer(3)));
         Ok(())
     }
 
     #[test]
     fn test_add_float() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[0] = Value::Float(1.0);
-        vm.stack[1] = Value::Float(2.0);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Float(1.0));
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Float(2.0));
         vm.execute_instruction(create_instruction(InstructionType::Plus))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Float(3.0));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Float(3.0)));
         Ok(())
     }
 
     #[test]
     fn test_add_float_integer() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[0] = Value::Float(1.0);
-        vm.stack[1] = Value::Integer(2);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Float(1.0));
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Integer(2));
         vm.execute_instruction(create_instruction(InstructionType::Plus))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Float(3.0));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Float(3.0)));
         Ok(())
     }
 
     #[test]
     fn test_add_integer_float() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[0] = Value::Float(1.0);
-        vm.stack[1] = Value::Integer(2);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Float(1.0));
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Integer(2));
         vm.execute_instruction(create_instruction(InstructionType::Plus))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Float(3.0));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Float(3.0)));
         Ok(())
     }
 
     #[test]
     fn test_sub_integer() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[1] = Value::Integer(1);
-        vm.stack[0] = Value::Integer(2);
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Integer(1));
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Integer(2));
         vm.execute_instruction(create_instruction(InstructionType::Minus))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Integer(1));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Integer(1)));
         Ok(())
     }
 
     #[test]
     fn test_sub_float() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[1] = Value::Float(1.0);
-        vm.stack[0] = Value::Float(2.0);
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Float(1.0));
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Float(2.0));
         vm.execute_instruction(create_instruction(InstructionType::Minus))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Float(1.0));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Float(1.0)));
         Ok(())
     }
 
     #[test]
     fn test_sub_float_integer() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[1] = Value::Float(1.0);
-        vm.stack[0] = Value::Integer(2);
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Float(1.0));
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Integer(2));
         vm.execute_instruction(create_instruction(InstructionType::Minus))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Float(1.0));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Float(1.0)));
         Ok(())
     }
 
     #[test]
     fn test_sub_integer_float() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[1] = Value::Float(1.0);
-        vm.stack[0] = Value::Integer(2);
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Float(1.0));
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Integer(2));
         vm.execute_instruction(create_instruction(InstructionType::Minus))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Float(1.0));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Float(1.0)));
         Ok(())
     }
 
     #[test]
     fn test_mult_integer() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[0] = Value::Integer(1);
-        vm.stack[1] = Value::Integer(2);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Integer(1));
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Integer(2));
         vm.execute_instruction(create_instruction(InstructionType::Mult))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Integer(2));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Integer(2)));
         Ok(())
     }
 
     #[test]
     fn test_mult_float() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[0] = Value::Float(1.0);
-        vm.stack[1] = Value::Float(2.0);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Float(1.0));
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Float(2.0));
         vm.execute_instruction(create_instruction(InstructionType::Mult))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Float(2.0));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Float(2.0)));
         Ok(())
     }
 
     #[test]
     fn test_mult_float_integer() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[0] = Value::Float(1.0);
-        vm.stack[1] = Value::Integer(2);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Float(1.0));
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Integer(2));
         vm.execute_instruction(create_instruction(InstructionType::Mult))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Float(2.0));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Float(2.0)));
         Ok(())
     }
 
     #[test]
     fn test_mult_integer_float() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[0] = Value::Float(1.0);
-        vm.stack[1] = Value::Integer(2);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Float(1.0));
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Integer(2));
         vm.execute_instruction(create_instruction(InstructionType::Mult))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Float(2.0));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Float(2.0)));
         Ok(())
     }
 
     #[test]
     fn test_div_integer() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[1] = Value::Integer(1);
-        vm.stack[0] = Value::Integer(2);
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Integer(1));
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Integer(2));
         vm.execute_instruction(create_instruction(InstructionType::Div))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Integer(2));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Integer(2)));
         Ok(())
     }
 
     #[test]
     fn test_div_float() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[1] = Value::Float(1.0);
-        vm.stack[0] = Value::Float(2.0);
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Float(1.0));
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Float(2.0));
         vm.execute_instruction(create_instruction(InstructionType::Div))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Float(2.0));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Float(2.0)));
         Ok(())
     }
 
     #[test]
     fn test_div_float_integer() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[1] = Value::Float(1.0);
-        vm.stack[0] = Value::Integer(2);
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Float(1.0));
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Integer(2));
         vm.execute_instruction(create_instruction(InstructionType::Div))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Float(2.0));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Float(2.0)));
         Ok(())
     }
 
     #[test]
     fn test_div_integer_float() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[1] = Value::Float(1.0);
-        vm.stack[0] = Value::Integer(2);
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Float(1.0));
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Integer(2));
         vm.execute_instruction(create_instruction(InstructionType::Div))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Float(2.0));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Float(2.0)));
         Ok(())
     }
 
@@ -1338,7 +1471,7 @@ mod cpu_tests {
     fn test_nil() -> Result<(), Error> {
         let mut vm = VM::test_vm(0);
         vm.execute_instruction(create_instruction(InstructionType::Nil))?;
-        assert_eq!(vm.stack[0], Value::Nil);
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Nil));
         Ok(())
     }
 
@@ -1346,7 +1479,7 @@ mod cpu_tests {
     fn test_true() -> Result<(), Error> {
         let mut vm = VM::test_vm(0);
         vm.execute_instruction(create_instruction(InstructionType::True))?;
-        assert_eq!(vm.stack[0], Value::Bool(true));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Bool(true)));
         Ok(())
     }
 
@@ -1354,7 +1487,7 @@ mod cpu_tests {
     fn test_false() -> Result<(), Error> {
         let mut vm = VM::test_vm(0);
         vm.execute_instruction(create_instruction(InstructionType::False))?;
-        assert_eq!(vm.stack[0], Value::Bool(false));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Bool(false)));
         Ok(())
     }
 
@@ -1363,10 +1496,10 @@ mod cpu_tests {
         let mut vm = VM::test_vm(1);
         vm.execute_instruction(create_instruction(InstructionType::Not))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Bool(true));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Bool(true)));
         vm.execute_instruction(create_instruction(InstructionType::Not))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Bool(false));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Bool(false)));
         Ok(())
     }
 
@@ -1375,17 +1508,17 @@ mod cpu_tests {
         let mut vm = VM::test_vm(2);
         vm.execute_instruction(create_instruction(InstructionType::Equal))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Bool(true));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Bool(true)));
         Ok(())
     }
 
     #[test]
     fn test_equals_diff() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[1] = Value::Integer(1);
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Integer(1));
         vm.execute_instruction(create_instruction(InstructionType::Equal))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Bool(false));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Bool(false)));
         Ok(())
     }
 
@@ -1394,17 +1527,17 @@ mod cpu_tests {
         let mut vm = VM::test_vm(2);
         vm.execute_instruction(create_instruction(InstructionType::NotEqual))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Bool(false));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Bool(false)));
         Ok(())
     }
 
     #[test]
     fn test_not_equals_diff() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[1] = Value::Integer(1);
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Integer(1));
         vm.execute_instruction(create_instruction(InstructionType::NotEqual))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Bool(true));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Bool(true)));
         Ok(())
     }
 
@@ -1413,27 +1546,27 @@ mod cpu_tests {
         let mut vm = VM::test_vm(2);
         vm.execute_instruction(create_instruction(InstructionType::Greater))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Bool(false));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Bool(false)));
         Ok(())
     }
 
     #[test]
     fn test_greater_greater() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[0] = Value::Integer(1);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Integer(1));
         vm.execute_instruction(create_instruction(InstructionType::Greater))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Bool(true));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Bool(true)));
         Ok(())
     }
 
     #[test]
     fn test_greater_lesser() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[0] = Value::Integer(-1);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Integer(-1));
         vm.execute_instruction(create_instruction(InstructionType::Greater))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Bool(false));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Bool(false)));
         Ok(())
     }
 
@@ -1442,27 +1575,27 @@ mod cpu_tests {
         let mut vm = VM::test_vm(2);
         vm.execute_instruction(create_instruction(InstructionType::GreaterEqual))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Bool(true));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Bool(true)));
         Ok(())
     }
 
     #[test]
     fn test_greater_equals_greater() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[0] = Value::Integer(1);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Integer(1));
         vm.execute_instruction(create_instruction(InstructionType::GreaterEqual))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Bool(true));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Bool(true)));
         Ok(())
     }
 
     #[test]
     fn test_greater_equals_lesser() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[0] = Value::Integer(-1);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Integer(-1));
         vm.execute_instruction(create_instruction(InstructionType::GreaterEqual))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Bool(false));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Bool(false)));
         Ok(())
     }
 
@@ -1471,27 +1604,27 @@ mod cpu_tests {
         let mut vm = VM::test_vm(2);
         vm.execute_instruction(create_instruction(InstructionType::Less))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Bool(false));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Bool(false)));
         Ok(())
     }
 
     #[test]
     fn test_less_greater() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[0] = Value::Integer(1);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Integer(1));
         vm.execute_instruction(create_instruction(InstructionType::Less))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Bool(false));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Bool(false)));
         Ok(())
     }
 
     #[test]
     fn test_less_lesser() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[0] = Value::Integer(-1);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Integer(-1));
         vm.execute_instruction(create_instruction(InstructionType::Less))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Bool(true));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Bool(true)));
         Ok(())
     }
 
@@ -1500,27 +1633,27 @@ mod cpu_tests {
         let mut vm = VM::test_vm(2);
         vm.execute_instruction(create_instruction(InstructionType::LessEqual))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Bool(true));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Bool(true)));
         Ok(())
     }
 
     #[test]
     fn test_less_equals_greater() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[0] = Value::Integer(1);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Integer(1));
         vm.execute_instruction(create_instruction(InstructionType::LessEqual))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Bool(false));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Bool(false)));
         Ok(())
     }
 
     #[test]
     fn test_less_equals_lesser() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[0] = Value::Integer(-1);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Integer(-1));
         vm.execute_instruction(create_instruction(InstructionType::LessEqual))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Bool(true));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Bool(true)));
         Ok(())
     }
 
@@ -1533,11 +1666,11 @@ mod cpu_tests {
         memory.copy_string("42", address1);
         memory.copy_string("42", address2);
         let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
-        vm.stack[0] = Value::String(address1);
-        vm.stack[1] = Value::String(address2);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::String(address1));
+        vm.stack[1] = CompoundValue::SimpleValue(Value::String(address2));
         vm.execute_instruction(create_instruction(InstructionType::Equal))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Bool(true));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Bool(true)));
         Ok(())
     }
 
@@ -1550,11 +1683,11 @@ mod cpu_tests {
         memory.copy_string("41", address1);
         memory.copy_string("42", address2);
         let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
-        vm.stack[0] = Value::String(address1);
-        vm.stack[1] = Value::String(address2);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::String(address1));
+        vm.stack[1] = CompoundValue::SimpleValue(Value::String(address2));
         vm.execute_instruction(create_instruction(InstructionType::Equal))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Bool(false));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Bool(false)));
         Ok(())
     }
 
@@ -1569,11 +1702,11 @@ mod cpu_tests {
         memory.copy_string(&s1, address1);
         memory.copy_string(&s2, address2);
         let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
-        vm.stack[0] = Value::String(address2);
-        vm.stack[1] = Value::String(address1);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::String(address2));
+        vm.stack[1] = CompoundValue::SimpleValue(Value::String(address1));
         vm.execute_instruction(create_instruction(InstructionType::StringConcat))?;
         assert_eq!(vm.sp, 1);
-        if let Value::String(address) = vm.stack[0] {
+        if let CompoundValue::SimpleValue(Value::String(address)) = vm.stack[0] {
             let r = vm.memory.get_string(address, 2)?;
             assert_eq!(r, "42");
         } else {
@@ -1585,11 +1718,11 @@ mod cpu_tests {
     #[test]
     fn test_syscall() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[1] = Value::Integer(sc::nr::GETPID as _);
-        vm.stack[0] = Value::Integer(0);
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Integer(sc::nr::GETPID as _));
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Integer(0));
         vm.execute_instruction(create_instruction(InstructionType::Syscall))?;
         assert_eq!(vm.sp, 1);
-        if let Value::Integer(n) = vm.stack[0] {
+        if let CompoundValue::SimpleValue(Value::Integer(n)) = vm.stack[0] {
             assert!(n > 0);
         } else {
             panic!("Syscall should return an integer");
@@ -1600,20 +1733,20 @@ mod cpu_tests {
     #[test]
     fn test_set_global() -> Result<(), Error> {
         let mut vm = VM::test_vm(1);
-        vm.stack[0] = Value::Integer(0);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Integer(0));
         vm.execute_instruction(create_instruction(InstructionType::SetGlobal(0)))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.globals[&0], Value::Integer(0));
+        assert_eq!(vm.globals[&0], CompoundValue::SimpleValue(Value::Integer(0)));
         Ok(())
     }
 
     #[test]
     fn test_get_global() -> Result<(), Error> {
         let mut vm = VM::test_vm(0);
-        vm.globals.insert(0, Value::Integer(0));
+        vm.globals.insert(0, CompoundValue::SimpleValue(Value::Integer(0)));
         vm.execute_instruction(create_instruction(InstructionType::GetGlobal(0)))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Integer(0));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Integer(0)));
         Ok(())
     }
 
@@ -1628,7 +1761,7 @@ mod cpu_tests {
         let address1 = allocator.malloc(1, std::iter::empty()).unwrap();
         memory.copy_string(&s1, address1);
         let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
-        vm.constants = vec![Value::String(address1)];
+        vm.constants = vec![CompoundValue::SimpleValue(Value::String(address1))];
         vm.execute_instruction(create_instruction(InstructionType::GetGlobal(0)))
             .unwrap();
     }
@@ -1636,21 +1769,21 @@ mod cpu_tests {
     #[test]
     fn test_set_local() -> Result<(), Error> {
         let mut vm = VM::test_vm(1);
-        vm.stack[0] = Value::Integer(1);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Integer(1));
         vm.execute_instruction(create_instruction(InstructionType::SetLocal(0)))?;
         assert_eq!(vm.sp, 2);
-        assert_eq!(vm.stack[0], Value::Integer(1));
-        assert_eq!(vm.stack[1], Value::Integer(1));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Integer(1)));
+        assert_eq!(vm.stack[1], CompoundValue::SimpleValue(Value::Integer(1)));
         Ok(())
     }
 
     #[test]
     fn test_get_local() -> Result<(), Error> {
         let mut vm = VM::test_vm(1);
-        vm.stack[0] = Value::Integer(1);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Integer(1));
         vm.execute_instruction(create_instruction(InstructionType::GetLocal(0)))?;
         assert_eq!(vm.sp, 2);
-        assert_eq!(vm.stack[1], Value::Integer(1));
+        assert_eq!(vm.stack[1], CompoundValue::SimpleValue(Value::Integer(1)));
         Ok(())
     }
 
@@ -1659,19 +1792,19 @@ mod cpu_tests {
         let memory = Memory::new(110);
         let allocator = Allocator::new(110);
         let mut vm = VM::test_vm_with_memory_and_allocator(1, memory, allocator);
-        vm.stack[0] = Value::Integer(1);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Integer(1));
         vm.execute_instruction(create_instruction(InstructionType::Uplift(0)))?;
         assert_eq!(vm.sp, 2);
-        assert_eq!(vm.stack[0], Value::Pointer(4));
-        assert_eq!(vm.stack[1], Value::Pointer(4));
-        assert_eq!(*vm.memory.get_t::<Value>(4).unwrap(), Value::Integer(1));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Pointer(4)));
+        assert_eq!(vm.stack[1], CompoundValue::SimpleValue(Value::Pointer(4)));
+        assert_eq!(*vm.memory.get_t::<CompoundValue>(4).unwrap(), CompoundValue::SimpleValue(Value::Integer(1)));
         Ok(())
     }
 
     #[test]
     fn test_jmp_if_false_jmping() -> Result<(), Error> {
         let mut vm = VM::test_vm(1);
-        vm.stack[0] = Value::Integer(0);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Integer(0));
         vm.execute_instruction(create_instruction(InstructionType::JmpIfFalse(3)))?;
         assert_eq!(vm.sp, 0);
         assert_eq!(vm.ip(), 4);
@@ -1681,7 +1814,7 @@ mod cpu_tests {
     #[test]
     fn test_jmp_if_false_not_jmping() -> Result<(), Error> {
         let mut vm = VM::test_vm(1);
-        vm.stack[0] = Value::Integer(1);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Integer(1));
         vm.execute_instruction(create_instruction(InstructionType::JmpIfFalse(3)))?;
         assert_eq!(vm.sp, 0);
         assert_eq!(vm.ip(), 1);
@@ -1710,7 +1843,7 @@ mod cpu_tests {
     #[test]
     fn test_call() -> Result<(), Error> {
         let mut vm = VM::test_vm(2);
-        vm.stack[1] = Value::Function { ip: 20, arity: 1, uplifts: None };
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Function { ip: 20, arity: 1, uplifts: None });
         vm.execute_instruction(create_instruction(InstructionType::Call))?;
         assert_eq!(vm.frames.last().unwrap().stack_offset, 0);
         assert_eq!(vm.frames.len(), 2);
@@ -1720,7 +1853,7 @@ mod cpu_tests {
 
     #[test]
     #[should_panic(
-        expected = "called `Result::unwrap()` on an `Err` value: VMError { error_type: ExpectedNumbers, file: \"hola\", line: 0 }"
+        expected = "called `Result::unwrap()` on an `Err` value: VMError { error_type: ExpectedFunction(SimpleValue(Integer(0))), file: \"hola\", line: 0 }"
     )]
     fn test_call_on_non_function() {
         let mut vm = VM::test_vm(2);
@@ -1734,7 +1867,7 @@ mod cpu_tests {
     )]
     fn test_call_without_enough_arguments() {
         let mut vm = VM::test_vm(2);
-        vm.stack[1] = Value::Function { ip: 20, arity: 2, uplifts: None, };
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Function { ip: 20, arity: 2, uplifts: None, });
         vm.execute_instruction(create_instruction(InstructionType::Call))
             .unwrap();
     }
@@ -1742,13 +1875,13 @@ mod cpu_tests {
     #[test]
     fn test_array_alloc() {
         let mut vm = VM::test_vm_with_mem(1, 100);
-        vm.stack[0] = Value::Integer(1);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Integer(1));
         vm.execute_instruction(create_instruction(InstructionType::ArrayAlloc))
             .unwrap();
-        if let Value::Array { capacity, address } = vm.stack[0] {
+        if let CompoundValue::SimpleValue(Value::Array { capacity, address }) = vm.stack[0] {
             assert_eq!(
                 vm.allocator.borrow().get_allocated_space(address).unwrap(),
-                capacity * VALUE_SIZE
+                capacity * COMPOUND_VALUE_SIZE
             );
         } else {
             panic!("Expected array as output of ArrayAlloc {:?}", vm.stack[0]);
@@ -1759,21 +1892,21 @@ mod cpu_tests {
     fn test_array_get() {
         let memory = Memory::new(110);
         let mut allocator = Allocator::new(110);
-        let value = Value::Integer(42);
+        let value = CompoundValue::SimpleValue(Value::Integer(42));
         let address = allocator
-            .malloc(std::mem::size_of::<Value>(), std::iter::empty())
+            .malloc(std::mem::size_of::<CompoundValue>(), std::iter::empty())
             .unwrap();
         memory.copy_t(&value, address);
         let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
-        vm.stack[0] = Value::Integer(0);
-        vm.stack[1] = Value::Array {
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Integer(0));
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Array {
             address,
             capacity: 1,
-        };
+        });
         vm.execute_instruction(create_instruction(InstructionType::ArrayGet))
             .unwrap();
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Integer(42));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Integer(42)));
     }
 
     #[test]
@@ -1783,17 +1916,17 @@ mod cpu_tests {
     fn test_array_get_out_of_range() {
         let memory = Memory::new(110);
         let mut allocator = Allocator::new(110);
-        let value = Value::Integer(42);
+        let value = CompoundValue::SimpleValue(Value::Integer(42));
         let address = allocator
-            .malloc(std::mem::size_of::<Value>(), std::iter::empty())
+            .malloc(std::mem::size_of::<CompoundValue>(), std::iter::empty())
             .unwrap();
         memory.copy_t(&value, address);
         let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
-        vm.stack[0] = Value::Integer(1);
-        vm.stack[1] = Value::Array {
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Integer(1));
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Array {
             address,
             capacity: 1,
-        };
+        });
         vm.execute_instruction(create_instruction(InstructionType::ArrayGet))
             .unwrap();
     }
@@ -1802,25 +1935,25 @@ mod cpu_tests {
     fn test_array_set() {
         let memory = Memory::new(110);
         let mut allocator = Allocator::new(110);
-        let value = Value::Integer(42);
+        let value = CompoundValue::SimpleValue(Value::Integer(42));
         let address = allocator
-            .malloc(std::mem::size_of::<Value>(), std::iter::empty())
+            .malloc(std::mem::size_of::<CompoundValue>(), std::iter::empty())
             .unwrap();
         memory.copy_t(&value, address);
         let mut vm = VM::test_vm_with_memory_and_allocator(3, memory, allocator);
-        vm.stack[1] = Value::Integer(0);
-        vm.stack[2] = Value::Array {
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Integer(0));
+        vm.stack[2] = CompoundValue::SimpleValue(Value::Array {
             address,
             capacity: 1,
-        };
+        });
         vm.execute_instruction(create_instruction(InstructionType::ArraySet))
             .unwrap();
         assert_eq!(vm.sp, 1);
         assert_eq!(
-            vm.memory.get_t::<Value>(address).unwrap().clone(),
-            Value::Integer(0)
+            vm.memory.get_t::<CompoundValue>(address).unwrap().clone(),
+            CompoundValue::SimpleValue(Value::Integer(0))
         );
-        assert_eq!(vm.stack[0], Value::Integer(0));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Integer(0)));
     }
 
     #[test]
@@ -1830,60 +1963,60 @@ mod cpu_tests {
     fn test_array_set_out_of_range() {
         let memory = Memory::new(110);
         let mut allocator = Allocator::new(110);
-        let value = Value::Integer(42);
+        let value = CompoundValue::SimpleValue(Value::Integer(42));
         let address = allocator
-            .malloc(std::mem::size_of::<Value>(), std::iter::empty())
+            .malloc(std::mem::size_of::<CompoundValue>(), std::iter::empty())
             .unwrap();
         memory.copy_t(&value, address);
         let mut vm = VM::test_vm_with_memory_and_allocator(3, memory, allocator);
-        vm.stack[1] = Value::Integer(1);
-        vm.stack[2] = Value::Array {
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Integer(1));
+        vm.stack[2] = CompoundValue::SimpleValue(Value::Array {
             address,
             capacity: 1,
-        };
+        });
         vm.execute_instruction(create_instruction(InstructionType::ArraySet))
             .unwrap();
     }
 
     #[test]
     fn test_multi_array_set() {
-        let memory = Memory::new(110);
-        let mut allocator = Allocator::new(110);
-        let value = Value::Integer(42);
+        let memory = Memory::new(150);
+        let mut allocator = Allocator::new(150);
+        let value = CompoundValue::SimpleValue(Value::Integer(42));
         let address = allocator
-            .malloc(std::mem::size_of::<Value>() * 2, std::iter::empty())
+            .malloc(std::mem::size_of::<CompoundValue>() * 2, std::iter::empty())
             .unwrap();
         memory.copy_t(&value, address);
         memory.copy_t(&value, address + VALUE_SIZE);
         let mut vm = VM::test_vm_with_memory_and_allocator(3, memory, allocator);
-        vm.stack[0] = Value::Integer(1);
-        vm.stack[1] = Value::Integer(2);
-        vm.stack[2] = Value::Array {
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Integer(1));
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Integer(2));
+        vm.stack[2] = CompoundValue::SimpleValue(Value::Array {
             address,
             capacity: 2,
-        };
+        });
         vm.execute_instruction(create_instruction(InstructionType::MultiArraySet))
             .unwrap();
         assert_eq!(vm.sp, 1);
         assert_eq!(
-            vm.memory.get_t::<Value>(address).unwrap().clone(),
-            Value::Integer(2)
+            vm.memory.get_t::<CompoundValue>(address).unwrap().clone(),
+            CompoundValue::SimpleValue(Value::Integer(2))
         );
         assert_eq!(
-            vm.memory.get_t::<Value>(address + VALUE_SIZE).unwrap().clone(),
-            Value::Integer(1)
+            vm.memory.get_t::<CompoundValue>(address + COMPOUND_VALUE_SIZE).unwrap().clone(),
+            CompoundValue::SimpleValue(Value::Integer(1))
         );
-        assert_eq!(vm.stack[0], Value::Array { address, capacity: 2 });
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Array { address, capacity: 2 }));
     }
 
     #[test]
     fn test_object_alloc() {
         let mut vm = VM::test_vm_with_mem(1, 100);
-        vm.stack[0] = Value::Integer(1);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Integer(1));
         vm.execute_instruction(create_instruction(InstructionType::ObjectAlloc))
             .unwrap();
-        if let Value::Object { address, capacity } = vm.stack[0] {
-            assert_eq!(0usize, *vm.memory.get_t(address).unwrap(),);
+        if let CompoundValue::SimpleValue(Value::Object { address, capacity }) = vm.stack[0] {
+            assert_eq!(0usize, *vm.memory.get_t::<usize>(address).unwrap(),);
             assert_eq!(1usize, capacity,);
             assert_eq!(
                 vm.allocator.borrow().get_allocated_space(address).unwrap(),
@@ -1907,15 +2040,15 @@ mod cpu_tests {
         memory.copy_t(&address, obj_address + USIZE_SIZE);
         memory.copy_t(&Value::Integer(42), obj_address + USIZE_SIZE * 2);
         let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
-        vm.stack[0] = Value::String(address);
-        vm.stack[1] = Value::Object {
+        vm.stack[0] = CompoundValue::SimpleValue(Value::String(address));
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Object {
             capacity: 1,
             address: obj_address,
-        };
+        });
         vm.execute_instruction(create_instruction(InstructionType::ObjectGet))
             .unwrap();
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Integer(42));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Integer(42)));
     }
 
     #[test]
@@ -1936,11 +2069,11 @@ mod cpu_tests {
         memory.copy_t(&address, obj_address + USIZE_SIZE);
         memory.copy_t(&Value::Integer(42), obj_address + USIZE_SIZE * 2);
         let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
-        vm.stack[0] = Value::String(wrong_address);
-        vm.stack[1] = Value::Object {
+        vm.stack[0] = CompoundValue::SimpleValue(Value::String(wrong_address));
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Object {
             capacity: 1,
             address: obj_address,
-        };
+        });
         vm.execute_instruction(create_instruction(InstructionType::ObjectGet))
             .unwrap();
     }
@@ -1956,12 +2089,12 @@ mod cpu_tests {
             .unwrap();
         memory.copy_t(&0usize, obj_address);
         let mut vm = VM::test_vm_with_memory_and_allocator(3, memory, allocator);
-        vm.stack[0] = Value::Integer(42);
-        vm.stack[1] = Value::String(address);
-        vm.stack[2] = Value::Object {
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Integer(42));
+        vm.stack[1] = CompoundValue::SimpleValue(Value::String(address));
+        vm.stack[2] = CompoundValue::SimpleValue(Value::Object {
             address: obj_address,
             capacity: 1,
-        };
+        });
         vm.execute_instruction(create_instruction(InstructionType::ObjectSet))
             .unwrap();
         let length_got = *vm.memory.get_t::<usize>(obj_address).unwrap();
@@ -1972,15 +2105,15 @@ mod cpu_tests {
             .unwrap();
         assert_eq!(length_got, 1);
         assert_eq!(address_got, address);
-        assert_eq!(value_got, &Value::Integer(42));
         assert_eq!(vm.sp, 2);
-        assert_eq!(vm.stack[0], Value::Integer(42));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Integer(42)));
+        assert_eq!(value_got, &Value::Integer(42));
         assert_eq!(
             vm.stack[1],
-            Value::Object {
+            CompoundValue::SimpleValue(Value::Object {
                 address: obj_address,
                 capacity: 1,
-            }
+            })
         );
     }
 
@@ -1997,12 +2130,12 @@ mod cpu_tests {
         memory.copy_t(&address, obj_address + USIZE_SIZE);
         memory.copy_t(&Value::Integer(41), obj_address + USIZE_SIZE * 2);
         let mut vm = VM::test_vm_with_memory_and_allocator(3, memory, allocator);
-        vm.stack[0] = Value::Integer(42);
-        vm.stack[1] = Value::String(address);
-        vm.stack[2] = Value::Object {
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Integer(42));
+        vm.stack[1] = CompoundValue::SimpleValue(Value::String(address));
+        vm.stack[2] = CompoundValue::SimpleValue(Value::Object {
             address: obj_address,
             capacity: 1,
-        };
+        });
         vm.execute_instruction(create_instruction(InstructionType::ObjectSet))
             .unwrap();
         let length_got = *vm.memory.get_t::<usize>(obj_address).unwrap();
@@ -2013,15 +2146,15 @@ mod cpu_tests {
             .unwrap();
         assert_eq!(length_got, 1);
         assert_eq!(address_got, address);
-        assert_eq!(value_got, &Value::Integer(42));
         assert_eq!(vm.sp, 2);
-        assert_eq!(vm.stack[0], Value::Integer(42));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Integer(42)));
+        assert_eq!(value_got, &Value::Integer(42));
         assert_eq!(
             vm.stack[1],
-            Value::Object {
+            CompoundValue::SimpleValue(Value::Object {
                 capacity: 1,
                 address: obj_address
-            }
+            })
         );
     }
 
@@ -2049,20 +2182,20 @@ mod cpu_tests {
         vm.memory.copy_t(&address, obj_address + USIZE_SIZE);
         vm.memory
             .copy_t(&Value::Integer(41), obj_address + USIZE_SIZE * 2);
-        vm.stack[0] = Value::Integer(42);
-        vm.stack[1] = Value::String(address2);
-        vm.stack[2] = Value::Object {
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Integer(42));
+        vm.stack[1] = CompoundValue::SimpleValue(Value::String(address2));
+        vm.stack[2] = CompoundValue::SimpleValue(Value::Object {
             address: obj_address,
             capacity: 1,
-        };
+        });
         vm.execute_instruction(create_instruction(InstructionType::ObjectSet))
             .unwrap();
         assert_eq!(vm.sp, 2);
-        assert_eq!(vm.stack[0], Value::Integer(42));
-        if let Value::Object {
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Integer(42)));
+        if let CompoundValue::SimpleValue(Value::Object {
             address: obj_address,
             capacity: 1,
-        } = &vm.stack[1]
+        }) = &vm.stack[1]
         {
             let obj_address = *obj_address;
             let length_got = *vm.memory.get_t::<usize>(obj_address).unwrap();
@@ -2090,35 +2223,35 @@ mod cpu_tests {
     #[test]
     fn test_attach_uplifts() -> Result<(), Error> {
         let mut vm = VM::test_vm(1);
-        vm.globals.insert(0, Value::Function {
+        vm.globals.insert(0, CompoundValue::SimpleValue(Value::Function {
             ip: 0,
             arity: 0,
             uplifts: None
-        });
-        vm.stack[0] = Value::Array { address: 0, capacity: 0 };
+        }));
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Array { address: 0, capacity: 0 });
         vm.execute_instruction(create_instruction(InstructionType::AttachArray(0)))?;
         assert_eq!(vm.sp, 0);
-        assert_eq!(vm.globals.get(&0).cloned(), Some(Value::Function { ip: 0, arity: 0, uplifts: Some(0), }));
+        assert_eq!(vm.globals.get(&0).cloned(), Some(CompoundValue::SimpleValue(Value::Function { ip: 0, arity: 0, uplifts: Some(0), })));
         Ok(())
     }
 
     #[test]
     fn test_check_type() -> Result<(), Error> {
         let mut vm = VM::test_vm(1);
-        vm.stack[0] = Value::Nil;
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Nil);
         vm.execute_instruction(create_instruction(InstructionType::CheckType(0)))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Bool(true));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Bool(true)));
         Ok(())
     }
 
     #[test]
     fn test_check_type_failing() -> Result<(), Error> {
         let mut vm = VM::test_vm(1);
-        vm.stack[0] = Value::Nil;
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Nil);
         vm.execute_instruction(create_instruction(InstructionType::CheckType(1)))?;
         assert_eq!(vm.sp, 1);
-        assert_eq!(vm.stack[0], Value::Bool(false));
+        assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Bool(false)));
         Ok(())
     }
 }

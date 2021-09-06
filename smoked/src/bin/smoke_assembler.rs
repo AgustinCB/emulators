@@ -8,7 +8,6 @@ use smoked::cpu::{VALUE_SIZE, USIZE_SIZE};
 use smoked::serialize_type;
 
 const USAGE: &str = "Usage: smoke-assembler [input file] [output file]";
-#[macro_export]
 #[derive(Debug)]
 struct Config {
     input_file: Option<String>,
@@ -29,7 +28,7 @@ fn parse_config<I: Iterator<Item=String>>(mut strings: I) -> Config {
             s if configuration.output_file.is_none() => {
                 configuration.output_file = Some(s.to_owned());
             }
-            _ => panic!(USAGE),
+            _ => panic!("{}", USAGE),
         }
     }
     configuration
@@ -262,6 +261,7 @@ fn parse_constants<'a, I: Iterator<Item=Token<'a>>>(
                     bytes.push(5);
                     serialize_type!(bytes, ip, usize);
                     serialize_type!(bytes, arity, usize);
+                    bytes.push(0);
                 }
                 Constant::Array { capacity } => {
                     bytes.push(6);
