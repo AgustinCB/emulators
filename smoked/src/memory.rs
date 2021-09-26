@@ -50,6 +50,15 @@ impl Memory {
         Ok(memory)
     }
 
+    pub fn get_vector<T>(&self, address: usize, size: usize) -> Result<&[T], MemoryError> {
+        let length = size / std::mem::size_of::<T>();
+        let bytes = self.get_u8_vector(address, size)?;
+        let array = unsafe {
+            std::slice::from_raw_parts(bytes.as_ptr() as *const T, length)
+        };
+        Ok(array)
+    }
+
     pub fn copy_u8_vector(&self, vector: &[u8], address: usize) {
         let memory: &mut [u8] = unsafe {
             std::slice::from_raw_parts_mut(

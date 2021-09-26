@@ -23,7 +23,7 @@ pub enum Value {
     Pointer(usize),
     Function { ip: usize, arity: usize, uplifts: Option<usize> },
     Array { capacity: usize, address: usize },
-    Object { capacity: usize, address: usize },
+    Object { capacity: usize, address: usize, tags: usize },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -90,7 +90,9 @@ impl<I: Iterator<Item=u8>> From<&mut I> for Value {
                 let capacity = * unsafe { (capacity_bytes.as_ptr() as *const usize).as_ref() }.unwrap();
                 let address_bytes = next_x_items(bytes, USIZE_SIZE);
                 let address = * unsafe { (address_bytes.as_ptr() as *const usize).as_ref() }.unwrap();
-                Value::Object { address, capacity }
+                let tags_bytes = next_x_items(bytes, USIZE_SIZE);
+                let tags = * unsafe { (tags_bytes.as_ptr() as *const usize).as_ref() }.unwrap();
+                Value::Object { address, capacity, tags }
             }
             8 => {
                 let address_bytes = next_x_items(bytes, USIZE_SIZE);
@@ -139,10 +141,11 @@ impl Into<Vec<u8>> for Value {
                 ret.extend_from_slice(&capacity.to_le_bytes());
                 ret.extend_from_slice(&address.to_le_bytes())
             }
-            Value::Object { capacity, address } => {
+            Value::Object { capacity, address, tags } => {
                 ret.push(7);
                 ret.extend_from_slice(&capacity.to_le_bytes());
-                ret.extend_from_slice(&address.to_le_bytes())
+                ret.extend_from_slice(&address.to_le_bytes());
+                ret.extend_from_slice(&tags.to_le_bytes())
             }
             Value::Pointer(address) => {
                 ret.push(8);
@@ -350,7 +353,6 @@ impl VM {
                 self.get_local(i - arguments_length)?;
                 self.set_local(i)?;
             }
-            let offset = arity - arguments_length;
             for (i, argument) in arguments.iter().enumerate() {
                 self.push(CompoundValue::SimpleValue(argument.clone()))?;
                 self.set_local(i)?;
@@ -653,6 +655,7 @@ impl VM {
             InstructionType::Uplift(local) => self.uplift(*local)?,
             InstructionType::AttachArray(function) => self.attach_array(*function)?,
             InstructionType::CheckType(type_index) => self.check_type(*type_index)?,
+            InstructionType::AddTag => self.add_tag()?,
         };
         Ok(())
     }
@@ -889,13 +892,14 @@ impl VM {
             } => {
                 self.switch_context(ip, arity, uplifts, Some(&arguments))?;
             }
-            CompoundValue::SimpleValue(Value::Object { address, capacity }) => {
+            CompoundValue::SimpleValue(Value::Object { address, capacity, tags }) => {
                 let new_address = self.allocator.borrow_mut().malloc(capacity, self.get_roots())?;
                 let object_bytes = self.memory.get_u8_vector(address, capacity)?;
                 self.memory.copy_u8_vector(object_bytes, new_address);
                 self.push(CompoundValue::SimpleValue(Value::Object {
                     address: new_address,
                     capacity,
+                    tags,
                 }))?;
             }
             v => Err(self.create_error(VMErrorType::ExpectedFunction(v))?)?,
@@ -992,7 +996,9 @@ impl VM {
             CompoundValue::SimpleValue(Value::Integer(capacity)) => {
                 let size = (VALUE_SIZE + USIZE_SIZE) * capacity as usize + USIZE_SIZE;
                 let address = self.allocator.borrow_mut().malloc(size, self.get_roots())?;
-                self.push(CompoundValue::SimpleValue(Value::Object { address, capacity: capacity as usize }))?;
+                let tags = self.allocator.borrow_mut().malloc(USIZE_SIZE, self.get_roots())?;
+                self.memory.copy_t(&0usize, tags);
+                self.push(CompoundValue::SimpleValue(Value::Object { address, tags, capacity: capacity as usize }))?;
                 self.memory.copy_t(&0usize, address);
             }
             v => Err(self.create_error(VMErrorType::ExpectedNumber(v))?)?,
@@ -1016,19 +1022,10 @@ impl VM {
                 .unwrap();
             let property = self.memory.get_string(address, size)?;
             let object_length: usize = *self.memory.get_t(obj_address)?;
-            let pair_bytes = self
-                .memory
-                .get_u8_vector(
-                    obj_address + USIZE_SIZE,
-                    object_length * (VALUE_SIZE + USIZE_SIZE),
-                )
-                .unwrap();
-            let bytes = unsafe {
-                std::slice::from_raw_parts(
-                    pair_bytes.as_ptr() as *const (usize, Value),
-                    object_length,
-                )
-            };
+            let bytes = self.memory.get_vector::<(usize, Value)>(
+                obj_address + USIZE_SIZE,
+                object_length * (VALUE_SIZE + USIZE_SIZE),
+            )?;
             let i = match self.property_lookup(bytes, property) {
                 Ok(i) => i,
                 Err(_) => {
@@ -1054,6 +1051,7 @@ impl VM {
             CompoundValue::SimpleValue(Value::Object {
                 address: mut obj_address,
                 capacity: mut obj_capacity,
+                tags,
             }),
             CompoundValue::SimpleValue(Value::String(address)),
             CompoundValue::SimpleValue(value),
@@ -1116,6 +1114,7 @@ impl VM {
             self.push(CompoundValue::SimpleValue(Value::Object {
                 address: obj_address,
                 capacity: obj_capacity,
+                tags,
             }))?;
         } else {
             Err(self.create_error(VMErrorType::ExpectedString)?)?;
@@ -1165,17 +1164,45 @@ impl VM {
         Ok(())
     }
 
+
+    fn add_tag(&mut self) -> Result<(), Error> {
+        if let (
+            CompoundValue::SimpleValue(o@Value::Object { capacity, tags, address }),
+            CompoundValue::SimpleValue(Value::String(string_address)),
+        ) = (self.dereference_pop()?, self.dereference_pop()?)
+        {
+            let length = self.get_size(tags)?;
+            let tags = self.memory.get_vector::<usize>(tags, length)?;
+            match tags.binary_search(&string_address) {
+                Ok(_) => {
+                    self.push(CompoundValue::SimpleValue(o))?;
+                },
+                Err(index) => {
+                    let mut new_tags = tags[..index].to_vec();
+                    new_tags.push(string_address);
+                    new_tags.extend_from_slice(&tags[index..]);
+                    let new_tags_address = self.allocator
+                        .borrow_mut()
+                        .malloc(USIZE_SIZE * new_tags.len(), self.get_roots())?;
+                    eprintln!("{:?}", new_tags);
+                    self.memory.copy_t_slice(&new_tags, new_tags_address);
+                    self.push(CompoundValue::SimpleValue(
+                        Value::Object { tags: new_tags_address, capacity, address }
+                    ))?;
+                }
+            }
+            Ok(())
+        } else {
+            Err(self.create_error(VMErrorType::ExpectedString)?)?
+        }
+    }
+
     fn property_lookup(&self, bytes: &[(usize, Value)], property: &str) -> Result<usize, usize> {
-        let res = bytes.binary_search_by(|(curr_address, _)| {
-            let found_length = self
-                .allocator
-                .borrow()
-                .get_allocated_space(*curr_address)
-                .unwrap();
+        bytes.binary_search_by(|(curr_address, _)| {
+            let found_length = self.get_size(*curr_address).unwrap();
             let found_property = self.memory.get_string(*curr_address, found_length).unwrap();
             found_property.cmp(property)
-        });
-        res
+        })
     }
 
     fn get_size(&self, address: usize) -> Result<usize, Error> {
@@ -1219,14 +1246,10 @@ impl VM {
     fn get_addresses_from_object(&self, address: usize) -> Vec<usize> {
         let length: usize = *self.memory.get_t(address).unwrap();
         let mut result = vec![address];
-        let pair_bytes = self
-            .memory
-            .get_u8_vector(address + USIZE_SIZE, length * (VALUE_SIZE + USIZE_SIZE))
+        let pairs = self.memory
+            .get_vector::<(usize, Value)>(address + USIZE_SIZE,length * (VALUE_SIZE + USIZE_SIZE))
             .unwrap();
-        let bytes = unsafe {
-            std::slice::from_raw_parts(pair_bytes.as_ptr() as *const (usize, Value), length)
-        };
-        for (string, value) in bytes {
+        for (string, value) in pairs {
             result.push(*string);
             self.add_used_addresses_from_value(&mut result, value);
         }
@@ -2015,13 +2038,14 @@ mod cpu_tests {
         vm.stack[0] = CompoundValue::SimpleValue(Value::Integer(1));
         vm.execute_instruction(create_instruction(InstructionType::ObjectAlloc))
             .unwrap();
-        if let CompoundValue::SimpleValue(Value::Object { address, capacity }) = vm.stack[0] {
+        if let CompoundValue::SimpleValue(Value::Object { address, capacity, tags }) = vm.stack[0] {
             assert_eq!(0usize, *vm.memory.get_t::<usize>(address).unwrap(),);
             assert_eq!(1usize, capacity,);
             assert_eq!(
                 vm.allocator.borrow().get_allocated_space(address).unwrap(),
                 VALUE_SIZE + USIZE_SIZE * 2,
             );
+            assert_eq!(VALUE_SIZE + USIZE_SIZE * 2, tags);
         } else {
             panic!("Expected array as output of ArrayAlloc {:?}", vm.stack[0]);
         }
@@ -2044,6 +2068,7 @@ mod cpu_tests {
         vm.stack[1] = CompoundValue::SimpleValue(Value::Object {
             capacity: 1,
             address: obj_address,
+            tags: 0,
         });
         vm.execute_instruction(create_instruction(InstructionType::ObjectGet))
             .unwrap();
@@ -2073,6 +2098,7 @@ mod cpu_tests {
         vm.stack[1] = CompoundValue::SimpleValue(Value::Object {
             capacity: 1,
             address: obj_address,
+            tags: 0,
         });
         vm.execute_instruction(create_instruction(InstructionType::ObjectGet))
             .unwrap();
@@ -2094,6 +2120,7 @@ mod cpu_tests {
         vm.stack[2] = CompoundValue::SimpleValue(Value::Object {
             address: obj_address,
             capacity: 1,
+            tags: 0,
         });
         vm.execute_instruction(create_instruction(InstructionType::ObjectSet))
             .unwrap();
@@ -2113,6 +2140,7 @@ mod cpu_tests {
             CompoundValue::SimpleValue(Value::Object {
                 address: obj_address,
                 capacity: 1,
+                tags: 0,
             })
         );
     }
@@ -2135,6 +2163,7 @@ mod cpu_tests {
         vm.stack[2] = CompoundValue::SimpleValue(Value::Object {
             address: obj_address,
             capacity: 1,
+            tags: 0,
         });
         vm.execute_instruction(create_instruction(InstructionType::ObjectSet))
             .unwrap();
@@ -2153,7 +2182,8 @@ mod cpu_tests {
             vm.stack[1],
             CompoundValue::SimpleValue(Value::Object {
                 capacity: 1,
-                address: obj_address
+                address: obj_address,
+                tags: 0,
             })
         );
     }
@@ -2187,6 +2217,7 @@ mod cpu_tests {
         vm.stack[2] = CompoundValue::SimpleValue(Value::Object {
             address: obj_address,
             capacity: 1,
+            tags: 0,
         });
         vm.execute_instruction(create_instruction(InstructionType::ObjectSet))
             .unwrap();
@@ -2195,6 +2226,7 @@ mod cpu_tests {
         if let CompoundValue::SimpleValue(Value::Object {
             address: obj_address,
             capacity: 1,
+            tags: 0,
         }) = &vm.stack[1]
         {
             let obj_address = *obj_address;
@@ -2253,5 +2285,99 @@ mod cpu_tests {
         assert_eq!(vm.sp, 1);
         assert_eq!(vm.stack[0], CompoundValue::SimpleValue(Value::Bool(false)));
         Ok(())
+    }
+
+    #[test]
+    fn test_add_tags_on_empty_array() {
+        let memory = Memory::new(110);
+        let mut allocator = Allocator::new(110);
+        let address = allocator.malloc(0, std::iter::empty()).unwrap();
+        let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::String(142));
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Object {
+            address: 0,
+            capacity: 0,
+            tags: address,
+        });
+        vm.execute_instruction(create_instruction(InstructionType::AddTag))
+            .unwrap();
+
+        assert_eq!(vm.sp, 1);
+        if let CompoundValue::SimpleValue(Value::Object {
+            tags, capacity: 0, address: 0
+        }) = vm.stack[0] {
+            let string_address = *vm.memory.get_t::<usize>(tags).unwrap();
+            assert_eq!(string_address, 142);
+        } else {
+            panic!("Invalid value {:?}", vm.stack[0]);
+        }
+    }
+
+    #[test]
+    fn test_add_tags_on_non_empty_array() {
+        let memory = Memory::new(110);
+        let mut allocator = Allocator::new(110);
+        let address = allocator.malloc(USIZE_SIZE * 2, std::iter::empty()).unwrap();
+        memory.copy_t_slice(&[142usize, 144], address);
+        let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::String(143));
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Object {
+            address: 0,
+            capacity: 0,
+            tags: address,
+        });
+        vm.execute_instruction(create_instruction(InstructionType::AddTag))
+            .unwrap();
+
+        assert_eq!(vm.sp, 1);
+        if let CompoundValue::SimpleValue(Value::Object {
+            tags, capacity: 0, address: 0
+        }) = vm.stack[0] {
+            assert_eq!(
+                Some(3 * USIZE_SIZE),
+                vm.allocator.borrow().get_allocated_space(tags)
+            );
+            let string_address = *vm.memory.get_t::<usize>(tags).unwrap();
+            assert_eq!(string_address, 142);
+            let string_address = *vm.memory.get_t::<usize>(tags + USIZE_SIZE).unwrap();
+            assert_eq!(string_address, 143);
+            let string_address = *vm.memory.get_t::<usize>(tags + USIZE_SIZE * 2).unwrap();
+            assert_eq!(string_address, 144);
+        } else {
+            panic!("Invalid value {:?}", vm.stack[0]);
+        }
+    }
+
+    #[test]
+    fn test_add_tags_on_array_with_duplicated() {
+        let memory = Memory::new(110);
+        let mut allocator = Allocator::new(110);
+        let address = allocator.malloc(USIZE_SIZE * 2, std::iter::empty()).unwrap();
+        memory.copy_t_slice(&[142usize, 143], address);
+        let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::String(142));
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Object {
+            address: 0,
+            capacity: 0,
+            tags: address,
+        });
+        vm.execute_instruction(create_instruction(InstructionType::AddTag))
+            .unwrap();
+
+        assert_eq!(vm.sp, 1);
+        if let CompoundValue::SimpleValue(Value::Object {
+            tags, capacity: 0, address: 0
+        }) = vm.stack[0] {
+            assert_eq!(
+                Some(2 * USIZE_SIZE),
+                vm.allocator.borrow().get_allocated_space(tags)
+            );
+            let string_address = *vm.memory.get_t::<usize>(tags).unwrap();
+            assert_eq!(string_address, 142);
+            let string_address = *vm.memory.get_t::<usize>(tags + USIZE_SIZE).unwrap();
+            assert_eq!(string_address, 143);
+        } else {
+            panic!("Invalid value {:?}", vm.stack[0]);
+        }
     }
 }

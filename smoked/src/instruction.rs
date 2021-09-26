@@ -48,6 +48,7 @@ pub enum InstructionType {
     Uplift(usize),
     AttachArray(usize),
     CheckType(usize),
+    AddTag,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -161,6 +162,7 @@ impl Into<Vec<u8>> for Instruction {
                 bytes.push(44);
                 bytes.extend_from_slice(&t.to_le_bytes());
             },
+            InstructionType::AddTag => bytes.push(45),
         }
         bytes.extend_from_slice(&self.location.to_le_bytes());
         bytes
@@ -238,6 +240,7 @@ impl From<&[u8]> for Instruction {
             44 => create_instruction(InstructionType::CheckType(usize::from_le_bytes(
                 [bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7], bytes[8]],
             )), &bytes[9..]),
+            45 => create_instruction(InstructionType::AddTag, &bytes[1..]),
             255 => create_instruction(InstructionType::Noop, &bytes[1..]),
             _ => {
                 warn!("Invalid instruction");
@@ -296,6 +299,7 @@ impl ToString for Instruction {
             InstructionType::Uplift(local) => format!("UPLIFT {}", local),
             InstructionType::AttachArray(function) => format!("ATTACH_ARRAY {}", function),
             InstructionType::CheckType(type_index) => format!("CHECK_TYPE {}", type_index),
+            InstructionType::AddTag => "ADDTAG".to_owned(),
         }
     }
 }
