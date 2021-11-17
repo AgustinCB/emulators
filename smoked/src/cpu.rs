@@ -343,10 +343,10 @@ impl VM {
         uplifts: Option<usize>,
         extra_arguments: Option<&[Value]>,
     ) -> Result<(), Error> {
-        if self.sp < arity {
+        let arguments_length = extra_arguments.map_or(0, |args| args.len());
+        if (self.sp + arguments_length) < arity {
             Err(self.create_error(VMErrorType::NotEnoughArgumentsForFunction)?)?;
         }
-        let arguments_length = extra_arguments.map_or(0, |a| a.len());
         self.new_frame(ip, arity - arguments_length);
         if let Some(arguments) = extra_arguments {
             for i in (arguments_length..arity).rev() {
@@ -656,6 +656,7 @@ impl VM {
             InstructionType::AttachArray(function) => self.attach_array(*function)?,
             InstructionType::CheckType(type_index) => self.check_type(*type_index)?,
             InstructionType::AddTag => self.add_tag()?,
+            InstructionType::CheckTag => self.check_tag()?,
         };
         Ok(())
     }
@@ -1164,7 +1165,6 @@ impl VM {
         Ok(())
     }
 
-
     fn add_tag(&mut self) -> Result<(), Error> {
         if let (
             CompoundValue::SimpleValue(o@Value::Object { capacity, tags, address }),
@@ -1184,11 +1184,32 @@ impl VM {
                     let new_tags_address = self.allocator
                         .borrow_mut()
                         .malloc(USIZE_SIZE * new_tags.len(), self.get_roots())?;
-                    eprintln!("{:?}", new_tags);
                     self.memory.copy_t_slice(&new_tags, new_tags_address);
                     self.push(CompoundValue::SimpleValue(
                         Value::Object { tags: new_tags_address, capacity, address }
                     ))?;
+                }
+            }
+            Ok(())
+        } else {
+            Err(self.create_error(VMErrorType::ExpectedString)?)?
+        }
+    }
+
+    fn check_tag(&mut self) -> Result<(), Error> {
+        if let (
+            CompoundValue::SimpleValue(Value::Object { tags, .. }),
+            CompoundValue::SimpleValue(Value::String(string_address)),
+        ) = (self.dereference_pop()?, self.dereference_pop()?)
+        {
+            let length = self.get_size(tags)?;
+            let tags = self.memory.get_vector::<usize>(tags, length)?;
+            match tags.binary_search(&string_address) {
+                Ok(_) => {
+                    self.push(CompoundValue::SimpleValue(Value::Bool(true)))?;
+                },
+                Err(_) => {
+                    self.push(CompoundValue::SimpleValue(Value::Bool(false)))?;
                 }
             }
             Ok(())

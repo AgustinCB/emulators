@@ -21,8 +21,12 @@ fn extract_constants<I: Iterator<Item=u8>>(bytes: &mut I) -> (Vec<usize>, Vec<Va
         constants.push(value);
         match value {
             Value::String(address) | Value::Array { address, .. } |
-                Value::Object {address, ..} | Value::Pointer(address) => {
+                Value::Pointer(address) => {
                 sizes.push(address);
+            }
+            Value::Object { address, tags, ..} => {
+                sizes.push(address);
+                sizes.push(tags);
             }
             _ => {}
         }
