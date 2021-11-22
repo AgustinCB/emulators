@@ -644,6 +644,7 @@ impl VM {
             InstructionType::ObjectAlloc => self.object_alloc()?,
             InstructionType::ObjectGet => self.object_get()?,
             InstructionType::ObjectSet => self.object_set()?,
+            InstructionType::ObjectHas => self.object_has()?,
             InstructionType::Pop => {
                 self.pop()?;
             },
@@ -1117,6 +1118,35 @@ impl VM {
                 capacity: obj_capacity,
                 tags,
             }))?;
+        } else {
+            Err(self.create_error(VMErrorType::ExpectedString)?)?;
+        }
+        Ok(())
+    }
+
+    fn object_has(&mut self) -> Result<(), Error> {
+        if let (
+            CompoundValue::SimpleValue(this@Value::Object {
+                address: obj_address,
+                ..
+            }),
+            CompoundValue::SimpleValue(Value::String(address)),
+        ) = (self.dereference_pop()?, self.dereference_pop()?)
+        {
+            let size = self
+                .allocator
+                .borrow()
+                .get_allocated_space(address)
+                .unwrap();
+            let property = self.memory.get_string(address, size)?;
+            let object_length: usize = *self.memory.get_t(obj_address)?;
+            let bytes = self.memory.get_vector::<(usize, Value)>(
+                obj_address + USIZE_SIZE,
+                object_length * (VALUE_SIZE + USIZE_SIZE),
+            )?;
+            let has_prop = self.property_lookup(bytes, property).is_ok();
+            self.push(CompoundValue::SimpleValue(this))?;
+            self.push(CompoundValue::SimpleValue(Value::Bool(has_prop)))?;
         } else {
             Err(self.create_error(VMErrorType::ExpectedString)?)?;
         }
