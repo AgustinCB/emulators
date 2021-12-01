@@ -5,8 +5,9 @@ use failure::Error;
 use failure::_core::fmt::Formatter;
 use sc::{syscall0, syscall1, syscall2, syscall3, syscall4, syscall5, syscall6};
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, BTreeSet};
 use std::fmt::Display;
+use std::iter::FromIterator;
 
 pub(crate) const STACK_MAX: usize = 256;
 pub const USIZE_SIZE: usize = std::mem::size_of::<usize>();
@@ -658,6 +659,7 @@ impl VM {
             InstructionType::CheckType(type_index) => self.check_type(*type_index)?,
             InstructionType::AddTag => self.add_tag()?,
             InstructionType::CheckTag => self.check_tag()?,
+            InstructionType::ObjectMerge => self.object_merge()?,
         };
         Ok(())
     }
@@ -996,11 +998,12 @@ impl VM {
     fn object_alloc(&mut self) -> Result<(), Error> {
         match self.dereference_pop()? {
             CompoundValue::SimpleValue(Value::Integer(capacity)) => {
-                let size = (VALUE_SIZE + USIZE_SIZE) * capacity as usize + USIZE_SIZE;
+                let capacity = (VALUE_SIZE + USIZE_SIZE) * capacity as usize;
+                let size = capacity + USIZE_SIZE;
                 let address = self.allocator.borrow_mut().malloc(size, self.get_roots())?;
                 let tags = self.allocator.borrow_mut().malloc(USIZE_SIZE, self.get_roots())?;
                 self.memory.copy_t(&0usize, tags);
-                self.push(CompoundValue::SimpleValue(Value::Object { address, tags, capacity: capacity as usize }))?;
+                self.push(CompoundValue::SimpleValue(Value::Object { address, tags, capacity }))?;
                 self.memory.copy_t(&0usize, address);
             }
             v => Err(self.create_error(VMErrorType::ExpectedNumber(v))?)?,
@@ -1023,11 +1026,7 @@ impl VM {
                 .get_allocated_space(address)
                 .unwrap();
             let property = self.memory.get_string(address, size)?;
-            let object_length: usize = *self.memory.get_t(obj_address)?;
-            let bytes = self.memory.get_vector::<(usize, Value)>(
-                obj_address + USIZE_SIZE,
-                object_length * (VALUE_SIZE + USIZE_SIZE),
-            )?;
+            let bytes = self.get_properties(obj_address)?;
             let i = match self.property_lookup(bytes, property) {
                 Ok(i) => i,
                 Err(_) => {
@@ -1060,39 +1059,27 @@ impl VM {
         ) = (self.dereference_pop()?, self.dereference_pop()?, self.pop()?)
         {
             let capacity = (self.get_size(obj_address)? - USIZE_SIZE) / (VALUE_SIZE + USIZE_SIZE);
-            let object_length: usize = *self.memory.get_t(obj_address)?;
             let size = self
                 .allocator
                 .borrow()
                 .get_allocated_space(address)
                 .unwrap();
             let property = self.memory.get_string(address, size)?;
-            let pair_bytes = self
-                .memory
-                .get_u8_vector(
-                    obj_address + USIZE_SIZE,
-                    object_length * (VALUE_SIZE + USIZE_SIZE) * U64_SIZE,
-                )
-                .unwrap();
-            let bytes = unsafe {
-                std::slice::from_raw_parts(
-                    pair_bytes.as_ptr() as *const (usize, Value),
-                    object_length,
-                )
-            };
+            let bytes = self.get_properties(obj_address)?;
             let index = match self.property_lookup(bytes, property) {
                 Ok(index) => index,
                 Err(index) => {
+                    let object_length: usize = *self.memory.get_t(obj_address)?;
                     if capacity <= object_length {
                         self.allocator.borrow_mut().free(obj_address)?;
+                        let new_capacity = capacity * 2 * (VALUE_SIZE + USIZE_SIZE);
                         obj_address = self.allocator.borrow_mut().malloc(
-                            USIZE_SIZE + capacity * 2 * (VALUE_SIZE + USIZE_SIZE),
+                            USIZE_SIZE + new_capacity,
                             self.get_roots(),
                         )?;
-                        obj_capacity = object_length + 1;
+                        obj_capacity = new_capacity;
                         self.memory.copy_t(&(object_length + 1), obj_address);
-                        self.memory
-                            .copy_u8_vector(pair_bytes, obj_address + USIZE_SIZE);
+                        self.memory.copy_t_slice(&bytes, obj_address + USIZE_SIZE);
                     }
                     for i in (index..bytes.len()).rev() {
                         self.memory.copy_t(
@@ -1139,11 +1126,7 @@ impl VM {
                 .get_allocated_space(address)
                 .unwrap();
             let property = self.memory.get_string(address, size)?;
-            let object_length: usize = *self.memory.get_t(obj_address)?;
-            let bytes = self.memory.get_vector::<(usize, Value)>(
-                obj_address + USIZE_SIZE,
-                object_length * (VALUE_SIZE + USIZE_SIZE),
-            )?;
+            let bytes = self.get_properties(obj_address)?;
             let has_prop = self.property_lookup(bytes, property).is_ok();
             self.push(CompoundValue::SimpleValue(this))?;
             self.push(CompoundValue::SimpleValue(Value::Bool(has_prop)))?;
@@ -1201,8 +1184,7 @@ impl VM {
             CompoundValue::SimpleValue(Value::String(string_address)),
         ) = (self.dereference_pop()?, self.dereference_pop()?)
         {
-            let length = self.get_size(tags)?;
-            let tags = self.memory.get_vector::<usize>(tags, length)?;
+            let tags = self.get_tags(tags)?;
             match tags.binary_search(&string_address) {
                 Ok(_) => {
                     self.push(CompoundValue::SimpleValue(o))?;
@@ -1232,9 +1214,7 @@ impl VM {
             CompoundValue::SimpleValue(Value::String(string_address)),
         ) = (self.dereference_pop()?, self.dereference_pop()?)
         {
-            let length = self.get_size(tags)?;
-            let tags = self.memory.get_vector::<usize>(tags, length)?;
-            match tags.binary_search(&string_address) {
+            match self.get_tags(tags)?.binary_search(&string_address) {
                 Ok(_) => {
                     self.push(CompoundValue::SimpleValue(Value::Bool(true)))?;
                 },
@@ -1248,12 +1228,113 @@ impl VM {
         }
     }
 
+    fn object_merge(&mut self) -> Result<(), Error> {
+        if let (
+            CompoundValue::SimpleValue(Value::Object { address: first_address, tags: first_tags, .. }),
+            CompoundValue::SimpleValue(Value::Object { address: second_address, tags: second_tags, .. }),
+        ) = (self.dereference_pop()?, self.dereference_pop()?) {
+            let first_properties = self.get_properties(first_address)?;
+            let second_properties = self.get_properties(second_address)?;
+            let properties = self.merge_properties(first_properties, second_properties)?;
+            let new_tags = self.merge_tags(first_tags, second_tags)?;
+            let capacity = properties.len() * (VALUE_SIZE + USIZE_SIZE);
+            let address = self.allocator.borrow_mut().malloc(USIZE_SIZE + capacity, self.get_roots())?;
+            let tags_capacity = new_tags.len() * USIZE_SIZE;
+            let tags = self.allocator.borrow_mut().malloc(tags_capacity, self.get_roots())?;
+            self.memory.copy_t(&properties.len(), address);
+            self.memory.copy_t_slice(&properties, address + USIZE_SIZE);
+            self.memory.copy_t_slice(&new_tags, tags);
+            self.push(CompoundValue::SimpleValue(Value::Object {
+                address,
+                capacity,
+                tags,
+            }))?;
+            Ok(())
+        } else {
+            Err(self.create_error(VMErrorType::ExpectedString)?)?
+        }
+    }
+
+    fn get_properties(&self, obj_address: usize) -> Result<&[(usize, Value)], Error> {
+        let object_length: usize = *self.memory.get_t(obj_address)?;
+        Ok(self.memory.get_vector::<(usize, Value)>(
+            obj_address + USIZE_SIZE,
+            object_length * (VALUE_SIZE + USIZE_SIZE),
+        )?)
+    }
+
+    fn get_tags(&self, tags: usize) -> Result<&[usize], Error> {
+        let length = self.get_size(tags)?;
+        Ok(self.memory.get_vector::<usize>(tags, length)?)
+    }
+
     fn property_lookup(&self, bytes: &[(usize, Value)], property: &str) -> Result<usize, usize> {
         bytes.binary_search_by(|(curr_address, _)| {
-            let found_length = self.get_size(*curr_address).unwrap();
-            let found_property = self.memory.get_string(*curr_address, found_length).unwrap();
+            let found_property = self.address_to_string(*curr_address).unwrap();
             found_property.cmp(property)
         })
+    }
+
+    fn merge_tags(&self, first_tags: usize, second_tags: usize) -> Result<Vec<usize>, Error> {
+        let first_tags = self.get_tags(first_tags)?;
+        let second_tags = self.get_tags(second_tags)?;
+        let first_tags_tree = BTreeSet::from_iter(first_tags.iter().cloned());
+        let second_tags_tree = BTreeSet::from_iter(second_tags.iter().cloned());
+        Ok(
+            first_tags_tree.union(&second_tags_tree)
+                .cloned()
+                .collect()
+        )
+    }
+
+    fn merge_properties(
+        &self,
+        first_properties: &[(usize, Value)],
+        second_properties: &[(usize, Value)],
+    ) -> Result<Vec<(usize, Value)>, Error> {
+        let mut merged_properties = vec![];
+        if first_properties.is_empty() && second_properties.is_empty() {
+            return Ok(merged_properties);
+        }
+        if first_properties.is_empty() {
+            return Ok(second_properties.to_vec());
+        }
+        if second_properties.is_empty() {
+            return Ok(first_properties.to_vec());
+        }
+        let mut first_properties_vec = first_properties.to_vec();
+        first_properties_vec.reverse();
+        let mut second_properties_vec = second_properties.to_vec();
+        second_properties_vec.reverse();
+        while !first_properties_vec.is_empty() || !second_properties_vec.is_empty() {
+            if first_properties_vec.is_empty() {
+                merged_properties.extend_from_slice(&second_properties_vec);
+                break;
+            }
+            if second_properties_vec.is_empty() {
+                merged_properties.extend_from_slice(&first_properties_vec);
+                break;
+            }
+            let (first_address, first_value) = first_properties_vec.pop().unwrap();
+            let (second_address, second_value) = second_properties_vec.pop().unwrap();
+            let first_property = self.address_to_string(first_address)?;
+            let second_property = self.address_to_string(second_address)?;
+            if first_property < second_property {
+                merged_properties.push((first_address, first_value));
+                second_properties_vec.push((second_address, second_value));
+            } else if second_property < first_property {
+                merged_properties.push((second_address, second_value));
+                first_properties_vec.push((first_address, first_value));
+            } else {
+                merged_properties.push((first_address, first_value));
+            }
+        }
+        Ok(merged_properties)
+    }
+
+    fn address_to_string(&self, address: usize) -> Result<&str, Error> {
+        let found_length = self.get_size(address)?;
+        Ok(self.memory.get_string(address, found_length)?)
     }
 
     fn get_size(&self, address: usize) -> Result<usize, Error> {
@@ -2091,7 +2172,7 @@ mod cpu_tests {
             .unwrap();
         if let CompoundValue::SimpleValue(Value::Object { address, capacity, tags }) = vm.stack[0] {
             assert_eq!(0usize, *vm.memory.get_t::<usize>(address).unwrap(),);
-            assert_eq!(1usize, capacity,);
+            assert_eq!(VALUE_SIZE + USIZE_SIZE, capacity,);
             assert_eq!(
                 vm.allocator.borrow().get_allocated_space(address).unwrap(),
                 VALUE_SIZE + USIZE_SIZE * 2,
@@ -2427,6 +2508,116 @@ mod cpu_tests {
             assert_eq!(string_address, 142);
             let string_address = *vm.memory.get_t::<usize>(tags + USIZE_SIZE).unwrap();
             assert_eq!(string_address, 143);
+        } else {
+            panic!("Invalid value {:?}", vm.stack[0]);
+        }
+    }
+
+    #[test]
+    fn test_object_merge_merges_tags() {
+        let memory = Memory::new(220);
+        let mut allocator = Allocator::new(220);
+        let address = allocator.malloc(USIZE_SIZE, std::iter::empty()).unwrap();
+        let tags_address = allocator.malloc(USIZE_SIZE * 2, std::iter::empty()).unwrap();
+        let address2 = allocator.malloc(USIZE_SIZE, std::iter::empty()).unwrap();
+        let tags_address2 = allocator.malloc(USIZE_SIZE * 2, std::iter::empty()).unwrap();
+        memory.copy_t(&0usize, address);
+        memory.copy_t_slice(&[142usize, 144], tags_address);
+        memory.copy_t(&0usize, address2);
+        memory.copy_t_slice(&[143usize, 144], tags_address2);
+        let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Object {
+            address,
+            capacity: 0,
+            tags: tags_address,
+        });
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Object {
+            address: address2,
+            capacity: 0,
+            tags: tags_address2,
+        });
+        vm.execute_instruction(create_instruction(InstructionType::ObjectMerge))
+            .unwrap();
+
+        assert_eq!(vm.sp, 1);
+        if let CompoundValue::SimpleValue(Value::Object {
+                                              tags, capacity: 0, address
+                                          }) = vm.stack[0] {
+            assert_eq!(
+                Some(3 * USIZE_SIZE),
+                vm.allocator.borrow().get_allocated_space(tags)
+            );
+            assert_eq!(
+                Some(USIZE_SIZE),
+                vm.allocator.borrow().get_allocated_space(address)
+            );
+            let object_length = *vm.memory.get_t::<usize>(address).unwrap();
+            assert_eq!(object_length, 0);
+            let string_address = *vm.memory.get_t::<usize>(tags).unwrap();
+            assert_eq!(string_address, 142);
+            let string_address = *vm.memory.get_t::<usize>(tags + USIZE_SIZE).unwrap();
+            assert_eq!(string_address, 143);
+            let string_address = *vm.memory.get_t::<usize>(tags + USIZE_SIZE * 2).unwrap();
+            assert_eq!(string_address, 144);
+        } else {
+            panic!("Invalid value {:?}", vm.stack[0]);
+        }
+    }
+
+    #[test]
+    fn test_object_merge_merges_properties() {
+        let memory = Memory::new(440);
+        let mut allocator = Allocator::new(440);
+        let prop_address = allocator.malloc(1, std::iter::empty()).unwrap();
+        let prop1_address = allocator.malloc(1, std::iter::empty()).unwrap();
+        let prop2_address = allocator.malloc(1, std::iter::empty()).unwrap();
+        let prop3_address = allocator.malloc(1, std::iter::empty()).unwrap();
+        let address = allocator.malloc(USIZE_SIZE + 2 * (USIZE_SIZE + VALUE_SIZE), std::iter::empty()).unwrap();
+        let address2 = allocator.malloc(USIZE_SIZE + 2 * (USIZE_SIZE + VALUE_SIZE), std::iter::empty()).unwrap();
+        let tags_address = allocator.malloc(0, std::iter::empty()).unwrap();
+        memory.copy_string("A", prop_address);
+        memory.copy_string("B", prop1_address);
+        memory.copy_string("B", prop2_address);
+        memory.copy_string("C", prop3_address);
+        memory.copy_t(&2usize, address);
+        memory.copy_t_slice(&[(prop_address, Value::Nil), (prop1_address, Value::Nil)], address + USIZE_SIZE);
+        memory.copy_t(&2usize, address2);
+        memory.copy_t_slice(&[(prop2_address, Value::Nil), (prop3_address, Value::Nil)], address2 + USIZE_SIZE);
+        let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::Object {
+            address,
+            capacity: 2 * (USIZE_SIZE + VALUE_SIZE),
+            tags: tags_address,
+        });
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Object {
+            address: address2,
+            capacity: 2 * (USIZE_SIZE + VALUE_SIZE),
+            tags: tags_address,
+        });
+        vm.execute_instruction(create_instruction(InstructionType::ObjectMerge))
+            .unwrap();
+
+        assert_eq!(vm.sp, 1);
+        if let CompoundValue::SimpleValue(Value::Object {
+                                              tags, capacity, address
+                                          }) = vm.stack[0] {
+            assert_eq!(3 * (USIZE_SIZE + VALUE_SIZE), capacity);
+            assert_eq!(
+                Some(0),
+                vm.allocator.borrow().get_allocated_space(tags)
+            );
+            assert_eq!(
+                Some(USIZE_SIZE + capacity),
+                vm.allocator.borrow().get_allocated_space(address)
+            );
+            let object_length = *vm.memory.get_t::<usize>(address).unwrap();
+            assert_eq!(object_length, 3);
+            let property = *vm.memory.get_t::<(usize, Value)>(address + USIZE_SIZE).unwrap();
+            assert_eq!(property, (prop_address, Value::Nil));
+            let property = *vm.memory.get_t::<(usize, Value)>(address + USIZE_SIZE + USIZE_SIZE + VALUE_SIZE).unwrap();
+            assert_eq!(property, (prop2_address, Value::Nil));
+            let property = *vm.memory.get_t::<(usize, Value)>(address + USIZE_SIZE + (USIZE_SIZE + VALUE_SIZE) * 2).unwrap();
+            assert_eq!(property, (prop3_address, Value::Nil));
         } else {
             panic!("Invalid value {:?}", vm.stack[0]);
         }

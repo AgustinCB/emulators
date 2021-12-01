@@ -51,6 +51,7 @@ pub enum InstructionType {
     CheckType(usize),
     AddTag,
     CheckTag,
+    ObjectMerge,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -167,6 +168,7 @@ impl Into<Vec<u8>> for Instruction {
             InstructionType::AddTag => bytes.push(45),
             InstructionType::CheckTag => bytes.push(46),
             InstructionType::ObjectHas => bytes.push(47),
+            InstructionType::ObjectMerge => bytes.push(48),
         }
         bytes.extend_from_slice(&self.location.to_le_bytes());
         bytes
@@ -247,6 +249,7 @@ impl From<&[u8]> for Instruction {
             45 => create_instruction(InstructionType::AddTag, &bytes[1..]),
             46 => create_instruction(InstructionType::CheckTag, &bytes[1..]),
             47 => create_instruction(InstructionType::ObjectHas, &bytes[1..]),
+            48 => create_instruction(InstructionType::ObjectMerge, &bytes[1..]),
             255 => create_instruction(InstructionType::Noop, &bytes[1..]),
             _ => {
                 warn!("Invalid instruction");
@@ -308,6 +311,7 @@ impl ToString for Instruction {
             InstructionType::CheckType(type_index) => format!("CHECK_TYPE {}", type_index),
             InstructionType::AddTag => "ADD_TAG".to_owned(),
             InstructionType::CheckTag => "CHECK_TAG".to_owned(),
+            InstructionType::ObjectMerge => "OBJECT_MERGE".to_owned(),
         }
     }
 }
