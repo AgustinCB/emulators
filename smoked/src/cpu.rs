@@ -1230,8 +1230,8 @@ impl VM {
 
     fn object_merge(&mut self) -> Result<(), Error> {
         if let (
-            CompoundValue::SimpleValue(Value::Object { address: first_address, tags: first_tags, .. }),
             CompoundValue::SimpleValue(Value::Object { address: second_address, tags: second_tags, .. }),
+            CompoundValue::SimpleValue(Value::Object { address: first_address, tags: first_tags, .. }),
         ) = (self.dereference_pop()?, self.dereference_pop()?) {
             let first_properties = self.get_properties(first_address)?;
             let second_properties = self.get_properties(second_address)?;
@@ -2615,7 +2615,7 @@ mod cpu_tests {
             let property = *vm.memory.get_t::<(usize, Value)>(address + USIZE_SIZE).unwrap();
             assert_eq!(property, (prop_address, Value::Nil));
             let property = *vm.memory.get_t::<(usize, Value)>(address + USIZE_SIZE + USIZE_SIZE + VALUE_SIZE).unwrap();
-            assert_eq!(property, (prop2_address, Value::Nil));
+            assert_eq!(property, (prop1_address, Value::Nil));
             let property = *vm.memory.get_t::<(usize, Value)>(address + USIZE_SIZE + (USIZE_SIZE + VALUE_SIZE) * 2).unwrap();
             assert_eq!(property, (prop3_address, Value::Nil));
         } else {
