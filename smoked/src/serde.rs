@@ -161,7 +161,7 @@ mod tests {
     #[test]
     fn it_should_serialize_a_vm() {
         let bytes = [
-            86u8, 0, 0, 0, 0, 0, 0, 0, // Constant length
+            78u8, 0, 0, 0, 0, 0, 0, 0, // Constant length
             8, 0, 0, 0, 0, 0, 0, 0, // Memory length
             1, 0, 0, 0, 0, 0, 0, 0, // Locations length
             0, // Nil value - 1
@@ -171,7 +171,7 @@ mod tests {
             4, 4, 0, 0, 0, 0, 0, 0, 0, // String value - 26
             5, 42, 0, 0, 0, 0, 0, 0, 0, 42, 0, 0, 0, 0, 0, 0, 0, 0, // Function value - 43
             6, 2, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, // Array value - 52
-            7, 2, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, // Object value - 61
+            7, 6, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, // Object value - 61
             0, 1, 2, 3, 4, 5, 6, 7, // Memory
             1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, // Locations
             0, 0, 0, 0, 0, 0, 0, 0, 0, // ROM
@@ -181,7 +181,7 @@ mod tests {
         let got = to_bytes(&[
             Value::Nil, Value::Integer(42), Value::Float(0.00000000000015113662f32), Value::Bool(true),
             Value::String(4), Value::Function { arity: 42, ip: 42, uplifts: None, }, Value::Array { capacity: 2, address: 4},
-            Value::Object { address: 6, capacity: 2, tags: 6 },
+            Value::Object { address: 6, tags: 6 },
         ],&[Location { address: 1, line: 1, }], &[0u8, 1, 2, 3, 4, 5, 6, 7],
             &[
                 create_instruction(InstructionType::Return),
@@ -197,7 +197,7 @@ mod tests {
     #[test]
     fn it_should_deserialize_into_a_vm() {
         let bytes = [
-            86u8, 0, 0, 0, 0, 0, 0, 0, // Constant length
+            78u8, 0, 0, 0, 0, 0, 0, 0, // Constant length
             8, 0, 0, 0, 0, 0, 0, 0, // Memory length
             1, 0, 0, 0, 0, 0, 0, 0, // Locations length
             0, // Nil value - 1
@@ -207,7 +207,7 @@ mod tests {
             4, 4, 0, 0, 0, 0, 0, 0, 0, // String value - 26
             5, 42, 0, 0, 0, 0, 0, 0, 0, 42, 0, 0, 0, 0, 0, 0, 0, 0, // Function value - 43
             6, 2, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, // Array value - 52
-            7, 2, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0,// Object value - 69
+            7, 6, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0,// Object value - 69
             0, 1, 2, 3, 4, 5, 6, 7, // Memory
             1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, // Locations
             0, 0, 0, 0, 0, 0, 0, 0, 0, // ROM
@@ -229,7 +229,7 @@ mod tests {
                 address: 4
             })
         );
-        assert_eq!(&vm.constants[7], &CompoundValue::SimpleValue(Value::Object { address: 6, capacity: 2, tags: 6 }));
+        assert_eq!(&vm.constants[7], &CompoundValue::SimpleValue(Value::Object { address: 6, tags: 6 }));
         assert_eq!(vm.memory.get_capacity(), 8);
         assert_eq!(
             vm.memory.get_u8_vector(0, 8).unwrap(),
