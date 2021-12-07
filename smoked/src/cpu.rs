@@ -897,14 +897,8 @@ impl VM {
                 self.switch_context(ip, arity, uplifts, Some(&arguments))?;
             }
             CompoundValue::SimpleValue(Value::Object { address, capacity, tags }) => {
-                let new_address = self.allocator.borrow_mut().malloc(capacity, self.get_roots())?;
-                let object_bytes = self.memory.get_u8_vector(address, capacity)?;
-                self.memory.copy_u8_vector(object_bytes, new_address);
-                self.push(CompoundValue::SimpleValue(Value::Object {
-                    address: new_address,
-                    capacity,
-                    tags,
-                }))?;
+                let this = self.create_object(address, capacity, tags)?;
+                self.push(CompoundValue::SimpleValue(this))?;
             }
             v => Err(self.create_error(VMErrorType::ExpectedFunction(v))?)?,
         };
@@ -1273,6 +1267,24 @@ impl VM {
             let found_property = self.address_to_string(*curr_address).unwrap();
             found_property.cmp(property)
         })
+    }
+
+    fn create_object(&mut self, address: usize, capacity: usize, tags: usize) -> Result<Value, Error> {
+        let new_address = self.allocator.borrow_mut().malloc(capacity, self.get_roots())?;
+        let object_bytes = self.memory.get_u8_vector(address, capacity)?;
+        self.memory.copy_u8_vector(object_bytes, new_address);
+        let this = Value::Object {
+            address: new_address,
+            capacity,
+            tags,
+        };
+        let object_properties = self.get_properties(address)?;
+        if let Ok(index) = self.property_lookup(object_properties, "init") {
+            if let Value::Function { ip, arity, uplifts } = object_properties[index].1 {
+                self.switch_context(ip, arity, uplifts, Some(&[this]))?;
+            }
+        }
+        Ok(this)
     }
 
     fn merge_tags(&self, first_tags: usize, second_tags: usize) -> Result<Vec<usize>, Error> {
