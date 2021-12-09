@@ -12,7 +12,7 @@ fn extract_usize(bytes: &[u8]) -> usize {
     *unsafe { (bytes.as_ptr() as *const usize).as_ref() }.unwrap()
 }
 
-fn extract_constants<I: Iterator<Item=u8>>(bytes: &mut I) -> (Vec<usize>, Vec<Value>) {
+fn extract_constants<I: Iterator<Item=u8>>(bytes: &mut I, memory: &[u8]) -> (Vec<usize>, Vec<Value>) {
     let mut constants = vec![];
     let mut sizes = vec![];
     let mut peakable = bytes.peekable();
@@ -26,6 +26,8 @@ fn extract_constants<I: Iterator<Item=u8>>(bytes: &mut I) -> (Vec<usize>, Vec<Va
             }
             Value::Object { address, tags, ..} => {
                 sizes.push(address);
+                let props_address = extract_usize(&memory[address..address + USIZE_SIZE]);
+                sizes.push(props_address);
                 sizes.push(tags);
             }
             _ => {}
@@ -78,8 +80,10 @@ pub fn from_bytes(bytes: &[u8], stack_size: Option<usize>) -> VM {
     let constant_length = extract_usize(&bytes[0..USIZE_SIZE]);
     let memory_length = extract_usize(&bytes[USIZE_SIZE..USIZE_SIZE * 2]);
     let location_length = extract_usize(&bytes[USIZE_SIZE * 2..USIZE_SIZE * 3]);
+    let memory_bytes = &bytes[USIZE_SIZE * 3 + constant_length
+        ..USIZE_SIZE * 3 + constant_length + memory_length];
     let (addresses, constants) = extract_constants(
-        &mut bytes[USIZE_SIZE * 3..USIZE_SIZE * 3 + constant_length].iter().cloned(),
+        &mut bytes[USIZE_SIZE * 3..USIZE_SIZE * 3 + constant_length].iter().cloned(), memory_bytes
     );
     let constants = constants.into_iter().map(|v| {
         CompoundValue::SimpleValue(v)
@@ -92,11 +96,7 @@ pub fn from_bytes(bytes: &[u8], stack_size: Option<usize>) -> VM {
     }
     let stack_size = stack_size.unwrap_or(memory_length);
     let memory = Memory::new(stack_size);
-    memory.copy_u8_vector(
-        &bytes[USIZE_SIZE * 3 + constant_length
-            ..USIZE_SIZE * 3 + constant_length + memory_length],
-        0,
-    );
+    memory.copy_u8_vector(memory_bytes, 0);
     let mut locations = vec![];
     for i in 0..location_length {
         locations.push(Location {
@@ -198,7 +198,7 @@ mod tests {
     fn it_should_deserialize_into_a_vm() {
         let bytes = [
             78u8, 0, 0, 0, 0, 0, 0, 0, // Constant length
-            8, 0, 0, 0, 0, 0, 0, 0, // Memory length
+            14, 0, 0, 0, 0, 0, 0, 0, // Memory length
             1, 0, 0, 0, 0, 0, 0, 0, // Locations length
             0, // Nil value - 1
             1, 42, 0, 0, 0, 0, 0, 0, 0, // Integer value - 10
@@ -208,7 +208,7 @@ mod tests {
             5, 42, 0, 0, 0, 0, 0, 0, 0, 42, 0, 0, 0, 0, 0, 0, 0, 0, // Function value - 43
             6, 2, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, // Array value - 52
             7, 6, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0,// Object value - 69
-            0, 1, 2, 3, 4, 5, 6, 7, // Memory
+            0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, // Memory
             1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, // Locations
             0, 0, 0, 0, 0, 0, 0, 0, 0, // ROM
             1, 42, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0,
@@ -230,10 +230,10 @@ mod tests {
             })
         );
         assert_eq!(&vm.constants[7], &CompoundValue::SimpleValue(Value::Object { address: 6, tags: 6 }));
-        assert_eq!(vm.memory.get_capacity(), 8);
+        assert_eq!(vm.memory.get_capacity(), 14);
         assert_eq!(
-            vm.memory.get_u8_vector(0, 8).unwrap(),
-            &[0u8, 1, 2, 3, 4, 5, 6, 7]
+            vm.memory.get_u8_vector(0, 14).unwrap(),
+            &[0u8, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0]
         );
         assert_eq!(
             &vm.locations,
