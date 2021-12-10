@@ -364,6 +364,7 @@ impl VM {
                 let value = self.memory.get_t::<CompoundValue>(address + i * COMPOUND_VALUE_SIZE)?.clone();
                 self.push(value)?;
                 self.set_local(i + offset)?;
+                self.pop()?;
             }
         }
         Ok(())
@@ -839,6 +840,9 @@ impl VM {
             self.push(CompoundValue::SimpleValue(Value::Pointer(address)))?;
         } else {
             self.stack[self.frames.last().unwrap().stack_offset + local] = value.clone();
+            if self.frames.last().unwrap().stack_offset + local >= self.sp {
+                self.sp += (self.frames.last().unwrap().stack_offset + local + 1) - self.sp;
+            }
             self.push(value)?;
         }
         Ok(())
