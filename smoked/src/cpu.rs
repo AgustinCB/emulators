@@ -659,6 +659,8 @@ impl VM {
             InstructionType::AddTag => self.add_tag()?,
             InstructionType::CheckTag => self.check_tag()?,
             InstructionType::ObjectMerge => self.object_merge()?,
+            InstructionType::RemoveTag => self.remove_tag()?,
+            InstructionType::Duplicate => self.duplicate()?,
         };
         Ok(())
     }
@@ -673,6 +675,7 @@ impl VM {
             (CompoundValue::SimpleValue(Value::String(_)), 4) => true,
             (CompoundValue::SimpleValue(Value::Function { .. }), 5) => true,
             (CompoundValue::SimpleValue(Value::Array { .. }), 6) => true,
+            (CompoundValue::SimpleValue(Value::Object { .. }), 7) => true,
             _ => false
         };
         self.push(CompoundValue::SimpleValue(Value::Bool(result)))?;
@@ -1140,6 +1143,12 @@ impl VM {
         Ok(())
     }
 
+    fn duplicate(&mut self) -> Result<(), Error> {
+        let last = self.peek()?;
+        self.push(last)?;
+        Ok(())
+    }
+
     fn swap(&mut self) -> Result<(), Error> {
         let botttom = self.pop()?;
         let top = self.pop()?;
@@ -1213,6 +1222,34 @@ impl VM {
                 },
                 Err(_) => {
                     self.push(CompoundValue::SimpleValue(Value::Bool(false)))?;
+                }
+            }
+            Ok(())
+        } else {
+            Err(self.create_error(VMErrorType::ExpectedString)?)?
+        }
+    }
+
+    fn remove_tag(&mut self) -> Result<(), Error> {
+        if let (
+            CompoundValue::SimpleValue(o@Value::Object { tags, address }),
+            CompoundValue::SimpleValue(Value::String(string_address)),
+        ) = (self.dereference_pop()?, self.dereference_pop()?)
+        {
+            let tags = self.get_tags(tags)?;
+            match tags.binary_search(&string_address) {
+                Ok(i) => {
+                    let length = tags.len() - 1;
+                    let new_tags = self.allocator.borrow_mut().malloc(length * USIZE_SIZE, self.get_roots())?;
+                    self.memory.copy_t_slice(&tags[0..i], new_tags);
+                    self.memory.copy_t_slice(&tags[i+1..], new_tags + i * USIZE_SIZE);
+                    self.push(CompoundValue::SimpleValue(Value::Object {
+                        address,
+                        tags: new_tags
+                    }))?;
+                },
+                Err(_) => {
+                    self.push(CompoundValue::SimpleValue(o))?;
                 }
             }
             Ok(())
@@ -2534,6 +2571,92 @@ mod cpu_tests {
             assert_eq!(string_address, 142);
             let string_address = *vm.memory.get_t::<usize>(tags + USIZE_SIZE).unwrap();
             assert_eq!(string_address, 143);
+        } else {
+            panic!("Invalid value {:?}", vm.stack[0]);
+        }
+    }
+
+    #[test]
+    fn test_remove_tags_on_empty_array() {
+        let memory = Memory::new(110);
+        let allocator = Allocator::new(110);
+        let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
+        let address = vm.allocator.borrow_mut().malloc(0, std::iter::empty()).unwrap();
+        vm.stack[0] = CompoundValue::SimpleValue(Value::String(142));
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Object {
+            address: 0,
+            tags: address,
+        });
+        vm.execute_instruction(create_instruction(InstructionType::RemoveTag))
+            .unwrap();
+
+        assert_eq!(vm.sp, 1);
+        if let CompoundValue::SimpleValue(Value::Object {
+                                              tags, address: 0
+                                          }) = vm.stack[0] {
+            let size = vm.allocator.borrow_mut().get_allocated_space(tags).unwrap();
+            assert_eq!(size, 0);
+        } else {
+            panic!("Invalid value {:?}", vm.stack[0]);
+        }
+    }
+
+    #[test]
+    fn test_remove_tags_on_non_empty_array() {
+        let memory = Memory::new(110);
+        let allocator = Allocator::new(110);
+        let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
+        let address = vm.allocator.borrow_mut().malloc(USIZE_SIZE * 3, std::iter::empty()).unwrap();
+        vm.memory.copy_t_slice(&[142usize, 143, 144], address);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::String(143));
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Object {
+            address: 0,
+            tags: address,
+        });
+        vm.execute_instruction(create_instruction(InstructionType::RemoveTag))
+            .unwrap();
+
+        assert_eq!(vm.sp, 1);
+        if let CompoundValue::SimpleValue(Value::Object {
+                                              tags, address: 0
+                                          }) = vm.stack[0] {
+            assert_eq!(
+                Some(2 * USIZE_SIZE),
+                vm.allocator.borrow().get_allocated_space(tags)
+            );
+            let string_address = *vm.memory.get_t::<usize>(tags).unwrap();
+            assert_eq!(string_address, 142);
+            let string_address = *vm.memory.get_t::<usize>(tags + USIZE_SIZE * 1).unwrap();
+            assert_eq!(string_address, 144);
+        } else {
+            panic!("Invalid value {:?}", vm.stack[0]);
+        }
+    }
+
+    #[test]
+    fn test_remove_tag_with_tag_not_there() {
+        let memory = Memory::new(110);
+        let allocator = Allocator::new(110);
+        let mut vm = VM::test_vm_with_memory_and_allocator(2, memory, allocator);
+        let address = vm.allocator.borrow_mut().malloc(USIZE_SIZE * 2, std::iter::empty()).unwrap();
+        vm.memory.copy_t_slice(&[142usize, 144], address);
+        vm.stack[0] = CompoundValue::SimpleValue(Value::String(143));
+        vm.stack[1] = CompoundValue::SimpleValue(Value::Object {
+            address: 0,
+            tags: address,
+        });
+        vm.execute_instruction(create_instruction(InstructionType::RemoveTag))
+            .unwrap();
+
+        assert_eq!(vm.sp, 1);
+        if let CompoundValue::SimpleValue(Value::Object {
+                                              tags, address: 0
+                                          }) = vm.stack[0] {
+            assert_eq!(
+                Some(2 * USIZE_SIZE),
+                vm.allocator.borrow().get_allocated_space(tags)
+            );
+            assert_eq!(tags, address);
         } else {
             panic!("Invalid value {:?}", vm.stack[0]);
         }

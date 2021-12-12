@@ -52,6 +52,8 @@ pub enum InstructionType {
     AddTag,
     CheckTag,
     ObjectMerge,
+    RemoveTag,
+    Duplicate,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -169,6 +171,8 @@ impl Into<Vec<u8>> for Instruction {
             InstructionType::CheckTag => bytes.push(46),
             InstructionType::ObjectHas => bytes.push(47),
             InstructionType::ObjectMerge => bytes.push(48),
+            InstructionType::RemoveTag => bytes.push(49),
+            InstructionType::Duplicate => bytes.push(50),
         }
         bytes.extend_from_slice(&self.location.to_le_bytes());
         bytes
@@ -250,6 +254,8 @@ impl From<&[u8]> for Instruction {
             46 => create_instruction(InstructionType::CheckTag, &bytes[1..]),
             47 => create_instruction(InstructionType::ObjectHas, &bytes[1..]),
             48 => create_instruction(InstructionType::ObjectMerge, &bytes[1..]),
+            49 => create_instruction(InstructionType::RemoveTag, &bytes[1..]),
+            50 => create_instruction(InstructionType::Duplicate,  &bytes[1..]),
             255 => create_instruction(InstructionType::Noop, &bytes[1..]),
             _ => {
                 warn!("Invalid instruction");
@@ -312,6 +318,8 @@ impl ToString for Instruction {
             InstructionType::AddTag => "ADD_TAG".to_owned(),
             InstructionType::CheckTag => "CHECK_TAG".to_owned(),
             InstructionType::ObjectMerge => "OBJECT_MERGE".to_owned(),
+            InstructionType::RemoveTag => "REMOVE_TAG".to_owned(),
+            InstructionType::Duplicate => "DUPLICATE".to_owned(),
         }
     }
 }
