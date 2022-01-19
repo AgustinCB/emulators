@@ -1318,12 +1318,6 @@ impl VM {
             address: new_address,
             tags,
         };
-        let object_properties = self.get_properties(new_address)?;
-        if let Ok(index) = self.property_lookup(object_properties, "init") {
-            if let Value::Function { ip, arity, uplifts } = object_properties[index].1 {
-                self.switch_context(ip, arity, uplifts, Some(&[this]))?;
-            }
-        }
         Ok(this)
     }
 
@@ -1360,10 +1354,12 @@ impl VM {
         second_properties_vec.reverse();
         while !first_properties_vec.is_empty() || !second_properties_vec.is_empty() {
             if first_properties_vec.is_empty() {
+                second_properties_vec.reverse();
                 merged_properties.extend_from_slice(&second_properties_vec);
                 break;
             }
             if second_properties_vec.is_empty() {
+                first_properties_vec.reverse();
                 merged_properties.extend_from_slice(&first_properties_vec);
                 break;
             }
@@ -1422,17 +1418,19 @@ impl VM {
                 CompoundValue::SimpleValue(Value::Array { address, capacity }) => {
                     Some(self.get_addresses_from_array(*address, *capacity))
                 }
+                CompoundValue::SimpleValue(Value::Object {address, tags }) =>
+                    Some(self.get_addresses_from_object(*address, *tags)),
                 _ => None,
             })
             .flatten()
     }
 
-    fn get_addresses_from_object(&self, address: usize) -> Vec<usize> {
-        let address: usize = *self.memory.get_t(address).unwrap();
-        let length: usize = *self.memory.get_t(address).unwrap();
-        let mut result = vec![address];
+    fn get_addresses_from_object(&self, address: usize, tags: usize) -> Vec<usize> {
+        let props_address: usize = *self.memory.get_t(address).unwrap();
+        let length: usize = *self.memory.get_t(props_address).unwrap();
+        let mut result = vec![address, props_address, tags];
         let pairs = self.memory
-            .get_vector::<(usize, Value)>(address + USIZE_SIZE,length * (VALUE_SIZE + USIZE_SIZE))
+            .get_vector::<(usize, Value)>(props_address + USIZE_SIZE,length * (VALUE_SIZE + USIZE_SIZE))
             .unwrap();
         for (string, value) in pairs {
             result.push(*string);
@@ -1459,7 +1457,7 @@ impl VM {
                 result.extend(self.get_addresses_from_array(*address, *capacity))
             }
             Value::String(a) => result.push(*a),
-            Value::Object { address, .. } => result.extend(self.get_addresses_from_object(*address)),
+            Value::Object { address, tags } => result.extend(self.get_addresses_from_object(*address, *tags)),
             _ => {}
         }
     }

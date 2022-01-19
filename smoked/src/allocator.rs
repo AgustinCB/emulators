@@ -35,8 +35,7 @@ impl FreeChunks {
             .free_chunks
             .binary_search_by(|(f, t)| (item.1 - item.0).cmp(&(t - f)))
         {
-            Ok(_) => return Err(AllocatorError::AddressAlreadyFreed { address: item.0 }.into()),
-            Err(pos) => {
+            Ok(pos)  | Err(pos) => {
                 self.free_chunks.insert(pos, item);
             }
         };
@@ -115,7 +114,8 @@ impl Allocator {
         size: usize,
         used_addresses: R,
     ) -> Result<usize, AllocatorError> {
-        if self.allocated_space > self.next_gc_pass {
+        let free_memory = self.capacity - self.allocated_space;
+        if self.allocated_space > self.next_gc_pass || size > free_memory {
             self.next_gc_pass += NEXT_GC_RATIO;
             self.collect_garbage(used_addresses)?;
         }
@@ -191,13 +191,20 @@ mod tests {
     }
 
     #[test]
+    fn it_should_try_to_run_garbage_collector_before_panicing() {
+        let mut allocator = Allocator::new(2);
+        allocator.malloc(2, std::iter::empty()).unwrap();
+        allocator.malloc(1, std::iter::empty()).unwrap();
+    }
+
+    #[test]
     #[should_panic(
         expected = "called `Result::unwrap()` on an `Err` value: NotEnoughMemory { intended: 1 }"
     )]
     fn it_should_error_if_trying_to_allocate_more_space_than_available() {
         let mut allocator = Allocator::new(2);
-        allocator.malloc(2, std::iter::empty()).unwrap();
-        allocator.malloc(1, std::iter::empty()).unwrap();
+        let res = allocator.malloc(2, std::iter::empty()).unwrap();
+        allocator.malloc(1, vec![res].into_iter()).unwrap();
     }
 
     #[test]
