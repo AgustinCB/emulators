@@ -17,7 +17,7 @@ path = "src/bin/smoke_assembler.rs"
 cpu = { path = "../cpu" }
 failure = "~0.1.2"
 log = "~0.4.8"
-sc = { git = "https://github.com/AgustinCB/syscall.rs", version = "0.2.3" }
+sc = { git = "https://github.com/AgustinCB/syscall.rs", rev = "3af491bae4f7dea97546d139c55212ff0334c65f" }
 
 [dev-dependencies]
 criterion = "0.3"

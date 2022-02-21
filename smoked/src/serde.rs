@@ -89,7 +89,8 @@ pub fn from_bytes(bytes: &[u8], stack_size: Option<usize>) -> VM {
         CompoundValue::SimpleValue(v)
     }).collect();
     let mut sizes = vec![];
-    let mut diffs = addresses.clone();
+    let mut diffs = addresses;
+    diffs.sort();
     diffs.push(memory_length);
     for (i, s) in diffs[1..].iter().enumerate() {
         sizes.push(s - diffs[i]);

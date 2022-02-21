@@ -1035,13 +1035,14 @@ impl VM {
                     Err(self.create_error(VMErrorType::PropertyDoesntExist(property.to_owned()))?)?
                 }
             };
+            let value = bytes[i].1;
             if let Value::Function { .. } = bytes[i].1 {
                 self.push(CompoundValue::PartialFunction {
-                    function: bytes[i].1,
+                    function: value,
                     arguments: vec![this_value]
                 })?;
             } else {
-                self.push(CompoundValue::SimpleValue(bytes[i].1))?;
+                self.push(CompoundValue::SimpleValue(value))?;
             }
         } else {
             Err(self.create_error(VMErrorType::ExpectedString)?)?;
