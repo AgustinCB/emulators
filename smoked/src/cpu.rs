@@ -834,12 +834,16 @@ impl VM {
     }
 
     fn set_local(&mut self, local: usize) -> Result<(), Error> {
-        let value = self.dereference_pop()?;
+        let value = self.pop()?;
         if self.sp - self.frames.last().unwrap().stack_offset == 0 {
             self.sp += local+1;
         }
         if let CompoundValue::SimpleValue(Value::Pointer(address)) = self.stack[self.frames.last().unwrap().stack_offset + local] {
-            self.memory.copy_t(&value, address);
+            if let CompoundValue::SimpleValue(Value::Pointer(_)) = &value {
+                self.memory.copy_t(&self.dereference_pointer(value)?, address);
+            } else {
+                self.memory.copy_t(&value, address);
+            }
             self.push(CompoundValue::SimpleValue(Value::Pointer(address)))?;
         } else {
             self.stack[self.frames.last().unwrap().stack_offset + local] = value.clone();
@@ -875,7 +879,9 @@ impl VM {
             } else {
                 return Err(Error::from(self.create_error(VMErrorType::ExpectedArray)?));
             };
-            self.globals.insert(global, CompoundValue::SimpleValue(Value::Function { ip, arity, uplifts: Some(address) }));
+            let global_value = CompoundValue::SimpleValue(Value::Function { ip, arity, uplifts: Some(address) });
+            self.globals.insert(global, global_value.clone());
+            self.push(global_value)?;
             Ok(())
         } else {
             Err(Error::from(self.create_error(VMErrorType::ExpectedFunction(function.unwrap()))?))
@@ -1057,7 +1063,7 @@ impl VM {
                 tags,
             }),
             CompoundValue::SimpleValue(Value::String(address)),
-            CompoundValue::SimpleValue(value),
+            value,
         ) = (self.dereference_pop()?, self.dereference_pop()?, self.pop()?)
         {
             let mut obj_address: usize = *self.memory.borrow_mut().get_t(obj_prop_address)?;
@@ -1093,11 +1099,19 @@ impl VM {
                     index
                 }
             };
-            self.memory.copy_t(
-                &value,
-                obj_address + USIZE_SIZE * 2 + index * (VALUE_SIZE + USIZE_SIZE),
-            );
-            self.push(CompoundValue::SimpleValue(value))?;
+            match &value {
+                CompoundValue::PartialFunction { function, .. } | CompoundValue::SimpleValue(function@Value::Function { .. }) =>
+                    self.memory.copy_t(
+                        function,
+                        obj_address + USIZE_SIZE * 2 + index * (VALUE_SIZE + USIZE_SIZE),
+                    ),
+                CompoundValue::SimpleValue(value) =>
+                    self.memory.copy_t(
+                        value,
+                        obj_address + USIZE_SIZE * 2 + index * (VALUE_SIZE + USIZE_SIZE),
+                    ),
+            }
+            self.push(value)?;
             self.push(CompoundValue::SimpleValue(Value::Object {
                 address: obj_prop_address,
                 tags,
